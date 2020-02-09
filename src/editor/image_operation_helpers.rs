@@ -2,12 +2,12 @@ use crate::editor::image_operation::{ImageSource, ImageOperationSource, SparseIm
 use crate::editor::Color;
 
 pub fn draw_block<T: ImageOperationSource>(update_op: &mut T,
-                                       center_x: i32,
-                                       center_y: i32,
-                                       side_half_width: i32,
-                                       color: Color,
-                                       undo: bool,
-                                       undo_image: &mut SparseImage) {
+                                           center_x: i32,
+                                           center_y: i32,
+                                           side_half_width: i32,
+                                           color: Color,
+                                           undo: bool,
+                                           undo_image: &mut SparseImage) {
     for y in (center_y - side_half_width)..(center_y + side_half_width + 1) {
         for x in (center_x - side_half_width)..(center_x + side_half_width + 1) {
             if x >= 0 && x < update_op.width() as i32 && y >= 0 && y < update_op.height() as i32 {

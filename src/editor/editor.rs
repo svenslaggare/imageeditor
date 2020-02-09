@@ -47,7 +47,7 @@ impl Editor {
         }
     }
 
-    pub fn apply_up(&mut self, op: ImageOperation) {
+    pub fn apply_op(&mut self, op: ImageOperation) {
         self.internal_apply_op(op);
         self.redo_stack.clear();
     }

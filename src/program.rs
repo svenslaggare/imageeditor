@@ -119,7 +119,7 @@ impl Program {
                     self.preview_image.update_operation();
                 }
                 Command::ApplyImageOp(op) => {
-                    self.editor.apply_up(op);
+                    self.editor.apply_op(op);
                 }
                 Command::UndoImageOp => {
                     self.editor.undo_op();
