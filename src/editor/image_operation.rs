@@ -96,7 +96,7 @@ impl ImageOperation {
             ImageOperation::SetPixel { x, y, color } => {
                 let width = update_op.width();
                 let height = update_op.height();
-                let original_color = (if *x >= 0 && *x < width as i32 && *y >= 0 && *y < height as i32 {
+                let original_color = if *x >= 0 && *x < width as i32 && *y >= 0 && *y < height as i32 {
                     let original_color = if undo {
                         Some(update_op.get_pixel(*x as u32, *y as u32))
                     } else {
@@ -107,7 +107,7 @@ impl ImageOperation {
                     original_color
                 } else {
                     None
-                });
+                };
 
                 original_color.map(|original_color| ImageOperation::SetPixel { x: *x, y: *y, color: original_color })
             }

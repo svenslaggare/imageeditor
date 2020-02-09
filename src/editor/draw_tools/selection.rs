@@ -82,6 +82,10 @@ impl DrawTool for SelectionDrawTool {
 
                 self.current_mouse_position = Some(mouse_position);
             }
+            glfw::WindowEvent::Key(Key::A, _, Action::Press, Modifiers::Control) => {
+                self.start_position = Some(Position::new(0.0, 0.0));
+                self.end_position = Some(Position::new(image.width() as f32, image.height() as f32));
+            }
             glfw::WindowEvent::Key(Key::Delete, _, Action::Press, _) => {
                 if let (Some(start_position), Some(end_position)) = (self.start_position.as_ref(), self.end_position.as_ref()) {
                     let (start_x, start_y, end_x, end_y) = get_valid_rectangle(start_position, end_position);
@@ -112,6 +116,24 @@ impl DrawTool for SelectionDrawTool {
                     if let Some(copied_image) = self.copied_image.as_ref() {
                         op = Some(ImageOperation::SetImage { start_x, start_y, image: copied_image.clone() });
                     }
+                }
+            }
+            glfw::WindowEvent::Key(Key::X, _, Action::Press, Modifiers::Control) => {
+                if let (Some(start_position), Some(end_position)) = (self.start_position.as_ref(), self.end_position.as_ref()) {
+                    let (start_x, start_y, end_x, end_y) = get_valid_rectangle(start_position, end_position);
+
+                    op = Some(ImageOperation::FillRectangle {
+                        start_x,
+                        start_y,
+                        end_x,
+                        end_y,
+                        color: image::Rgba([0, 0, 0, 0]),
+                    });
+
+                    self.copied_image = Some(sub_image(image, start_x, start_y, end_x, end_y));
+
+                    self.start_position = None;
+                    self.end_position = None;
                 }
             }
             _ => {}
