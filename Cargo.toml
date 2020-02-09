@@ -1,0 +1,15 @@
+[package]
+name = "imageeditor"
+version = "0.1.0"
+authors = ["Anton Jansson <anton_jansson@live.se>"]
+edition = "2018"
+
+[dependencies]
+glfw = "0.35.0"
+gl = "0.14.0"
+cgmath = "0.17.0"
+freetype-rs = { git = "https://github.com/PistonDevelopers/freetype-rs" }
+
+image = "0.22.4"
+
+itertools = "0.8.2"
