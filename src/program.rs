@@ -71,6 +71,20 @@ impl Program {
             glfw::WindowEvent::Key(Key::Y, _, Action::Press, Modifiers::Control) => {
                 self.command_buffer.push(Command::RedoImageOp);
             }
+            glfw::WindowEvent::Key(Key::S, _, Action::Press, Modifiers::Control) => {
+                match std::fs::File::create("output.png") {
+                    Ok(file) => {
+                        let writer = std::io::BufWriter::new(file);
+                        let encoder = image::png::PNGEncoder::new(writer);
+                        let image = self.editor.image();
+                        encoder.encode(image.get_image().as_ref(), image.width(), image.height(), image::ColorType::RGBA(8)).unwrap();
+                        println!("Saved image.");
+                    }
+                    Err(error) => {
+                        println!("Failed to save due to: {}.", error);
+                    }
+                }
+            }
             _ => {}
         }
     }

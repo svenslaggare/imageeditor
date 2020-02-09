@@ -33,6 +33,10 @@ impl Image {
         &self.texture
     }
 
+    pub fn get_image(&self) -> &image::RgbaImage {
+        &self.underlying_image
+    }
+
     pub fn get_pixel(&self, x: u32, y: u32) -> &Color {
         self.underlying_image.get_pixel(x, y)
     }
