@@ -5,7 +5,7 @@ use crate::rendering::prelude::Position;
 use crate::editor;
 use crate::command_buffer::Command;
 use crate::editor::draw_tools::{DrawTool, get_transformed_mouse_position, get_valid_rectangle};
-use crate::editor::image_operation::{ImageOperation, ImageOperationMarker};
+use crate::editor::image_operation::{ImageOperation, ImageOperationMarker, ImageSource};
 use crate::editor::image_operation_helpers::sub_image;
 use crate::editor::image::ImageUpdateOperation;
 

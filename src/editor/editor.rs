@@ -1,4 +1,4 @@
-use crate::editor::image_operation::{ImageOperation, ImageOperationMarker};
+use crate::editor::image_operation::{ImageOperation, ImageOperationMarker, ImageSource};
 use crate::editor::Image;
 
 pub struct Editor {

@@ -9,7 +9,7 @@ use crate::{editor, ui};
 use crate::rendering::shader::Shader;
 use crate::rendering::prelude::Position;
 use crate::rendering::texture_render::TextureRender;
-use crate::editor::image_operation::ImageOperation;
+use crate::editor::image_operation::{ImageOperation, ImageSource};
 use crate::editor::draw_tools::{DrawTool, create_draw_tools, DrawTools};
 
 pub struct Program {

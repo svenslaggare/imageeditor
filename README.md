@@ -1,4 +1,5 @@
 # ImageEditor
 Implementation:
 * Rust
-* OpenGL & GLFW
+* OpenGL
+* glfw

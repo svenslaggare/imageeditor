@@ -1,8 +1,7 @@
-use image::{GenericImageView, GenericImage, Rgba, DynamicImage};
+use image::{GenericImageView, GenericImage, Rgba};
 
 use crate::rendering::texture::Texture;
 use crate::editor::image_operation::{ImageOperationSource, ImageSource};
-use std::collections::HashMap;
 
 pub type Color = Rgba<u8>;
 
@@ -21,24 +20,12 @@ impl Image {
         }
     }
 
-    pub fn width(&self) -> u32 {
-        self.underlying_image.width()
-    }
-
-    pub fn height(&self) -> u32 {
-        self.underlying_image.height()
-    }
-
     pub fn get_texture(&self) -> &Texture {
         &self.texture
     }
 
     pub fn get_image(&self) -> &image::RgbaImage {
         &self.underlying_image
-    }
-
-    pub fn get_pixel(&self, x: u32, y: u32) -> &Color {
-        self.underlying_image.get_pixel(x, y)
     }
 
     fn upload_to_gpu(&mut self) {
@@ -58,11 +45,11 @@ impl Image {
 
 impl ImageSource for Image {
     fn width(&self) -> u32 {
-        self.width()
+        self.underlying_image.width()
     }
 
     fn height(&self) -> u32 {
-        self.height()
+        self.underlying_image.height()
     }
 
     fn get_pixel(&self, x: u32, y: u32) -> Color {
@@ -87,10 +74,6 @@ impl<'a> ImageUpdateOperation<'a> {
 
     pub fn raw_pixels_mut(&mut self) -> &mut [u8] {
         self.image.underlying_image.as_mut()
-    }
-
-    pub fn get_pixel_mut(&mut self, x: u32, y: u32) -> &mut Color {
-        self.image.underlying_image.get_pixel_mut(x, y)
     }
 
     pub fn get_image(&self) -> &Image {
