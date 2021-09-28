@@ -22,10 +22,7 @@ impl Manager {
         }
     }
 
-    pub fn render(&self,
-                  shader: &Shader,
-                  texture_render: &TextureRender,
-                  transform: &Matrix4<f32>) {
+    pub fn render(&self, shader: &Shader, texture_render: &TextureRender, transform: &Matrix4<f32>) {
         for button in &self.buttons {
             button.render(
                 &shader,

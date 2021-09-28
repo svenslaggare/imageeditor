@@ -36,8 +36,8 @@ fn setup_window(width: u32, height: u32) -> (Glfw, Window, Receiver<(f64, Window
         width,
         height,
         "ImageEditor",
-        glfw::WindowMode::Windowed)
-        .expect("Failed to create GLFW window");
+        glfw::WindowMode::Windowed
+    ).expect("Failed to create GLFW window");
 
     window.make_current();
 
@@ -81,7 +81,7 @@ fn main() {
     let shader = Shader::new("content/shaders/texture.vs", "content/shaders/texture.fs", None).unwrap();
     let texture_render = TextureRender::new();
 
-    let target_fps = 30.0;
+    let target_fps = 60.0;
 
     while !window.should_close() {
         let frame_start_draw = std::time::Instant::now();
@@ -104,14 +104,15 @@ fn main() {
 
         program.render(&shader, &texture_render, &transform);
 
+        window.swap_buffers();
+        glfw.poll_events();
+
         let duration = (std::time::Instant::now() - frame_start_draw).as_millis() as f32 / 1000.0;
         let mut wait_time = (1.0 / target_fps - duration) as f32;
         if wait_time < 0.0 {
             wait_time = 0.0;
         }
 
-        window.swap_buffers();
-        glfw.poll_events();
         std::thread::sleep(std::time::Duration::from_nanos((1.0E9 * wait_time) as u64));
     }
 }

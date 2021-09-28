@@ -12,41 +12,60 @@ pub type ButtonAction = Box<dyn Fn(&mut CommandBuffer)>;
 pub struct Button {
     texture: Texture,
     position: Position,
-    action: ButtonAction
+    left_click_action: Option<ButtonAction>,
+    right_click_action: Option<ButtonAction>
 }
 
 impl Button {
-    pub fn new(image: &image::RgbaImage, position: Position, action: ButtonAction) -> Button {
+    pub fn new(image: &image::RgbaImage,
+               position: Position,
+               left_click_action: Option<ButtonAction>,
+               right_click_action: Option<ButtonAction>) -> Button {
         Button {
             texture: Texture::from_image(image),
             position,
-            action
+            left_click_action,
+            right_click_action
         }
     }
 
     pub fn process_event(&mut self, window: &mut glfw::Window, event: &glfw::WindowEvent, command_buffer: &mut CommandBuffer) {
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Release, _) => {
-                let bounding_rectangle = Rectangle::new(
-                    self.position.x,
-                    self.position.y,
-                    self.texture.width() as f32,
-                    self.texture.height() as f32
-                );
+                if let Some(left_click_action) = self.left_click_action.as_ref() {
+                    let bounding_rectangle = Rectangle::new(
+                        self.position.x,
+                        self.position.y,
+                        self.texture.width() as f32,
+                        self.texture.height() as f32
+                    );
 
-                let mouse_position = window.get_cursor_pos();
-                if bounding_rectangle.contains(&Position::new(mouse_position.0 as f32, mouse_position.1 as f32)) {
-                    (self.action)(command_buffer);
+                    let mouse_position = window.get_cursor_pos();
+                    if bounding_rectangle.contains(&Position::new(mouse_position.0 as f32, mouse_position.1 as f32)) {
+                        (left_click_action)(command_buffer);
+                    }
+                }
+            }
+            glfw::WindowEvent::MouseButton(glfw::MouseButton::Button2, Action::Release, _) => {
+                if let Some(right_click_action) = self.right_click_action.as_ref() {
+                    let bounding_rectangle = Rectangle::new(
+                        self.position.x,
+                        self.position.y,
+                        self.texture.width() as f32,
+                        self.texture.height() as f32
+                    );
+
+                    let mouse_position = window.get_cursor_pos();
+                    if bounding_rectangle.contains(&Position::new(mouse_position.0 as f32, mouse_position.1 as f32)) {
+                        (right_click_action)(command_buffer);
+                    }
                 }
             }
             _ => {}
         }
     }
 
-    pub fn render(&self,
-                  shader: &Shader,
-                  texture_render: &TextureRender,
-                  transform: &Matrix4<f32>) {
+    pub fn render(&self, shader: &Shader, texture_render: &TextureRender, transform: &Matrix4<f32>) {
         texture_render.render(
             &shader,
             &transform,

@@ -93,6 +93,46 @@ pub fn draw_line<F: FnMut(i32, i32)>(x1: i32, y1: i32, x2: i32, y2: i32, mut set
     }
 }
 
+pub fn draw_circle<F: FnMut(i32, i32)>(center_x: i32, center_y: i32, radius: i32, filled: bool, mut set_pixel: F) {
+    let mut draw_circle_internal = |xc: i32, yc: i32, x: i32, y: i32| {
+        if filled {
+            draw_line(xc - x, yc + y, xc + x, yc + y, |x, y| set_pixel(x, y));
+            draw_line(xc - x, yc - y, xc + x, yc - y, |x, y| set_pixel(x, y));
+            draw_line(xc - y, yc + x, xc + y, yc + x, |x, y| set_pixel(x, y));
+            draw_line(xc - y, yc - x, xc + y, yc - x, |x, y| set_pixel(x, y));
+        } else {
+            set_pixel(xc - x, yc + y);
+            set_pixel(xc + x, yc + y);
+
+            set_pixel(xc - x, yc - y);
+            set_pixel(xc + x, yc - y);
+
+            set_pixel(xc - y, yc + x);
+            set_pixel(xc + y, yc + x);
+
+            set_pixel(xc - y, yc - x);
+            set_pixel(xc + y, yc - x);
+        }
+    };
+
+    let mut x = 0;
+    let mut y = radius;
+    let mut d = 3 - 2 * radius;
+    draw_circle_internal(center_x, center_y, x, y);
+    while y >= x {
+        x += 1;
+
+        if d > 0 {
+            y -= 1;
+            d += 4 * (x - y) + 10;
+        } else {
+            d += 4 * x + 6;
+        }
+
+        draw_circle_internal(center_x, center_y, x, y);
+    }
+}
+
 pub fn sub_image<T: ImageSource>(image: &T, min_x: i32, min_y: i32, max_x: i32, max_y: i32) -> image::RgbaImage {
     let min_x = std::cmp::max(min_x, 0);
     let min_y = std::cmp::max(min_y, 0);
@@ -110,4 +150,59 @@ pub fn sub_image<T: ImageSource>(image: &T, min_x: i32, min_y: i32, max_x: i32, 
     }
 
     sub_image
+}
+
+pub fn hsv_to_rgb(H: f64, S: f64, V: f64) -> Option<Color> {
+    if H > 360.0 || H < 0.0 || S > 100.0 || S < 0.0 || V > 100.0 || V < 0.0 {
+        return None;
+    }
+
+    let s = S / 100.0;
+    let v = V / 100.0;
+    let C = s * v;
+    let X = C * (1.0 - (fmod(H / 60.0, 2.0) - 1.0).abs());
+    let m = v - C;
+    let mut r = 0.0;
+    let mut g = 0.0;
+    let mut b = 0.0;
+
+    if H >= 0.0 && H < 60.0 {
+        r = C;
+        g = X;
+        b = 0.0;
+    } else if H >= 60.0 && H < 120.0 {
+        r = X;
+        g = C;
+        b = 0.0;
+    } else if H >= 120.0 && H < 180.0 {
+        r = 0.0;
+        g = C;
+        b = X;
+    } else if H >= 180.0 && H < 240.0 {
+        r = 0.0;
+        g = X;
+        b = C;
+    } else if H >= 240.0 && H < 300.0 {
+        r = X;
+        g = 0.0;
+        b = C;
+    } else {
+        r = C;
+        g = 0.0;
+        b = X;
+    }
+
+    Some(
+        image::Rgba([
+            ((r + m) * 255.0) as u8,
+            ((g + m) * 255.0) as u8,
+            ((b + m) * 255.0) as u8,
+            255
+        ])
+    )
+}
+
+fn fmod(numer: f64, denom: f64) -> f64 {
+    let rquot: f64 = (numer / denom).floor();
+    numer - rquot * denom
 }

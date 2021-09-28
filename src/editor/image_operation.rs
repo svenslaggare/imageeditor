@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::editor::image::{Color};
-use crate::editor::image_operation_helpers::{sub_image, draw_block, draw_line};
+use crate::editor::image_operation_helpers::{sub_image, draw_block, draw_line, draw_circle};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum ImageOperationMarker {
@@ -22,7 +22,9 @@ pub enum ImageOperation {
     DrawBlock { x: i32, y: i32, color: Color, side_half_width: i32 },
     DrawLine { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, side_half_width: i32 },
     FillRectangle { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color },
-    DrawRectangle { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color }
+    DrawRectangle { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color },
+    DrawCircle { center_x: i32, center_y: i32, radius: i32, border_side_half_width: i32, color: Color },
+    FillCircle { center_x: i32, center_y: i32, radius: i32, color: Color }
 }
 
 pub trait ImageSource {
@@ -164,13 +166,14 @@ impl ImageOperation {
             ImageOperation::DrawRectangle { start_x, start_y, end_x, end_y, color } => {
                 let mut undo_ops = Vec::new();
 
+                let side_half_width = 0;
                 undo_ops.push(ImageOperation::DrawLine {
                     start_x: start_x.clone(),
                     start_y: start_y.clone(),
                     end_x: end_x.clone(),
                     end_y: start_y.clone(),
                     color: color.clone(),
-                    side_half_width: 0
+                    side_half_width
                 }.apply(update_op, undo));
 
                 undo_ops.push(ImageOperation::DrawLine {
@@ -179,7 +182,7 @@ impl ImageOperation {
                     end_x: end_x.clone(),
                     end_y: end_y.clone(),
                     color: color.clone(),
-                    side_half_width: 0
+                    side_half_width
                 }.apply(update_op, undo));
 
                 undo_ops.push(ImageOperation::DrawLine {
@@ -188,7 +191,7 @@ impl ImageOperation {
                     end_x: start_x.clone(),
                     end_y: end_y.clone(),
                     color: color.clone(),
-                    side_half_width: 0
+                    side_half_width
                 }.apply(update_op, undo));
 
                 undo_ops.push(ImageOperation::DrawLine {
@@ -197,13 +200,51 @@ impl ImageOperation {
                     end_x: start_x.clone(),
                     end_y: start_y.clone(),
                     color: color.clone(),
-                    side_half_width: 0
+                    side_half_width
                 }.apply(update_op, undo));
 
                 let mut undo_ops = undo_ops.into_iter().flatten().collect::<Vec<_>>();
                 if !undo_ops.is_empty() {
                     undo_ops.reverse();
                     Some(ImageOperation::Sequential(undo_ops))
+                } else {
+                    None
+                }
+            }
+            ImageOperation::DrawCircle { center_x, center_y, radius, border_side_half_width, color } => {
+                let mut undo_image = SparseImage::new();
+
+                draw_circle(
+                    *center_x,
+                    *center_y,
+                    *radius,
+                    false,
+                    |center_x: i32, center_y: i32| {
+                        draw_block(update_op, center_x, center_y, *border_side_half_width, *color, undo, &mut undo_image);
+                    }
+                );
+
+                if undo {
+                    Some(ImageOperation::SetImageSparse { image: undo_image })
+                } else {
+                    None
+                }
+            }
+            ImageOperation::FillCircle { center_x, center_y, radius, color } => {
+                let mut undo_image = SparseImage::new();
+
+                draw_circle(
+                    *center_x,
+                    *center_y,
+                    *radius,
+                    true,
+                    |center_x: i32, center_y: i32| {
+                        draw_block(update_op, center_x, center_y, 0, *color, undo, &mut undo_image);
+                    }
+                );
+
+                if undo {
+                    Some(ImageOperation::SetImageSparse { image: undo_image })
                 } else {
                     None
                 }

@@ -1,4 +1,5 @@
 use glfw::WindowEvent;
+
 use cgmath::{Matrix3, Transform};
 
 use crate::command_buffer::Command;
@@ -10,6 +11,7 @@ use crate::editor::draw_tools::line::LineDrawTool;
 use crate::editor::draw_tools::rectangle::RectangleDrawTool;
 use crate::editor::draw_tools::selection::SelectionDrawTool;
 use crate::editor::draw_tools::effect::EffectDrawTool;
+use crate::editor::draw_tools::circle::CircleDrawTool;
 
 pub trait DrawTool {
     fn on_active(&mut self) {
@@ -34,6 +36,7 @@ pub trait DrawTool {
 pub mod pencil;
 pub mod line;
 pub mod rectangle;
+pub mod circle;
 pub mod selection;
 pub mod effect;
 
@@ -65,8 +68,9 @@ pub enum DrawTools {
     Pencil = 0,
     Line = 1,
     Rectangle = 2,
-    Selection = 3,
-    Effect = 4,
+    Circle = 3,
+    Selection = 4,
+    Effect = 5,
 }
 
 pub fn create_draw_tools() -> Vec<Box<dyn DrawTool>> {
@@ -74,6 +78,7 @@ pub fn create_draw_tools() -> Vec<Box<dyn DrawTool>> {
         Box::new(PencilDrawTool::new()),
         Box::new(LineDrawTool::new()),
         Box::new(RectangleDrawTool::new()),
+        Box::new(CircleDrawTool::new()),
         Box::new(SelectionDrawTool::new()),
         Box::new(EffectDrawTool::new("content/shaders/sample.fs"))
     ]

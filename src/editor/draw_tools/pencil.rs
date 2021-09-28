@@ -20,7 +20,7 @@ impl PencilDrawTool {
             is_drawing: false,
             prev_mouse_position: None,
             color: image::Rgba([255, 0, 0, 255]),
-            side_half_width: 0
+            side_half_width: 1
         }
     }
 }
