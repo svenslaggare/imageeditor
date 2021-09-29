@@ -12,6 +12,15 @@ use crate::editor::draw_tools::rectangle::RectangleDrawTool;
 use crate::editor::draw_tools::selection::SelectionDrawTool;
 use crate::editor::draw_tools::effect::EffectDrawTool;
 use crate::editor::draw_tools::circle::CircleDrawTool;
+use crate::editor::draw_tools::bucket_fill::BucketFillDrawTool;
+
+pub mod pencil;
+pub mod line;
+pub mod rectangle;
+pub mod circle;
+pub mod bucket_fill;
+pub mod selection;
+pub mod effect;
 
 pub trait DrawTool {
     fn on_active(&mut self) {
@@ -32,13 +41,6 @@ pub trait DrawTool {
 
     fn preview(&mut self, image: &editor::Image, preview_image: &mut editor::Image) -> bool;
 }
-
-pub mod pencil;
-pub mod line;
-pub mod rectangle;
-pub mod circle;
-pub mod selection;
-pub mod effect;
 
 pub fn get_valid_rectangle(start_position: &Position, end_position: &Position) -> (i32, i32, i32, i32) {
     let mut start_x = start_position.x as i32;
@@ -70,7 +72,8 @@ pub enum DrawTools {
     Rectangle = 2,
     Circle = 3,
     Selection = 4,
-    Effect = 5,
+    BucketFill = 5,
+    // Effect = ?,
 }
 
 pub fn create_draw_tools() -> Vec<Box<dyn DrawTool>> {
@@ -80,6 +83,7 @@ pub fn create_draw_tools() -> Vec<Box<dyn DrawTool>> {
         Box::new(RectangleDrawTool::new()),
         Box::new(CircleDrawTool::new()),
         Box::new(SelectionDrawTool::new()),
-        Box::new(EffectDrawTool::new("content/shaders/sample.fs"))
+        Box::new(BucketFillDrawTool::new()),
+        // Box::new(EffectDrawTool::new("content/shaders/sample.fs")),
     ]
 }

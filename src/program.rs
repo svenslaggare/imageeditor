@@ -76,21 +76,6 @@ impl Program {
 
     fn process_internal_events(&mut self, event: &glfw::WindowEvent) {
         match event {
-            glfw::WindowEvent::Key(Key::F1, _, Action::Press, _) => {
-                self.command_buffer.push(Command::SetDrawTool(DrawTools::Pencil));
-            }
-            glfw::WindowEvent::Key(Key::F2, _, Action::Press, _) => {
-                self.command_buffer.push(Command::SetDrawTool(DrawTools::Line));
-            }
-            glfw::WindowEvent::Key(Key::F3, _, Action::Press, _) => {
-                self.command_buffer.push(Command::SetDrawTool(DrawTools::Rectangle));
-            }
-            glfw::WindowEvent::Key(Key::F4, _, Action::Press, _) => {
-                self.command_buffer.push(Command::SetDrawTool(DrawTools::Selection));
-            }
-            glfw::WindowEvent::Key(Key::F5, _, Action::Press, _) => {
-                self.command_buffer.push(Command::SetDrawTool(DrawTools::Effect));
-            }
             glfw::WindowEvent::Key(Key::Z, _, Action::Press, Modifiers::Control) => {
                 self.command_buffer.push(Command::UndoImageOp);
             }

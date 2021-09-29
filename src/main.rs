@@ -7,6 +7,7 @@ use gl::types::*;
 use image::{GenericImageView, DynamicImage, RgbaImage};
 
 mod program;
+mod helpers;
 mod command_buffer;
 mod rendering;
 mod ui;

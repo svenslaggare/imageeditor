@@ -1,5 +1,7 @@
 use crate::editor::image_operation::{ImageSource, ImageOperationSource, SparseImage};
 use crate::editor::Color;
+use std::collections::{HashSet, VecDeque};
+use crate::helpers::TimeMeasurement;
 
 pub fn draw_block<T: ImageOperationSource>(update_op: &mut T,
                                            center_x: i32,
@@ -137,6 +139,46 @@ pub fn fill_rectangle<F: FnMut(i32, i32)>(min_x: i32, min_y: i32, max_x: i32, ma
     for y in min_y..max_y {
         for x in min_x..max_x {
             set_pixel(x, y);
+        }
+    }
+}
+
+pub fn bucket_fill<T: ImageOperationSource>(update_op: &mut T,
+                                            start_x: i32, start_y: i32,
+                                            fill_color: Color,
+                                            undo: bool,
+                                            undo_image: &mut SparseImage) {
+    let _tm = TimeMeasurement::new("bucket fill");
+    let width = update_op.width() as i32;
+    let height = update_op.height() as i32;
+
+    if start_x >= 0 && start_x < width && start_y >= 0 && start_y < height {
+        let ref_color = update_op.get_pixel(start_x as u32, start_y as u32);
+
+        let mut stack = Vec::new();
+        stack.push((start_x, start_y, ref_color));
+
+        let mut visited = vec![false; (update_op.width() * update_op.height()) as usize];
+        while let Some((x, y, color)) = stack.pop() {
+            if undo && !undo_image.contains_key(&(x as u32, y as u32)) {
+                undo_image.insert((x as u32, y as u32), color);
+            }
+
+            update_op.put_pixel(x as u32, y as u32, fill_color);
+            visited[(y * width + x) as usize] = true;
+
+            for ny in (y - 1)..(y + 2) {
+                for nx in (x - 1)..(x + 2) {
+                    if nx >= 0 && nx < width && ny >= 0 && ny < height {
+                        if !visited[(ny * width + nx) as usize] {
+                            let color = update_op.get_pixel(nx as u32, ny as u32);
+                            if color == ref_color {
+                                stack.push((nx, ny, color));
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

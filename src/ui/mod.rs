@@ -96,10 +96,10 @@ fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
 
     texture_buttons.push(TextButton::new(
         font.clone(),
-        "E".to_owned(),
+        "BF".to_owned(),
         layout.next().unwrap(),
         Some(Box::new(|command_buffer| {
-            command_buffer.push(Command::SetDrawTool(DrawTools::Effect));
+            command_buffer.push(Command::SetDrawTool(DrawTools::BucketFill));
         })),
         None,
         None

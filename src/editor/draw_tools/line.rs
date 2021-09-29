@@ -7,7 +7,6 @@ use crate::command_buffer::Command;
 use crate::editor::draw_tools::{DrawTool};
 use crate::editor::image_operation::{ImageOperation};
 
-
 pub struct LineDrawTool {
     current_mouse_position: Option<Position>,
     start_position: Option<Position>,
