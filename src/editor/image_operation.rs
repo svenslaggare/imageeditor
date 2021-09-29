@@ -12,12 +12,46 @@ pub enum ImageOperationMarker {
 pub type SparseImage = HashMap<(u32, u32), Color>;
 
 #[derive(Debug)]
+pub struct OptionalImage {
+    width: u32,
+    height: u32,
+    data: Vec<Option<Color>>
+}
+
+impl OptionalImage {
+    pub fn new(width: u32, height: u32) -> OptionalImage {
+        OptionalImage {
+            width,
+            height,
+            data: vec![None; (width * height) as usize]
+        }
+    }
+
+    pub fn contains_key(&self, key: &(u32, u32)) -> bool {
+        let (x, y) = key;
+        if *x < self.width && *y < self.height {
+            self.data[(y * self.width + x) as usize].is_some()
+        } else {
+            false
+        }
+    }
+
+    pub fn insert(&mut self, key: (u32, u32), color: Color) {
+        let (x, y) = key;
+        if x < self.width && y < self.height {
+            self.data[(y * self.width + x) as usize] = Some(color);
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum ImageOperation {
     Empty,
     Marker(ImageOperationMarker),
     Sequential(Vec<ImageOperation>),
     SetImageSparse { image: SparseImage },
     SetImage { start_x: i32, start_y: i32, image: image::RgbaImage },
+    SetOptionalImage { image: OptionalImage },
     SetPixel { x: i32, y: i32, color: Color },
     DrawBlock { x: i32, y: i32, color: Color, side_half_width: i32 },
     DrawLine { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, side_half_width: i32 },
@@ -85,7 +119,7 @@ impl ImageOperation {
                     None
                 };
 
-                for y in 0.. image.height() {
+                for y in 0..image.height() {
                     for x in 0..image.width() {
                         let image_x = *start_x + x as i32;
                         let image_y = *start_y + y as i32;
@@ -97,6 +131,17 @@ impl ImageOperation {
                 }
 
                 undo_image.map(|image| ImageOperation::SetImage { start_x: *start_x, start_y: *start_y, image })
+            }
+            ImageOperation::SetOptionalImage { image } => {
+                for y in 0..image.height {
+                    for x in 0..image.width {
+                        if let Some(color) = image.data[(y * image.width + x) as usize] {
+                            update_op.put_pixel(x, y, color);
+                        }
+                    }
+                }
+
+                None
             }
             ImageOperation::SetPixel { x, y, color } => {
                 let width = update_op.width();
@@ -254,7 +299,7 @@ impl ImageOperation {
                 }
             }
             ImageOperation::BucketFill { start_x, start_y, fill_color } => {
-                let mut undo_image = SparseImage::new();
+                let mut undo_image = OptionalImage::new(update_op.width(), update_op.height());
 
                 bucket_fill(
                     update_op,
@@ -266,7 +311,7 @@ impl ImageOperation {
                 );
 
                 if undo {
-                    Some(ImageOperation::SetImageSparse { image: undo_image })
+                    Some(ImageOperation::SetOptionalImage { image: undo_image })
                 } else {
                     None
                 }

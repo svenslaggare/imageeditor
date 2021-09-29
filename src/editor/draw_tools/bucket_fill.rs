@@ -9,20 +9,14 @@ use crate::editor::image_operation::{ImageOperation};
 
 pub struct BucketFillDrawTool {
     color: editor::Color,
+    alternative_color: editor::Color
 }
 
 impl BucketFillDrawTool {
     pub fn new() -> BucketFillDrawTool {
         BucketFillDrawTool {
-            color: image::Rgba([255, 0, 0, 255]),
-        }
-    }
-
-    fn create_op(&self, position: &Position) -> ImageOperation {
-        ImageOperation::BucketFill {
-            start_x: position.x as i32,
-            start_y: position.y as i32,
-            fill_color: self.color,
+            color: image::Rgba([0, 0, 0, 255]),
+            alternative_color: image::Rgba([0, 0, 0, 255]),
         }
     }
 }
@@ -32,6 +26,9 @@ impl DrawTool for BucketFillDrawTool {
         match command {
             Command::SetColor(color) => {
                 self.color = *color;
+            }
+            Command::SetAlternativeColor(color) => {
+                self.alternative_color = *color;
             }
             _ => {}
         }
@@ -47,7 +44,23 @@ impl DrawTool for BucketFillDrawTool {
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
                 let mouse_position = get_transformed_mouse_position(window, transform);
-                op = Some(self.create_op(&mouse_position));
+                op = Some(
+                    ImageOperation::BucketFill {
+                        start_x: mouse_position.x as i32,
+                        start_y: mouse_position.y as i32,
+                        fill_color: self.color,
+                    }
+                );
+            }
+            glfw::WindowEvent::MouseButton(glfw::MouseButton::Button2, Action::Press, _) => {
+                let mouse_position = get_transformed_mouse_position(window, transform);
+                op = Some(
+                    ImageOperation::BucketFill {
+                        start_x: mouse_position.x as i32,
+                        start_y: mouse_position.y as i32,
+                        fill_color: self.alternative_color,
+                    }
+                );
             }
             _ => {}
         }

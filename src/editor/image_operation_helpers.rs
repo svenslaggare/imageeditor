@@ -1,4 +1,4 @@
-use crate::editor::image_operation::{ImageSource, ImageOperationSource, SparseImage};
+use crate::editor::image_operation::{ImageSource, ImageOperationSource, SparseImage, OptionalImage};
 use crate::editor::Color;
 use std::collections::{HashSet, VecDeque};
 use crate::helpers::TimeMeasurement;
@@ -147,7 +147,7 @@ pub fn bucket_fill<T: ImageOperationSource>(update_op: &mut T,
                                             start_x: i32, start_y: i32,
                                             fill_color: Color,
                                             undo: bool,
-                                            undo_image: &mut SparseImage) {
+                                            undo_image: &mut OptionalImage) {
     let _tm = TimeMeasurement::new("bucket fill");
     let width = update_op.width() as i32;
     let height = update_op.height() as i32;
