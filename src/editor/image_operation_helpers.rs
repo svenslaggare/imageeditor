@@ -133,6 +133,14 @@ pub fn draw_circle<F: FnMut(i32, i32)>(center_x: i32, center_y: i32, radius: i32
     }
 }
 
+pub fn fill_rectangle<F: FnMut(i32, i32)>(min_x: i32, min_y: i32, max_x: i32, max_y: i32, mut set_pixel: F) {
+    for y in min_y..max_y {
+        for x in min_x..max_x {
+            set_pixel(x, y);
+        }
+    }
+}
+
 pub fn sub_image<T: ImageSource>(image: &T, min_x: i32, min_y: i32, max_x: i32, max_y: i32) -> image::RgbaImage {
     let min_x = std::cmp::max(min_x, 0);
     let min_y = std::cmp::max(min_y, 0);

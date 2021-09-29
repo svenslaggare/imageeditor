@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::editor::image::{Color};
-use crate::editor::image_operation_helpers::{sub_image, draw_block, draw_line, draw_circle};
+use crate::editor::image_operation_helpers::{sub_image, draw_block, draw_line, draw_circle, fill_rectangle};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum ImageOperationMarker {
@@ -155,11 +155,11 @@ impl ImageOperation {
                     None
                 };
 
-                for y in min_y..max_y {
-                    for x in min_x..max_x {
-                        update_op.put_pixel(x as u32, y as u32, *color);
-                    }
-                }
+                fill_rectangle(
+                    min_x, min_y,
+                    max_x, max_y,
+                    |x, y| update_op.put_pixel(x as u32, y as u32, *color)
+                );
 
                 undo_image.map(|image| ImageOperation::SetImage { start_x: min_x, start_y: min_y, image })
             }
