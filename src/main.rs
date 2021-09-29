@@ -6,24 +6,13 @@ use gl::types::*;
 
 use image::{GenericImageView, DynamicImage, RgbaImage};
 
-use cgmath::{Matrix, Matrix4, Matrix3, Transform, SquareMatrix};
-
-use itertools::Itertools;
-
-use crate::rendering::prelude::*;
-use crate::rendering::texture::Texture;
-use crate::rendering::texture_render::TextureRender;
-use crate::rendering::shader::Shader;
-use crate::command_buffer::{CommandBuffer, Command};
-use crate::program::Program;
-use crate::rendering::text_render::TextRender;
-use crate::rendering::font::Font;
-
 mod program;
 mod command_buffer;
 mod rendering;
 mod ui;
 mod editor;
+
+use crate::program::Program;
 
 fn setup_window(width: u32, height: u32) -> (Glfw, Window, Receiver<(f64, WindowEvent)>) {
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();

@@ -1,16 +1,14 @@
 use std::time::SystemTime;
 
 use glfw::{Window, WindowEvent, Key, Action};
-use cgmath::{Matrix3, SquareMatrix};
+use cgmath::{Matrix3};
 
 use crate::rendering::prelude::Position;
 use crate::editor::draw_tools::DrawTool;
 use crate::command_buffer::Command;
-use crate::editor::image::ImageUpdateOperation;
 use crate::editor::Image;
-use crate::editor::image_operation::{ImageOperation, ImageOperationSource};
+use crate::editor::image_operation::{ImageOperation};
 use crate::rendering::shader::Shader;
-use crate::rendering::texture::Texture;
 use crate::editor;
 use crate::rendering::texture_render::TextureRender;
 use crate::rendering::framebuffer::FrameBuffer;
@@ -66,7 +64,7 @@ impl EffectDrawTool {
                 0.0,
                 width as f32,
                 0.0,
-                (height as f32),
+                height as f32,
                 0.0,
                 1.0
             );
@@ -119,7 +117,7 @@ impl DrawTool for EffectDrawTool {
         }
     }
 
-    fn process_event(&mut self, window: &mut Window, event: &WindowEvent, transform: &Matrix3<f32>, image: &Image) -> Option<ImageOperation> {
+    fn process_event(&mut self, _window: &mut Window, event: &WindowEvent, _transform: &Matrix3<f32>, image: &Image) -> Option<ImageOperation> {
         match event {
             glfw::WindowEvent::Key(Key::Enter, _, Action::Press, _) => {
                 if let Some(frame_buffer) = self.op_frame_buffer.as_ref() {

@@ -31,12 +31,11 @@ pub fn draw_line<F: FnMut(i32, i32)>(x1: i32, y1: i32, x2: i32, y2: i32, mut set
     let mut px = 2 * dy1 - dx1;
     let mut py = 2 * dx1 - dy1;
 
-    let mut x = 0;
-    let mut y = 0;
+    let mut x;
+    let mut y;
 
     if dy1 <= dx1 {
-        let mut end_x = 0;
-
+        let end_x;
         if dx >= 0 {
             x = x1;
             y = y1;
@@ -46,6 +45,7 @@ pub fn draw_line<F: FnMut(i32, i32)>(x1: i32, y1: i32, x2: i32, y2: i32, mut set
             y = y2;
             end_x = x1;
         }
+
         set_pixel(x, y);
 
         while x < end_x {
@@ -63,8 +63,7 @@ pub fn draw_line<F: FnMut(i32, i32)>(x1: i32, y1: i32, x2: i32, y2: i32, mut set
             set_pixel(x, y);
         }
     } else {
-        let mut end_y = 0;
-
+        let end_y;
         if dy >= 0 {
             x = x1;
             y = y1;
@@ -74,6 +73,7 @@ pub fn draw_line<F: FnMut(i32, i32)>(x1: i32, y1: i32, x2: i32, y2: i32, mut set
             y = y2;
             end_y = y1;
         }
+
         set_pixel(x, y);
 
         while y < end_y {
@@ -152,44 +152,44 @@ pub fn sub_image<T: ImageSource>(image: &T, min_x: i32, min_y: i32, max_x: i32, 
     sub_image
 }
 
-pub fn hsv_to_rgb(H: f64, S: f64, V: f64) -> Option<Color> {
-    if H > 360.0 || H < 0.0 || S > 100.0 || S < 0.0 || V > 100.0 || V < 0.0 {
+pub fn hsv_to_rgb(h: f64, s: f64, v: f64) -> Option<Color> {
+    if h > 360.0 || h < 0.0 || s > 100.0 || s < 0.0 || v > 100.0 || v < 0.0 {
         return None;
     }
 
-    let s = S / 100.0;
-    let v = V / 100.0;
-    let C = s * v;
-    let X = C * (1.0 - (fmod(H / 60.0, 2.0) - 1.0).abs());
-    let m = v - C;
-    let mut r = 0.0;
-    let mut g = 0.0;
-    let mut b = 0.0;
+    let s_scaled = s / 100.0;
+    let v_scaled = v / 100.0;
+    let c = s_scaled * v_scaled;
+    let x = c * (1.0 - (fmod(h / 60.0, 2.0) - 1.0).abs());
+    let m = v_scaled - c;
 
-    if H >= 0.0 && H < 60.0 {
-        r = C;
-        g = X;
+    let r;
+    let g;
+    let b;
+    if h >= 0.0 && h < 60.0 {
+        r = c;
+        g = x;
         b = 0.0;
-    } else if H >= 60.0 && H < 120.0 {
-        r = X;
-        g = C;
+    } else if h >= 60.0 && h < 120.0 {
+        r = x;
+        g = c;
         b = 0.0;
-    } else if H >= 120.0 && H < 180.0 {
+    } else if h >= 120.0 && h < 180.0 {
         r = 0.0;
-        g = C;
-        b = X;
-    } else if H >= 180.0 && H < 240.0 {
+        g = c;
+        b = x;
+    } else if h >= 180.0 && h < 240.0 {
         r = 0.0;
-        g = X;
-        b = C;
-    } else if H >= 240.0 && H < 300.0 {
-        r = X;
+        g = x;
+        b = c;
+    } else if h >= 240.0 && h < 300.0 {
+        r = x;
         g = 0.0;
-        b = C;
+        b = c;
     } else {
-        r = C;
+        r = c;
         g = 0.0;
-        b = X;
+        b = x;
     }
 
     Some(

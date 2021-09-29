@@ -33,7 +33,7 @@ impl Texture {
     }
 
     pub fn from_image(image: &image::RgbaImage) -> Texture {
-        let mut texture = Texture::new(image.width(), image.height(), 4);
+        let texture = Texture::new(image.width(), image.height(), 4);
         texture.upload(image.as_ref());
         texture
     }

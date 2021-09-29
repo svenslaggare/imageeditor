@@ -84,8 +84,8 @@ impl ImageOperation {
 
                 for y in 0.. image.height() {
                     for x in 0..image.width() {
-                        let image_x = (*start_x + x as i32);
-                        let image_y = (*start_y + y as i32);
+                        let image_x = *start_x + x as i32;
+                        let image_y = *start_y + y as i32;
 
                         if image_x >= 0 && image_x < update_op.width() as i32 && image_y >= 0 && image_y < update_op.height() as i32 {
                             update_op.put_pixel(image_x as u32, image_y as u32, *image.get_pixel(x, y));
@@ -262,7 +262,7 @@ impl ImageOperation {
 
     pub fn remove_markers(self) -> Self {
         match self {
-            ImageOperation::Marker(marker) => {
+            ImageOperation::Marker(_) => {
                 ImageOperation::Empty
             },
             ImageOperation::Sequential(ops) => {

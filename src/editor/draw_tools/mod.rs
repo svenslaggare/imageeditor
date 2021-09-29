@@ -63,7 +63,7 @@ pub fn get_transformed_mouse_position(window: &mut glfw::Window, transform: &Mat
 }
 
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DrawTools {
     Pencil = 0,
     Line = 1,

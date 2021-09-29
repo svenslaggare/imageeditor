@@ -1,4 +1,4 @@
-use image::{GenericImageView, GenericImage, Rgba};
+use image::{Rgba};
 
 use crate::rendering::texture::Texture;
 use crate::editor::image_operation::{ImageOperationSource, ImageSource};
@@ -12,7 +12,7 @@ pub struct Image {
 
 impl Image {
     pub fn new(image: image::RgbaImage) -> Image {
-        let mut texture = Texture::new(image.width(), image.height(), 4);
+        let texture = Texture::new(image.width(), image.height(), 4);
         texture.upload(image.as_ref());
         Image {
             underlying_image: image,

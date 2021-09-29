@@ -4,8 +4,8 @@ use cgmath::{Matrix3, Transform};
 use crate::rendering::prelude::Position;
 use crate::editor;
 use crate::command_buffer::Command;
-use crate::editor::draw_tools::{DrawTool, get_transformed_mouse_position};
-use crate::editor::image_operation::{ImageOperation, ImageOperationMarker};
+use crate::editor::draw_tools::{DrawTool};
+use crate::editor::image_operation::{ImageOperation};
 
 pub struct CircleDrawTool {
     current_mouse_position: Option<Position>,
@@ -65,10 +65,10 @@ impl DrawTool for CircleDrawTool {
     }
 
     fn process_event(&mut self,
-                     window: &mut glfw::Window,
+                     _window: &mut glfw::Window,
                      event: &WindowEvent,
                      transform: &Matrix3<f32>,
-                     image: &editor::Image) -> Option<ImageOperation> {
+                     _image: &editor::Image) -> Option<ImageOperation> {
         let mut op = None;
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
@@ -97,7 +97,7 @@ impl DrawTool for CircleDrawTool {
         return op;
     }
 
-    fn preview(&mut self, image: &editor::Image, preview_image: &mut editor::Image) -> bool {
+    fn preview(&mut self, _image: &editor::Image, preview_image: &mut editor::Image) -> bool {
         let mut update_op = preview_image.update_operation();
         if let (Some(start_position), Some(end_position)) = (self.start_position.as_ref(), self.end_position.as_ref()) {
             self.create_op(start_position, end_position).apply(&mut update_op, false);

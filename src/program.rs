@@ -9,16 +9,18 @@ use crate::{editor, ui};
 use crate::rendering::shader::Shader;
 use crate::rendering::prelude::Position;
 use crate::rendering::texture_render::TextureRender;
-use crate::editor::image_operation::{ImageOperation, ImageSource};
+use crate::editor::image_operation::{ImageSource};
 use crate::editor::draw_tools::{DrawTool, create_draw_tools, DrawTools};
 use crate::rendering::text_render::TextRender;
-use crate::rendering::font::Font;
+use crate::rendering::solid_rectangle_render::SolidRectangleRender;
 
 pub struct Program {
     texture_shader: Shader,
     texture_render: TextureRender,
     text_shader: Shader,
     text_render: TextRender,
+    solid_rectangle_shader: Shader,
+    solid_rectangle_render: SolidRectangleRender,
     command_buffer: CommandBuffer,
     editor: editor::Editor,
     ui_manager: ui::Manager,
@@ -36,12 +38,17 @@ impl Program {
         let texture_shader = Shader::new("content/shaders/texture.vs", "content/shaders/texture.fs", None).unwrap();
         let texture_render = TextureRender::new();
 
+        let solid_rectangle_shader = Shader::new("content/shaders/solid_rectangle.vs", "content/shaders/solid_rectangle.fs", None).unwrap();
+        let solid_rectangle_render = SolidRectangleRender::new();
+
         let text_shader = Shader::new("content/shaders/text.vs", "content/shaders/text.fs", None).unwrap();
         let text_render = TextRender::new();
 
         let mut program = Program {
             texture_shader,
             texture_render,
+            solid_rectangle_shader,
+            solid_rectangle_render,
             text_shader,
             text_render,
             command_buffer: CommandBuffer::new(),
@@ -53,6 +60,8 @@ impl Program {
         };
 
         program.command_buffer.push(Command::SetImageSize(width, height));
+        program.command_buffer.push(Command::SetColor(image::Rgba([255, 0, 0, 255])));
+        program.command_buffer.push(Command::SetAlternativeColor(image::Rgba([0, 0, 0, 255])));
 
         program
     }
@@ -124,7 +133,7 @@ impl Program {
                 event => {
                     self.process_internal_events(&event);
 
-                    self.ui_manager.process_event(window, &event, &mut self.command_buffer);
+                    self.ui_manager.process_gui_event(window, &event, &mut self.command_buffer);
 
                     let transform = self.image_area_transform().invert().unwrap();
                     let op = self.draw_tools[self.active_draw_tool as usize].process_event(
@@ -162,6 +171,8 @@ impl Program {
                     for draw_tool in &mut self.draw_tools {
                         draw_tool.handle_command(&command);
                     }
+
+                    self.ui_manager.process_command(&command);
                 }
             }
         }
@@ -180,6 +191,8 @@ impl Program {
         self.ui_manager.render(
             &self.texture_shader,
             &self.texture_render,
+            &self.solid_rectangle_shader,
+            &self.solid_rectangle_render,
             &self.text_shader,
             &self.text_render,
             &transform

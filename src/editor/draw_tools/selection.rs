@@ -4,10 +4,9 @@ use cgmath::{Matrix3, Transform};
 use crate::rendering::prelude::Position;
 use crate::editor;
 use crate::command_buffer::Command;
-use crate::editor::draw_tools::{DrawTool, get_transformed_mouse_position, get_valid_rectangle};
-use crate::editor::image_operation::{ImageOperation, ImageOperationMarker, ImageSource};
+use crate::editor::draw_tools::{DrawTool, get_valid_rectangle};
+use crate::editor::image_operation::{ImageOperation, ImageSource};
 use crate::editor::image_operation_helpers::sub_image;
-use crate::editor::image::ImageUpdateOperation;
 
 pub struct SelectionDrawTool {
     current_mouse_position: Option<Position>,
@@ -51,12 +50,12 @@ impl SelectionDrawTool {
 }
 
 impl DrawTool for SelectionDrawTool {
-    fn handle_command(&mut self, command: &Command) {
+    fn handle_command(&mut self, _command: &Command) {
 
     }
 
     fn process_event(&mut self,
-                     window: &mut Window,
+                     _window: &mut Window,
                      event: &WindowEvent,
                      transform: &Matrix3<f32>,
                      image: &editor::Image) -> Option<ImageOperation> {
@@ -142,7 +141,7 @@ impl DrawTool for SelectionDrawTool {
         return op;
     }
 
-    fn preview(&mut self, image: &editor::Image, preview_image: &mut editor::Image) -> bool {
+    fn preview(&mut self, _image: &editor::Image, preview_image: &mut editor::Image) -> bool {
         let mut update_op = preview_image.update_operation();
         if let (Some(start_position), Some(end_position)) = (self.start_position.as_ref(), self.end_position.as_ref()) {
             self.create_preview(start_position, end_position).apply(&mut update_op, false);

@@ -26,7 +26,7 @@ impl Editor {
 
     fn merge_draw_operations(&mut self) {
         for i in (0..self.undo_stack.len()).rev() {
-            let (op, undo_op) = &self.undo_stack[i];
+            let (op, _) = &self.undo_stack[i];
             if op.is_marker(ImageOperationMarker::BeginDraw) {
                 let (ops, mut undo_ops): (Vec<ImageOperation>, Vec<ImageOperation>) = self.undo_stack.drain(i..).unzip();
                 undo_ops.reverse();
