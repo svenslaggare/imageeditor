@@ -11,14 +11,20 @@ use crate::rendering::prelude::Position;
 use crate::rendering::texture_render::TextureRender;
 use crate::editor::image_operation::{ImageOperation, ImageSource};
 use crate::editor::draw_tools::{DrawTool, create_draw_tools, DrawTools};
+use crate::rendering::text_render::TextRender;
+use crate::rendering::font::Font;
 
 pub struct Program {
+    texture_shader: Shader,
+    texture_render: TextureRender,
+    text_shader: Shader,
+    text_render: TextRender,
     command_buffer: CommandBuffer,
     editor: editor::Editor,
     ui_manager: ui::Manager,
     draw_tools: Vec<Box<dyn DrawTool>>,
     active_draw_tool: DrawTools,
-    preview_image: editor::Image
+    preview_image: editor::Image,
 }
 
 impl Program {
@@ -26,7 +32,18 @@ impl Program {
         let preview_image = editor.new_image_same();
         let width = editor.image().width();
         let height = editor.image().height();
+
+        let texture_shader = Shader::new("content/shaders/texture.vs", "content/shaders/texture.fs", None).unwrap();
+        let texture_render = TextureRender::new();
+
+        let text_shader = Shader::new("content/shaders/text.vs", "content/shaders/text.fs", None).unwrap();
+        let text_render = TextRender::new();
+
         let mut program = Program {
+            texture_shader,
+            texture_render,
+            text_shader,
+            text_render,
             command_buffer: CommandBuffer::new(),
             editor,
             ui_manager,
@@ -150,17 +167,23 @@ impl Program {
         }
     }
 
-    pub fn render(&mut self, shader: &Shader, texture_render: &TextureRender, transform: &Matrix4<f32>) {
+    pub fn render(&mut self, transform: &Matrix4<f32>) {
         let origin = self.image_area_transform().transform_point(Position::new(0.0, 0.0));
 
-        texture_render.render(
-            &shader,
+        self.texture_render.render(
+            &self.texture_shader,
             &transform,
             self.editor.image().get_texture(),
             origin
         );
 
-        self.ui_manager.render(&shader, &texture_render, &transform);
+        self.ui_manager.render(
+            &self.texture_shader,
+            &self.texture_render,
+            &self.text_shader,
+            &self.text_render,
+            &transform
+        );
 
         let changed = {
             self.draw_tools[self.active_draw_tool as usize].preview(self.editor.image(), &mut self.preview_image)
@@ -170,8 +193,8 @@ impl Program {
             self.preview_image.clear_cpu();
         }
 
-        texture_render.render(
-            &shader,
+        self.texture_render.render(
+            &self.texture_shader,
             &transform,
             self.preview_image.get_texture(),
             origin

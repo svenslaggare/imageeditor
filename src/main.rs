@@ -16,6 +16,8 @@ use crate::rendering::texture_render::TextureRender;
 use crate::rendering::shader::Shader;
 use crate::command_buffer::{CommandBuffer, Command};
 use crate::program::Program;
+use crate::rendering::text_render::TextRender;
+use crate::rendering::font::Font;
 
 mod program;
 mod command_buffer;
@@ -65,7 +67,11 @@ fn main() {
         println!("Usage: ./imageeditor <filename>")
     }
 
-    let image_to_edit = image::open(&args[1]).unwrap().into_rgba();
+    // let image_to_edit = image::open(&args[1]).unwrap().into_rgba();
+
+    let width = 1280;
+    let height = 800;
+    let image_to_edit = image::RgbaImage::new(width, height);
 
     let (mut glfw, mut window, mut events) = setup_window(image_to_edit.width(), image_to_edit.height());
 
@@ -77,9 +83,6 @@ fn main() {
         ),
         ui::create(),
     );
-
-    let shader = Shader::new("content/shaders/texture.vs", "content/shaders/texture.fs", None).unwrap();
-    let texture_render = TextureRender::new();
 
     let target_fps = 60.0;
 
@@ -102,7 +105,7 @@ fn main() {
             1.0
         );
 
-        program.render(&shader, &texture_render, &transform);
+        program.render(&transform);
 
         window.swap_buffers();
         glfw.poll_events();

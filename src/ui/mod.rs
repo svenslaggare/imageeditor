@@ -1,3 +1,8 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
+use itertools::Itertools;
+
 pub mod manager;
 pub mod button;
 pub mod layout;
@@ -5,12 +10,23 @@ pub mod layout;
 pub use manager::Manager;
 pub use button::Button;
 
-use itertools::Itertools;
-
 use crate::command_buffer::{Command};
 use crate::rendering::prelude::Position;
 use crate::editor::draw_tools::DrawTools;
 use crate::editor::image_operation_helpers::hsv_to_rgb;
+use crate::ui::button::TextButton;
+use crate::rendering::font::{FontRef, Font};
+
+pub fn create() -> Manager {
+    let mut buttons = Vec::new();
+    let mut text_buttons = Vec::new();
+
+    // buttons.append(&mut generate_draw_tools());
+    text_buttons.append(&mut generate_draw_tools2());
+    buttons.append(&mut generate_color_palette());
+
+    Manager::new(buttons, text_buttons)
+}
 
 fn generate_draw_tools() -> Vec<Button> {
     let mut buttons = Vec::new();
@@ -78,6 +94,81 @@ fn generate_draw_tools() -> Vec<Button> {
     buttons
 }
 
+fn generate_draw_tools2() -> Vec<TextButton> {
+    let font = Rc::new(RefCell::new(Font::new("content/fonts/NotoMono-Regular.ttf", 24).unwrap()));
+    let line_height = font.borrow_mut().line_height();
+
+    let mut buttons = Vec::new();
+    let mut layout = layout::adaptive_rows(
+        Position::new(5.0, 5.0),
+        (40.0, line_height + 5.0),
+        40.0,
+        6
+    );
+
+    buttons.push(TextButton::new(
+        font.clone(),
+        "P".to_owned(),
+        layout.next().unwrap(),
+        Some(Box::new(|command_buffer| {
+            command_buffer.push(Command::SetDrawTool(DrawTools::Pencil));
+        })),
+        None
+    ));
+
+    buttons.push(TextButton::new(
+        font.clone(),
+        "L".to_owned(),
+        layout.next().unwrap(),
+        Some(Box::new(|command_buffer| {
+            command_buffer.push(Command::SetDrawTool(DrawTools::Line));
+        })),
+        None
+    ));
+
+    buttons.push(TextButton::new(
+        font.clone(),
+        "R".to_owned(),
+        layout.next().unwrap(),
+        Some(Box::new(|command_buffer| {
+            command_buffer.push(Command::SetDrawTool(DrawTools::Rectangle));
+        })),
+        None
+    ));
+
+    buttons.push(TextButton::new(
+        font.clone(),
+        "C".to_owned(),
+        layout.next().unwrap(),
+        Some(Box::new(|command_buffer| {
+            command_buffer.push(Command::SetDrawTool(DrawTools::Circle));
+        })),
+        None
+    ));
+
+    buttons.push(TextButton::new(
+        font.clone(),
+        "S".to_owned(),
+        layout.next().unwrap(),
+        Some(Box::new(|command_buffer| {
+            command_buffer.push(Command::SetDrawTool(DrawTools::Selection));
+        })),
+        None
+    ));
+
+    buttons.push(TextButton::new(
+        font.clone(),
+        "E".to_owned(),
+        layout.next().unwrap(),
+        Some(Box::new(|command_buffer| {
+            command_buffer.push(Command::SetDrawTool(DrawTools::Effect));
+        })),
+        None
+    ));
+
+    buttons
+}
+
 fn generate_color_palette() -> Vec<Button> {
     let mut buttons = Vec::new();
 
@@ -130,12 +221,4 @@ fn generate_color_palette() -> Vec<Button> {
     }
 
     buttons
-}
-
-pub fn create() -> Manager {
-    let mut buttons = Vec::new();
-    buttons.append(&mut generate_draw_tools());
-    buttons.append(&mut generate_color_palette());
-
-    Manager::new(buttons)
 }

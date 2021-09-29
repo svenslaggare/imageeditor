@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 use std::os::raw::c_void;
+use std::cell::{RefCell};
 
 use cgmath::{Point2};
+use std::rc::Rc;
 
 pub struct FontCharacter {
     pub size: Point2<i32>,
@@ -16,6 +18,71 @@ pub struct FontCharacter {
     pub texture_right: f32
 }
 
+pub struct Font {
+    filename: String,
+    size: u32,
+    characters: Vec<u32>,
+    font_map: FontMap,
+    line_height: f32
+}
+
+impl Font {
+    pub fn new(filename: &str, size: u32) -> Option<Font> {
+        let characters: Vec<u32> = (0..255).map(|x| x as u32).collect();
+        let font_map = FontMap::new(filename, size, &characters)?;
+
+        let mut line_height = 0.0f32;
+        for character in font_map.characters.values() {
+            line_height = character.line_height;
+            break;
+        }
+
+        Some(
+            Font {
+                filename: filename.to_string(),
+                size,
+                characters,
+                font_map,
+                line_height
+            }
+        )
+    }
+
+    pub fn texture_id(&self) -> u32 {
+        return self.font_map.texture_id;
+    }
+
+    pub fn get_only(&self, character: char) -> Option<&FontCharacter> {
+        self.font_map.characters.get(&character)
+    }
+
+    pub fn get(&mut self, character: char) -> Option<&FontCharacter> {
+        if !self.font_map.characters.contains_key(&character) {
+            self.characters.push(character as u32);
+            self.font_map = FontMap::new(&self.filename, self.size, &self.characters).unwrap();
+            println!("Re-created font map.");
+        }
+
+        self.get_only(character)
+    }
+
+    pub fn line_height(&self) -> f32 {
+        self.line_height
+    }
+
+    pub fn line_width(&mut self, text: &str) -> f32 {
+        let mut line_width = 0.0;
+        for character in text.chars() {
+            let font_character = self.get(character).unwrap();
+            line_width += font_character.advance_x;
+        }
+
+        line_width
+    }
+}
+
+pub type FontRef = Rc<RefCell<Font>>;
+
 struct FontMap {
     texture_id: u32,
     texture_width: u32,
@@ -24,9 +91,9 @@ struct FontMap {
 }
 
 impl FontMap {
-    fn new(filename: &str, size: u32, characters: &Vec<u32>) -> FontMap {
+    fn new(filename: &str, size: u32, characters: &Vec<u32>) -> Option<FontMap> {
         let library = freetype::Library::init().unwrap();
-        let face = library.new_face(filename, 0).unwrap();
+        let face = library.new_face(filename, 0).ok()?;
         face.set_pixel_sizes(0, size).unwrap();
 
         let mut font_characters = HashMap::new();
@@ -75,7 +142,8 @@ impl FontMap {
                     texture_left: character_offset as f32 / texture_width as f32,
                     texture_bottom: character_size.y as f32 / max_character_size as f32,
                     texture_right: (character_offset as f32 + character_size.x as f32) / texture_width as f32
-                });
+                }
+            );
         }
 
         let mut texture_id = 0;
@@ -101,12 +169,14 @@ impl FontMap {
                 &buffer[0] as *const u8 as *const c_void);
         }
 
-        FontMap {
-            texture_id,
-            texture_width,
-            texture_height,
-            characters: font_characters
-        }
+        Some(
+            FontMap {
+                texture_id,
+                texture_width,
+                texture_height,
+                characters: font_characters
+            }
+        )
     }
 }
 
@@ -115,56 +185,5 @@ impl Drop for FontMap {
         unsafe {
             gl::DeleteTextures(1, &self.texture_id);
         }
-    }
-}
-
-pub struct Font {
-    filename: String,
-    size: u32,
-    characters: Vec<u32>,
-    font_map: FontMap,
-    line_height: f32
-}
-
-impl Font {
-    pub fn new(filename: &str, size: u32) -> Font {
-        let characters: Vec<u32> = (0..255).map(|x| x as u32).collect();
-        let font_map = FontMap::new(filename, size, &characters);
-
-        let mut line_height = 0.0f32;
-        for character in font_map.characters.values() {
-            line_height = character.line_height;
-            break;
-        }
-
-        Font {
-            filename: filename.to_string(),
-            size,
-            characters,
-            font_map,
-            line_height
-        }
-    }
-
-    pub fn texture_id(&self) -> u32 {
-        return self.font_map.texture_id;
-    }
-
-    pub fn get_only(&self, character: char) -> Option<&FontCharacter> {
-        self.font_map.characters.get(&character)
-    }
-
-    pub fn get(&mut self, character: char) -> Option<&FontCharacter> {
-        if !self.font_map.characters.contains_key(&character) {
-            self.characters.push(character as u32);
-            self.font_map = FontMap::new(&self.filename, self.size, &self.characters);
-            println!("Re-created font map.");
-        }
-
-        self.get_only(character)
-    }
-
-    pub fn line_height(&self) -> f32 {
-        self.line_height
     }
 }
