@@ -70,11 +70,14 @@ impl TextureRender {
             gl::BindVertexArray(self.vertex_array);
             gl::BindBuffer(gl::ARRAY_BUFFER, self.vertex_buffer);
 
-            let source_rectangle = source_rectangle.unwrap_or(Rectangle::new(
-                0.0,
-                0.0,
-                texture.width() as f32,
-                texture.height() as f32));
+            let source_rectangle = source_rectangle.unwrap_or(
+                Rectangle::new(
+                    0.0,
+                    0.0,
+                    texture.width() as f32,
+                    texture.height() as f32
+                )
+            );
 
             let width = source_rectangle.size.x * scale;
             let height = source_rectangle.size.y * scale;
@@ -103,7 +106,8 @@ impl TextureRender {
                 gl::ARRAY_BUFFER,
                 0,
                 (BUFFER_SIZE * mem::size_of::<GLfloat>()) as GLsizeiptr,
-                &vertices[0] as *const f32 as *const c_void);
+                &vertices[0] as *const f32 as *const c_void
+            );
             gl::DrawArrays(gl::TRIANGLES, 0, NUM_VERTICES);
         }
     }

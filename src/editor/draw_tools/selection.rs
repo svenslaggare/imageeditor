@@ -88,13 +88,15 @@ impl DrawTool for SelectionDrawTool {
             glfw::WindowEvent::Key(Key::Delete, _, Action::Press, _) => {
                 if let (Some(start_position), Some(end_position)) = (self.start_position.as_ref(), self.end_position.as_ref()) {
                     let (start_x, start_y, end_x, end_y) = get_valid_rectangle(start_position, end_position);
-                    op = Some(ImageOperation::FillRectangle {
-                        start_x,
-                        start_y,
-                        end_x,
-                        end_y,
-                        color: image::Rgba([0, 0, 0, 0]),
-                    });
+                    op = Some(
+                        ImageOperation::FillRectangle {
+                            start_x,
+                            start_y,
+                            end_x,
+                            end_y,
+                            color: image::Rgba([0, 0, 0, 0]),
+                        }
+                    );
 
                     self.start_position = None;
                     self.end_position = None;
@@ -121,13 +123,15 @@ impl DrawTool for SelectionDrawTool {
                 if let (Some(start_position), Some(end_position)) = (self.start_position.as_ref(), self.end_position.as_ref()) {
                     let (start_x, start_y, end_x, end_y) = get_valid_rectangle(start_position, end_position);
 
-                    op = Some(ImageOperation::FillRectangle {
-                        start_x,
-                        start_y,
-                        end_x,
-                        end_y,
-                        color: image::Rgba([0, 0, 0, 0]),
-                    });
+                    op = Some(
+                        ImageOperation::FillRectangle {
+                            start_x,
+                            start_y,
+                            end_x,
+                            end_y,
+                            color: image::Rgba([0, 0, 0, 0]),
+                        }
+                    );
 
                     self.copied_image = Some(sub_image(image, start_x, start_y, end_x, end_y));
 

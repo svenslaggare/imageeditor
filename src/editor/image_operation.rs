@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::editor::image::{Color};
-use crate::editor::image_operation_helpers::{sub_image, draw_block, draw_line, draw_circle, fill_rectangle, bucket_fill};
+use crate::editor::image_operation_helpers::{sub_image, draw_block, draw_line, draw_circle, fill_rectangle, bucket_fill, draw_line_anti_aliased, draw_line_anti_aliased_thick};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum ImageOperationMarker {
@@ -173,14 +173,26 @@ impl ImageOperation {
             }
             ImageOperation::DrawLine { start_x, start_y, end_x, end_y, color, side_half_width } => {
                 let mut undo_image = SparseImage::new();
-                draw_line(
+                // draw_line(
+                //     *start_x,
+                //     *start_y,
+                //     *end_x,
+                //     *end_y,
+                //     |center_x: i32, center_y: i32| {
+                //         draw_block(update_op, center_x, center_y, *side_half_width, *color, undo, &mut undo_image);
+                //     }
+                // );
+
+                draw_line_anti_aliased_thick(
+                    update_op,
                     *start_x,
                     *start_y,
                     *end_x,
                     *end_y,
-                    |center_x: i32, center_y: i32| {
-                        draw_block(update_op, center_x, center_y, *side_half_width, *color, undo, &mut undo_image);
-                    }
+                    *side_half_width,
+                    *color,
+                    undo,
+                    &mut undo_image
                 );
 
                 if undo {

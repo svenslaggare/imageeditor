@@ -1,6 +1,9 @@
+use std::collections::{HashSet, VecDeque};
+
+use image::Pixel;
+
 use crate::editor::image_operation::{ImageSource, ImageOperationSource, SparseImage, OptionalImage};
 use crate::editor::Color;
-use std::collections::{HashSet, VecDeque};
 use crate::helpers::TimeMeasurement;
 
 pub fn draw_block<T: ImageOperationSource>(update_op: &mut T,
@@ -92,6 +95,238 @@ pub fn draw_line<F: FnMut(i32, i32)>(x1: i32, y1: i32, x2: i32, y2: i32, mut set
             }
             set_pixel(x, y);
         }
+    }
+}
+
+pub fn draw_line_anti_aliased<T: ImageOperationSource>(update_op: &mut T,
+                                                       mut x1: i32, mut y1: i32,
+                                                       mut x2: i32, mut y2: i32,
+                                                       color: Color,
+                                                       undo: bool,
+                                                       undo_image: &mut SparseImage) {
+    let fpart = |x: f32| x - x.floor();
+    let rfpart = |x: f32| 1.0 - fpart(x);
+    let ipart = |x: f32| x.floor() as i32;
+
+    let mut plot = |x: i32, y: i32, c: f32| {
+        if !(x >= 0 && x < update_op.width() as i32 && y >= 0 && y < update_op.height() as i32) {
+            return;
+        }
+
+        let pixel = update_op.get_pixel(x as u32, y as u32);
+        if undo && !undo_image.contains_key(&(x as u32, y as u32)) {
+            undo_image.insert((x as u32, y as u32), pixel);
+        }
+
+        let mut color = color;
+        color[3] = (color[3] as f32 * c).clamp(0.0, 255.0) as u8;
+
+        update_op.put_pixel(x as u32, y as u32, alpha_blend(color, pixel));
+    };
+
+    let steep = (y2 - y1).abs() > (x2 - x1).abs();
+
+    if steep {
+        std::mem::swap(&mut x1, &mut y1);
+        std::mem::swap(&mut x2, &mut y2);
+    }
+
+    if x1 > x2 {
+        std::mem::swap(&mut x1, &mut x2);
+        std::mem::swap(&mut y1, &mut y2);
+    }
+
+    let dx = x2 - x1;
+    let dy = y2 - y1;
+    let gradient = if dx == 0 {
+        1.0
+    } else {
+        dy as f32 / dx as f32
+    };
+
+    // handle first endpoint
+    let x_end = x1;
+    let y_end = y1 as f32 + gradient * (x_end - x1) as f32;
+    let x_gap = rfpart(x1 as f32 + 0.5);
+    let x_pixel1 = x_end;
+    let y_pixel1 = ipart(y_end);
+
+    if steep {
+        plot(y_pixel1, x_pixel1, rfpart(y_end) * x_gap);
+        plot(y_pixel1 + 1, x_pixel1, fpart(y_end) * x_gap);
+    } else {
+        plot(x_pixel1, y_pixel1, rfpart(y_end) * x_gap);
+        plot(x_pixel1, y_pixel1 + 1, fpart(y_end) * x_gap);
+    }
+
+    let mut intercept_y = y_end + gradient; // first y-intersection for the main loop
+
+    // handle second endpoint
+    let x_end = x2;
+    let y_end = y2 as f32 + gradient * (x_end - x2) as f32;
+    let x_gap = fpart(x2 as f32 + 0.5);
+    let x_pixel2 = x_end;
+    let y_pixel2 = ipart(y_end);
+
+    if steep {
+        plot(y_pixel2, x_pixel2, rfpart(y_end) * x_gap);
+        plot(y_pixel2 + 1, x_pixel2, fpart(y_end) * x_gap);
+    } else {
+        plot(x_pixel2, y_pixel2, rfpart(y_end) * x_gap);
+        plot(x_pixel2, y_pixel2 + 1, fpart(y_end) * x_gap);
+    }
+
+    // Main loop
+    if steep {
+        for x in (x_pixel1 + 1)..x_pixel2 {
+            plot(ipart(intercept_y), x, rfpart(intercept_y));
+            plot(ipart(intercept_y) + 1, x, fpart(intercept_y));
+            intercept_y = intercept_y + gradient;
+        }
+    } else {
+        for x in (x_pixel1 + 1)..x_pixel2 {
+            plot(x, ipart(intercept_y), rfpart(intercept_y));
+            plot(x, ipart(intercept_y) + 1, fpart(intercept_y));
+            intercept_y = intercept_y + gradient;
+        }
+    }
+}
+
+pub fn draw_line_anti_aliased_f32<T: ImageOperationSource>(update_op: &mut T,
+                                                           mut x1: f32, mut y1: f32,
+                                                           mut x2: f32, mut y2: f32,
+                                                           color: Color,
+                                                           blend: bool,
+                                                           undo: bool,
+                                                           undo_image: &mut SparseImage) {
+    let fpart = |x: f32| x - x.floor();
+    let rfpart = |x: f32| 1.0 - fpart(x);
+    let ipart = |x: f32| x.floor() as i32;
+
+    let mut plot = |x: i32, y: i32, c: f32| {
+        if !(x >= 0 && x < update_op.width() as i32 && y >= 0 && y < update_op.height() as i32) {
+            return;
+        }
+
+        let pixel = update_op.get_pixel(x as u32, y as u32);
+        if undo && !undo_image.contains_key(&(x as u32, y as u32)) {
+            undo_image.insert((x as u32, y as u32), pixel);
+        }
+
+        let color = if blend {
+            let mut color = color;
+            color[3] = (color[3] as f32 * c).clamp(0.0, 255.0) as u8;
+            alpha_blend(color, pixel)
+        } else {
+            color
+        };
+
+        update_op.put_pixel(x as u32, y as u32, color);
+    };
+
+    let steep = (y2 - y1).abs() > (x2 - x1).abs();
+
+    if steep {
+        std::mem::swap(&mut x1, &mut y1);
+        std::mem::swap(&mut x2, &mut y2);
+    }
+
+    if x1 > x2 {
+        std::mem::swap(&mut x1, &mut x2);
+        std::mem::swap(&mut y1, &mut y2);
+    }
+
+    let dx = x2 - x1;
+    let dy = y2 - y1;
+    let gradient = if dx == 0.0 {
+        1.0
+    } else {
+        dy as f32 / dx as f32
+    };
+
+    // handle first endpoint
+    let x_end = x1.round();
+    let y_end = y1 as f32 + gradient * (x_end - x1) as f32;
+    let x_gap = rfpart(x1 as f32 + 0.5);
+    let x_pixel1 = x_end;
+    let y_pixel1 = ipart(y_end);
+
+    if steep {
+        plot(y_pixel1, x_pixel1 as i32, rfpart(y_end) * x_gap);
+        plot(y_pixel1 + 1, x_pixel1 as i32, fpart(y_end) * x_gap);
+    } else {
+        plot(x_pixel1 as i32, y_pixel1, rfpart(y_end) * x_gap);
+        plot(x_pixel1 as i32, y_pixel1 + 1, fpart(y_end) * x_gap);
+    }
+
+    let mut intercept_y = y_end + gradient; // first y-intersection for the main loop
+
+    // handle second endpoint
+    let x_end = x2.round();
+    let y_end = y2 as f32 + gradient * (x_end - x2) as f32;
+    let x_gap = fpart(x2 as f32 + 0.5);
+    let x_pixel2 = x_end;
+    let y_pixel2 = ipart(y_end);
+
+    if steep {
+        plot(y_pixel2, x_pixel2 as i32, rfpart(y_end) * x_gap);
+        plot(y_pixel2 + 1, x_pixel2 as i32, fpart(y_end) * x_gap);
+    } else {
+        plot(x_pixel2 as i32, y_pixel2, rfpart(y_end) * x_gap);
+        plot(x_pixel2 as i32, y_pixel2 + 1, fpart(y_end) * x_gap);
+    }
+
+    // Main loop
+    if steep {
+        for x in (x_pixel1 + 1.0) as i32..x_pixel2 as i32 {
+            plot(ipart(intercept_y), x, rfpart(intercept_y));
+            plot(ipart(intercept_y) + 1, x, fpart(intercept_y));
+            intercept_y = intercept_y + gradient;
+        }
+    } else {
+        for x in (x_pixel1 + 1.0) as i32..x_pixel2 as i32 {
+            plot(x, ipart(intercept_y), rfpart(intercept_y));
+            plot(x, ipart(intercept_y) + 1, fpart(intercept_y));
+            intercept_y = intercept_y + gradient;
+        }
+    }
+}
+
+pub fn draw_line_anti_aliased_thick<T: ImageOperationSource>(update_op: &mut T,
+                                                             x1: i32, y1: i32,
+                                                             x2: i32, y2: i32,
+                                                             side_half_width: i32,
+                                                             color: Color,
+                                                             undo: bool,
+                                                             undo_image: &mut SparseImage) {
+    if side_half_width > 0 {
+        let x1 = x1 as f32;
+        let y1 = y1 as f32;
+        let x2 = x2 as f32;
+        let y2 = y2 as f32;
+
+        let dx = x2 - x1;
+        let dy = y2 - y1;
+        let norm = ((dx * dx + dy * dy) as f32).sqrt();
+        let dx = dx / norm;
+        let dy = dy / norm;
+
+        let dx_perp = dy;
+        let dy_perp = -dx;
+
+        for width in 0..(side_half_width + 1) {
+            let blend = width == side_half_width;
+
+            if width != 0 {
+                let width = width as f32;
+                draw_line_anti_aliased_f32(update_op, x1 - dx_perp * width, y1 - dy_perp * width, x2 - dx_perp * width, y2 - dy_perp * width, color, blend, undo, undo_image);
+                draw_line_anti_aliased_f32(update_op, x1 + dx_perp * width, y1 + dy_perp * width, x2 + dx_perp * width, y2 + dy_perp * width, color, blend, undo, undo_image);
+            } else {
+                draw_line_anti_aliased_f32(update_op, x1, y1, x2, y2, color, blend, undo, undo_image);
+            }
+        }
+    } else {
+        draw_line_anti_aliased(update_op, x1, y1, x2, y2, color, undo, undo_image);
     }
 }
 
@@ -250,6 +485,12 @@ pub fn hsv_to_rgb(h: f64, s: f64, v: f64) -> Option<Color> {
             255
         ])
     )
+}
+
+fn alpha_blend(a: Color, b: Color) -> Color {
+    let mut b = b;
+    b.blend(&a);
+    b
 }
 
 fn fmod(numer: f64, denom: f64) -> f64 {

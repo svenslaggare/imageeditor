@@ -21,7 +21,7 @@ impl LineDrawTool {
             current_mouse_position: None,
             start_position: None,
             end_position: None,
-            color: image::Rgba([255, 0, 0, 255]),
+            color: image::Rgba([0, 0, 0, 255]),
             side_half_width: 1
         }
     }

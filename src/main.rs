@@ -61,7 +61,10 @@ fn main() {
 
     let width = 1280;
     let height = 800;
-    let image_to_edit = image::RgbaImage::new(width, height);
+    let mut image_to_edit: image::RgbaImage = image::RgbaImage::new(width, height);
+    // for pixel in image_to_edit.pixels_mut() {
+    //     *pixel = image::Rgba([255, 255, 255, 255]);
+    // }
 
     let (mut glfw, mut window, mut events) = setup_window(image_to_edit.width(), image_to_edit.height());
 
