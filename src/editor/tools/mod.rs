@@ -2,7 +2,7 @@ use glfw::WindowEvent;
 
 use cgmath::{Matrix3, Transform};
 
-use crate::command_buffer::Command;
+use crate::command_buffer::{Command, CommandBuffer};
 use crate::editor;
 use crate::editor::image_operation::ImageOperation;
 use crate::rendering::prelude::Position;
@@ -35,11 +35,14 @@ pub trait Tool {
 
     fn handle_command(&mut self, command: &Command);
 
-    fn process_event(&mut self,
-                     window: &mut glfw::Window,
-                     event: &WindowEvent,
-                     transform: &Matrix3<f32>,
-                     image: &editor::Image) -> Option<ImageOperation>;
+    fn process_event(
+        &mut self,
+        window: &mut glfw::Window,
+        event: &WindowEvent,
+        transform: &Matrix3<f32>,
+        command_buffer: &mut CommandBuffer,
+        image: &editor::Image
+    ) -> Option<ImageOperation>;
 
     fn preview(&mut self, image: &editor::Image, preview_image: &mut editor::Image) -> bool;
 }

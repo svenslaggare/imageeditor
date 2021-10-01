@@ -5,7 +5,7 @@ use cgmath::{Matrix3};
 
 use crate::rendering::prelude::Position;
 use crate::editor::tools::Tool;
-use crate::command_buffer::Command;
+use crate::command_buffer::{Command, CommandBuffer};
 use crate::editor::Image;
 use crate::editor::image_operation::{ImageOperation};
 use crate::rendering::shader::Shader;
@@ -117,7 +117,12 @@ impl Tool for EffectDrawTool {
         }
     }
 
-    fn process_event(&mut self, _window: &mut Window, event: &WindowEvent, _transform: &Matrix3<f32>, image: &Image) -> Option<ImageOperation> {
+    fn process_event(&mut self,
+                     _window: &mut Window,
+                     event: &WindowEvent,
+                     _transform: &Matrix3<f32>,
+                     _command_buffer: &mut CommandBuffer,
+                     image: &Image) -> Option<ImageOperation> {
         match event {
             glfw::WindowEvent::Key(Key::Enter, _, Action::Press, _) => {
                 if let Some(frame_buffer) = self.op_frame_buffer.as_ref() {

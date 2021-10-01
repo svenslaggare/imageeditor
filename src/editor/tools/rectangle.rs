@@ -3,7 +3,7 @@ use cgmath::{Matrix3, Transform};
 
 use crate::rendering::prelude::Position;
 use crate::editor;
-use crate::command_buffer::Command;
+use crate::command_buffer::{Command, CommandBuffer};
 use crate::editor::tools::{Tool, get_valid_rectangle};
 use crate::editor::image_operation::{ImageOperation};
 
@@ -66,6 +66,7 @@ impl Tool for RectangleDrawTool {
                      _window: &mut glfw::Window,
                      event: &WindowEvent,
                      transform: &Matrix3<f32>,
+                     _command_buffer: &mut CommandBuffer,
                      _image: &editor::Image) -> Option<ImageOperation> {
         let mut op = None;
         match event {

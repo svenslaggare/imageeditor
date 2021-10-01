@@ -125,6 +125,7 @@ impl Program {
                         window,
                         &event,
                         &transform,
+                        &mut self.command_buffer,
                         self.editor.image()
                     );
 
