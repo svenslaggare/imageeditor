@@ -57,14 +57,11 @@ fn main() {
         println!("Usage: ./imageeditor <filename>")
     }
 
-    // let image_to_edit = image::open(&args[1]).unwrap().into_rgba();
+    let image_to_edit = image::open(&args[1]).unwrap().into_rgba();
 
-    let width = 1280;
-    let height = 800;
-    let mut image_to_edit: image::RgbaImage = image::RgbaImage::new(width, height);
-    // for pixel in image_to_edit.pixels_mut() {
-    //     *pixel = image::Rgba([255, 255, 255, 255]);
-    // }
+    // let width = 1280;
+    // let height = 800;
+    // let mut image_to_edit: image::RgbaImage = image::RgbaImage::new(width, height);
 
     let (mut glfw, mut window, mut events) = setup_window(image_to_edit.width(), image_to_edit.height());
 

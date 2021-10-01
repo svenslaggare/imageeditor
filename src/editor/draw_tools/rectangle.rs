@@ -36,6 +36,7 @@ impl RectangleDrawTool {
                 end_x,
                 end_y,
                 color: self.fill_color,
+                blend: false
             },
             ImageOperation::DrawRectangle {
                 start_x,

@@ -124,7 +124,7 @@ impl DrawTool for EffectDrawTool {
                     let mut op_image = image::RgbaImage::new(frame_buffer.width(), frame_buffer.height());
                     if self.generate_image(frame_buffer, image, op_image.as_mut()) {
                         self.changed = true;
-                        return Some(ImageOperation::SetImage { start_x: 0, start_y: 0, image: op_image });
+                        return Some(ImageOperation::SetImage { start_x: 0, start_y: 0, image: op_image, blend: false });
                     }
                 }
             }

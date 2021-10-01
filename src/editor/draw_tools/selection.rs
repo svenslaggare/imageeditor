@@ -37,6 +37,7 @@ impl SelectionDrawTool {
                 end_x,
                 end_y,
                 color: image::Rgba([0, 148, 255, 64]),
+                blend: false
             },
             ImageOperation::DrawRectangle {
                 start_x,
@@ -95,6 +96,7 @@ impl DrawTool for SelectionDrawTool {
                             end_x,
                             end_y,
                             color: image::Rgba([0, 0, 0, 0]),
+                            blend: false
                         }
                     );
 
@@ -115,7 +117,7 @@ impl DrawTool for SelectionDrawTool {
                     let start_x = mouse_position.x as i32;
                     let start_y = mouse_position.y as i32;
                     if let Some(copied_image) = self.copied_image.as_ref() {
-                        op = Some(ImageOperation::SetImage { start_x, start_y, image: copied_image.clone() });
+                        op = Some(ImageOperation::SetImage { start_x, start_y, image: copied_image.clone(), blend: false });
                     }
                 }
             }
@@ -130,6 +132,7 @@ impl DrawTool for SelectionDrawTool {
                             end_x,
                             end_y,
                             color: image::Rgba([0, 0, 0, 0]),
+                            blend: false
                         }
                     );
 

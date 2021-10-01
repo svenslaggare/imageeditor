@@ -13,6 +13,7 @@ use crate::editor::draw_tools::selection::SelectionDrawTool;
 use crate::editor::draw_tools::effect::EffectDrawTool;
 use crate::editor::draw_tools::circle::CircleDrawTool;
 use crate::editor::draw_tools::bucket_fill::BucketFillDrawTool;
+use crate::editor::draw_tools::move_pixels::MovePixelsDrawTool;
 
 pub mod pencil;
 pub mod line;
@@ -20,6 +21,7 @@ pub mod rectangle;
 pub mod circle;
 pub mod bucket_fill;
 pub mod selection;
+pub mod move_pixels;
 pub mod effect;
 
 pub trait DrawTool {
@@ -72,7 +74,8 @@ pub enum DrawTools {
     Rectangle = 2,
     Circle = 3,
     Selection = 4,
-    BucketFill = 5,
+    MovePixels = 5,
+    BucketFill = 6,
     // Effect = ?,
 }
 
@@ -83,6 +86,7 @@ pub fn create_draw_tools() -> Vec<Box<dyn DrawTool>> {
         Box::new(RectangleDrawTool::new()),
         Box::new(CircleDrawTool::new()),
         Box::new(SelectionDrawTool::new()),
+        Box::new(MovePixelsDrawTool::new()),
         Box::new(BucketFillDrawTool::new()),
         // Box::new(EffectDrawTool::new("content/shaders/sample.fs")),
     ]

@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::editor::image::{Color};
 use crate::editor::image_operation_helpers::{sub_image, draw_block, draw_line, draw_circle, fill_rectangle, bucket_fill, draw_line_anti_aliased, draw_line_anti_aliased_thick};
+use image::Pixel;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum ImageOperationMarker {
@@ -50,12 +51,12 @@ pub enum ImageOperation {
     Marker(ImageOperationMarker),
     Sequential(Vec<ImageOperation>),
     SetImageSparse { image: SparseImage },
-    SetImage { start_x: i32, start_y: i32, image: image::RgbaImage },
+    SetImage { start_x: i32, start_y: i32, image: image::RgbaImage, blend: bool },
     SetOptionalImage { image: OptionalImage },
     SetPixel { x: i32, y: i32, color: Color },
     DrawBlock { x: i32, y: i32, color: Color, side_half_width: i32 },
     DrawLine { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, side_half_width: i32 },
-    FillRectangle { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color },
+    FillRectangle { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, blend: bool },
     DrawRectangle { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color },
     DrawCircle { center_x: i32, center_y: i32, radius: i32, border_side_half_width: i32, color: Color },
     FillCircle { center_x: i32, center_y: i32, radius: i32, color: Color },
@@ -70,6 +71,12 @@ pub trait ImageSource {
 
 pub trait ImageOperationSource : ImageSource {
     fn put_pixel(&mut self, x: u32, y: u32, pixel: Color);
+
+    fn put_pixel_with_blend(&mut self, x: u32, y: u32, pixel: Color) {
+        let mut current = self.get_pixel(x, y);
+        current.blend(&pixel);
+        self.put_pixel(x, y, current);
+    }
 }
 
 impl ImageOperation {
@@ -104,7 +111,7 @@ impl ImageOperation {
 
                 None
             }
-            ImageOperation::SetImage { start_x, start_y, image } => {
+            ImageOperation::SetImage { start_x, start_y, image, blend } => {
                 let undo_image = if undo {
                     Some(
                         sub_image(
@@ -125,12 +132,16 @@ impl ImageOperation {
                         let image_y = *start_y + y as i32;
 
                         if image_x >= 0 && image_x < update_op.width() as i32 && image_y >= 0 && image_y < update_op.height() as i32 {
-                            update_op.put_pixel(image_x as u32, image_y as u32, *image.get_pixel(x, y));
+                            if *blend {
+                                update_op.put_pixel_with_blend(image_x as u32, image_y as u32, *image.get_pixel(x, y));
+                            } else {
+                                update_op.put_pixel(image_x as u32, image_y as u32, *image.get_pixel(x, y));
+                            }
                         }
                     }
                 }
 
-                undo_image.map(|image| ImageOperation::SetImage { start_x: *start_x, start_y: *start_y, image })
+                undo_image.map(|image| ImageOperation::SetImage { start_x: *start_x, start_y: *start_y, image, blend: false })
             }
             ImageOperation::SetOptionalImage { image } => {
                 for y in 0..image.height {
@@ -201,7 +212,7 @@ impl ImageOperation {
                     None
                 }
             }
-            ImageOperation::FillRectangle { start_x, start_y, end_x, end_y, color } => {
+            ImageOperation::FillRectangle { start_x, start_y, end_x, end_y, color, blend } => {
                 let width = update_op.width() as i32;
                 let height = update_op.height() as i32;
 
@@ -219,10 +230,16 @@ impl ImageOperation {
                 fill_rectangle(
                     min_x, min_y,
                     max_x, max_y,
-                    |x, y| update_op.put_pixel(x as u32, y as u32, *color)
+                    |x, y| {
+                        if *blend {
+                            update_op.put_pixel_with_blend(x as u32, y as u32, *color)
+                        } else {
+                            update_op.put_pixel(x as u32, y as u32, *color)
+                        }
+                    }
                 );
 
-                undo_image.map(|image| ImageOperation::SetImage { start_x: min_x, start_y: min_y, image })
+                undo_image.map(|image| ImageOperation::SetImage { start_x: min_x, start_y: min_y, image, blend: false })
             }
             ImageOperation::DrawRectangle { start_x, start_y, end_x, end_y, color } => {
                 let mut undo_ops = Vec::new();

@@ -36,7 +36,7 @@ fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
         Position::new(5.0, 5.0),
         (40.0, line_height + 5.0),
         40.0,
-        6
+        7
     );
 
     texture_buttons.push(TextButton::new(
@@ -96,6 +96,17 @@ fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
 
     texture_buttons.push(TextButton::new(
         font.clone(),
+        "M".to_owned(),
+        layout.next().unwrap(),
+        Some(Box::new(|command_buffer| {
+            command_buffer.push(Command::SetDrawTool(DrawTools::MovePixels));
+        })),
+        None,
+        None
+    ));
+
+    texture_buttons.push(TextButton::new(
+        font.clone(),
         "BF".to_owned(),
         layout.next().unwrap(),
         Some(Box::new(|command_buffer| {
@@ -126,7 +137,7 @@ fn generate_color_palette(buttons: &mut Vec<TextureButton>,
         }
     }
 
-    let start_y = 240.0;
+    let start_y = 260.0;
     let selected_color_width = 32.0;
     let selected_color_height = 32.0;
 
