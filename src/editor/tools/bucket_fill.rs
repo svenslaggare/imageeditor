@@ -4,7 +4,7 @@ use cgmath::{Matrix3, Transform};
 use crate::rendering::prelude::Position;
 use crate::editor;
 use crate::command_buffer::Command;
-use crate::editor::draw_tools::{DrawTool, get_transformed_mouse_position};
+use crate::editor::tools::{Tool, get_transformed_mouse_position};
 use crate::editor::image_operation::{ImageOperation};
 
 pub struct BucketFillDrawTool {
@@ -21,7 +21,7 @@ impl BucketFillDrawTool {
     }
 }
 
-impl DrawTool for BucketFillDrawTool {
+impl Tool for BucketFillDrawTool {
     fn handle_command(&mut self, command: &Command) {
         match command {
             Command::SetColor(color) => {

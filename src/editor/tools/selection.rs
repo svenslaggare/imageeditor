@@ -4,11 +4,11 @@ use cgmath::{Matrix3, Transform};
 use crate::rendering::prelude::Position;
 use crate::editor;
 use crate::command_buffer::Command;
-use crate::editor::draw_tools::{DrawTool, get_valid_rectangle};
+use crate::editor::tools::{Tool, get_valid_rectangle};
 use crate::editor::image_operation::{ImageOperation, ImageSource};
 use crate::editor::image_operation_helpers::sub_image;
 
-pub struct SelectionDrawTool {
+pub struct SelectionTool {
     current_mouse_position: Option<Position>,
     start_position: Option<Position>,
     end_position: Option<Position>,
@@ -16,9 +16,9 @@ pub struct SelectionDrawTool {
     copied_image: Option<image::RgbaImage>
 }
 
-impl SelectionDrawTool {
-    pub fn new() -> SelectionDrawTool {
-        SelectionDrawTool {
+impl SelectionTool {
+    pub fn new() -> SelectionTool {
+        SelectionTool {
             current_mouse_position: None,
             start_position: None,
             end_position: None,
@@ -50,7 +50,7 @@ impl SelectionDrawTool {
     }
 }
 
-impl DrawTool for SelectionDrawTool {
+impl Tool for SelectionTool {
     fn handle_command(&mut self, _command: &Command) {
 
     }

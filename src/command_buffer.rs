@@ -1,11 +1,11 @@
 use std::collections::VecDeque;
 
 use crate::editor::image_operation::ImageOperation;
-use crate::editor::draw_tools::DrawTools;
+use crate::editor::tools::Tools;
 
 #[derive(Debug)]
 pub enum Command {
-    SetDrawTool(DrawTools),
+    SetDrawTool(Tools),
     SetColor(image::Rgba<u8>),
     SetAlternativeColor(image::Rgba<u8>),
     SetImageSize(u32, u32),

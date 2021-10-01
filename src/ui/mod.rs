@@ -12,7 +12,7 @@ pub use button::TextureButton;
 
 use crate::command_buffer::{Command};
 use crate::rendering::prelude::{Position, Rectangle};
-use crate::editor::draw_tools::DrawTools;
+use crate::editor::tools::Tools;
 use crate::editor::image_operation_helpers::hsv_to_rgb;
 use crate::ui::button::{TextButton, SolidColorButton};
 use crate::rendering::font::{Font};
@@ -44,7 +44,7 @@ fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
         "P".to_owned(),
         layout.next().unwrap(),
         Some(Box::new(|command_buffer| {
-            command_buffer.push(Command::SetDrawTool(DrawTools::Pencil));
+            command_buffer.push(Command::SetDrawTool(Tools::Pencil));
         })),
         None,
         None
@@ -55,7 +55,7 @@ fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
         "L".to_owned(),
         layout.next().unwrap(),
         Some(Box::new(|command_buffer| {
-            command_buffer.push(Command::SetDrawTool(DrawTools::Line));
+            command_buffer.push(Command::SetDrawTool(Tools::Line));
         })),
         None,
         None
@@ -66,7 +66,7 @@ fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
         "R".to_owned(),
         layout.next().unwrap(),
         Some(Box::new(|command_buffer| {
-            command_buffer.push(Command::SetDrawTool(DrawTools::Rectangle));
+            command_buffer.push(Command::SetDrawTool(Tools::Rectangle));
         })),
         None,
         None
@@ -77,7 +77,7 @@ fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
         "C".to_owned(),
         layout.next().unwrap(),
         Some(Box::new(|command_buffer| {
-            command_buffer.push(Command::SetDrawTool(DrawTools::Circle));
+            command_buffer.push(Command::SetDrawTool(Tools::Circle));
         })),
         None,
         None
@@ -88,7 +88,7 @@ fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
         "S".to_owned(),
         layout.next().unwrap(),
         Some(Box::new(|command_buffer| {
-            command_buffer.push(Command::SetDrawTool(DrawTools::Selection));
+            command_buffer.push(Command::SetDrawTool(Tools::Selection));
         })),
         None,
         None
@@ -99,7 +99,7 @@ fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
         "M".to_owned(),
         layout.next().unwrap(),
         Some(Box::new(|command_buffer| {
-            command_buffer.push(Command::SetDrawTool(DrawTools::MovePixels));
+            command_buffer.push(Command::SetDrawTool(Tools::MovePixels));
         })),
         None,
         None
@@ -110,7 +110,7 @@ fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
         "BF".to_owned(),
         layout.next().unwrap(),
         Some(Box::new(|command_buffer| {
-            command_buffer.push(Command::SetDrawTool(DrawTools::BucketFill));
+            command_buffer.push(Command::SetDrawTool(Tools::BucketFill));
         })),
         None,
         None

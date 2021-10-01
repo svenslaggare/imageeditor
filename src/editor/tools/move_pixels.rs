@@ -4,11 +4,11 @@ use cgmath::{Matrix3, Transform};
 use crate::rendering::prelude::Position;
 use crate::editor;
 use crate::command_buffer::Command;
-use crate::editor::draw_tools::{DrawTool, get_valid_rectangle};
+use crate::editor::tools::{Tool, get_valid_rectangle};
 use crate::editor::image_operation::{ImageOperation, ImageSource};
 use crate::editor::image_operation_helpers::sub_image;
 
-pub struct MovePixelsDrawTool {
+pub struct MovePixelsTool {
     current_mouse_position: Option<Position>,
     start_position: Option<Position>,
     end_position: Option<Position>,
@@ -18,9 +18,9 @@ pub struct MovePixelsDrawTool {
     moved_pixels_image: Option<image::RgbaImage>
 }
 
-impl MovePixelsDrawTool {
-    pub fn new() -> MovePixelsDrawTool {
-        MovePixelsDrawTool {
+impl MovePixelsTool {
+    pub fn new() -> MovePixelsTool {
+        MovePixelsTool {
             current_mouse_position: None,
             start_position: None,
             end_position: None,
@@ -89,7 +89,7 @@ impl MovePixelsDrawTool {
     }
 }
 
-impl DrawTool for MovePixelsDrawTool {
+impl Tool for MovePixelsTool {
     fn handle_command(&mut self, _command: &Command) {
 
     }

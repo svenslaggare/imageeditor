@@ -6,14 +6,14 @@ use crate::command_buffer::Command;
 use crate::editor;
 use crate::editor::image_operation::ImageOperation;
 use crate::rendering::prelude::Position;
-use crate::editor::draw_tools::pencil::PencilDrawTool;
-use crate::editor::draw_tools::line::LineDrawTool;
-use crate::editor::draw_tools::rectangle::RectangleDrawTool;
-use crate::editor::draw_tools::selection::SelectionDrawTool;
-use crate::editor::draw_tools::effect::EffectDrawTool;
-use crate::editor::draw_tools::circle::CircleDrawTool;
-use crate::editor::draw_tools::bucket_fill::BucketFillDrawTool;
-use crate::editor::draw_tools::move_pixels::MovePixelsDrawTool;
+use crate::editor::tools::pencil::PencilDrawTool;
+use crate::editor::tools::line::LineDrawTool;
+use crate::editor::tools::rectangle::RectangleDrawTool;
+use crate::editor::tools::selection::SelectionTool;
+use crate::editor::tools::effect::EffectDrawTool;
+use crate::editor::tools::circle::CircleDrawTool;
+use crate::editor::tools::bucket_fill::BucketFillDrawTool;
+use crate::editor::tools::move_pixels::MovePixelsTool;
 
 pub mod pencil;
 pub mod line;
@@ -24,7 +24,7 @@ pub mod selection;
 pub mod move_pixels;
 pub mod effect;
 
-pub trait DrawTool {
+pub trait Tool {
     fn on_active(&mut self) {
 
     }
@@ -68,7 +68,7 @@ pub fn get_transformed_mouse_position(window: &mut glfw::Window, transform: &Mat
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DrawTools {
+pub enum Tools {
     Pencil = 0,
     Line = 1,
     Rectangle = 2,
@@ -79,14 +79,14 @@ pub enum DrawTools {
     // Effect = ?,
 }
 
-pub fn create_draw_tools() -> Vec<Box<dyn DrawTool>> {
+pub fn create_tools() -> Vec<Box<dyn Tool>> {
     vec![
         Box::new(PencilDrawTool::new()),
         Box::new(LineDrawTool::new()),
         Box::new(RectangleDrawTool::new()),
         Box::new(CircleDrawTool::new()),
-        Box::new(SelectionDrawTool::new()),
-        Box::new(MovePixelsDrawTool::new()),
+        Box::new(SelectionTool::new()),
+        Box::new(MovePixelsTool::new()),
         Box::new(BucketFillDrawTool::new()),
         // Box::new(EffectDrawTool::new("content/shaders/sample.fs")),
     ]

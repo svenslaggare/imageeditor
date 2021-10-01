@@ -10,7 +10,7 @@ use crate::rendering::shader::Shader;
 use crate::rendering::prelude::Position;
 use crate::rendering::texture_render::TextureRender;
 use crate::editor::image_operation::{ImageSource};
-use crate::editor::draw_tools::{DrawTool, create_draw_tools, DrawTools};
+use crate::editor::tools::{Tool, create_tools, Tools};
 use crate::rendering::text_render::TextRender;
 use crate::rendering::solid_rectangle_render::SolidRectangleRender;
 
@@ -24,8 +24,8 @@ pub struct Program {
     command_buffer: CommandBuffer,
     editor: editor::Editor,
     ui_manager: ui::Manager,
-    draw_tools: Vec<Box<dyn DrawTool>>,
-    active_draw_tool: DrawTools,
+    tools: Vec<Box<dyn Tool>>,
+    active_tool: Tools,
     preview_image: editor::Image,
 }
 
@@ -54,8 +54,8 @@ impl Program {
             command_buffer: CommandBuffer::new(),
             editor,
             ui_manager,
-            draw_tools: create_draw_tools(),
-            active_draw_tool: DrawTools::Pencil,
+            tools: create_tools(),
+            active_tool: Tools::Pencil,
             preview_image
         };
 
@@ -103,7 +103,7 @@ impl Program {
     pub fn update(&mut self,
                   window: &mut glfw::Window,
                   events: &Receiver<(f64, glfw::WindowEvent)>) {
-        self.draw_tools[self.active_draw_tool as usize].update();
+        self.tools[self.active_tool as usize].update();
 
         for (_, event) in glfw::flush_messages(events) {
             match event {
@@ -121,7 +121,7 @@ impl Program {
                     self.ui_manager.process_gui_event(window, &event, &mut self.command_buffer);
 
                     let transform = self.image_area_transform().invert().unwrap();
-                    let op = self.draw_tools[self.active_draw_tool as usize].process_event(
+                    let op = self.tools[self.active_tool as usize].process_event(
                         window,
                         &event,
                         &transform,
@@ -138,8 +138,8 @@ impl Program {
         while let Some(command) = self.command_buffer.pop() {
             match command {
                 Command::SetDrawTool(draw_tool) => {
-                    self.active_draw_tool = draw_tool;
-                    self.draw_tools[self.active_draw_tool as usize].on_active();
+                    self.active_tool = draw_tool;
+                    self.tools[self.active_tool as usize].on_active();
                     self.preview_image.clear_cpu();
                     self.preview_image.update_operation();
                 }
@@ -153,7 +153,7 @@ impl Program {
                     self.editor.redo_op();
                 }
                 command => {
-                    for draw_tool in &mut self.draw_tools {
+                    for draw_tool in &mut self.tools {
                         draw_tool.handle_command(&command);
                     }
 
@@ -184,7 +184,7 @@ impl Program {
         );
 
         let changed = {
-            self.draw_tools[self.active_draw_tool as usize].preview(self.editor.image(), &mut self.preview_image)
+            self.tools[self.active_tool as usize].preview(self.editor.image(), &mut self.preview_image)
         };
 
         if changed {

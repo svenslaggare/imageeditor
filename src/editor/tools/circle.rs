@@ -4,10 +4,10 @@ use cgmath::{Matrix3, Transform};
 use crate::rendering::prelude::Position;
 use crate::editor;
 use crate::command_buffer::Command;
-use crate::editor::draw_tools::{DrawTool, get_valid_rectangle};
+use crate::editor::tools::{Tool};
 use crate::editor::image_operation::{ImageOperation};
 
-pub struct RectangleDrawTool {
+pub struct CircleDrawTool {
     current_mouse_position: Option<Position>,
     start_position: Option<Position>,
     end_position: Option<Position>,
@@ -15,9 +15,9 @@ pub struct RectangleDrawTool {
     fill_color: editor::Color,
 }
 
-impl RectangleDrawTool {
-    pub fn new() -> RectangleDrawTool {
-        RectangleDrawTool {
+impl CircleDrawTool {
+    pub fn new() -> CircleDrawTool {
+        CircleDrawTool {
             current_mouse_position: None,
             start_position: None,
             end_position: None,
@@ -27,29 +27,31 @@ impl RectangleDrawTool {
     }
 
     fn create_op(&self, start_position: &Position, end_position: &Position) -> ImageOperation {
-        let (start_x, start_y, end_x, end_y) = get_valid_rectangle(start_position, end_position);
+        let start_x = start_position.x as i32;
+        let start_y = start_position.y as i32;
+        let end_x = end_position.x as i32;
+        let end_y = end_position.y as i32;
+        let radius = (((end_x - start_x).pow(2) + (end_y - start_y).pow(2)) as f64).sqrt() as i32;
 
         ImageOperation::Sequential(vec![
-            ImageOperation::FillRectangle {
-                start_x,
-                start_y,
-                end_x,
-                end_y,
+            ImageOperation::FillCircle {
+                center_x: start_x,
+                center_y: start_y,
+                radius,
                 color: self.fill_color,
-                blend: false
             },
-            ImageOperation::DrawRectangle {
-                start_x,
-                start_y,
-                end_x,
-                end_y,
-                color: self.border_color
-            }
+            ImageOperation::DrawCircle {
+                center_x: start_x,
+                center_y: start_y,
+                radius,
+                border_side_half_width: 1,
+                color: self.border_color,
+            },
         ])
     }
 }
 
-impl DrawTool for RectangleDrawTool {
+impl Tool for CircleDrawTool {
     fn handle_command(&mut self, command: &Command) {
         match command {
             Command::SetColor(color) => {

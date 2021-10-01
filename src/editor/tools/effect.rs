@@ -4,7 +4,7 @@ use glfw::{Window, WindowEvent, Key, Action};
 use cgmath::{Matrix3};
 
 use crate::rendering::prelude::Position;
-use crate::editor::draw_tools::DrawTool;
+use crate::editor::tools::Tool;
 use crate::command_buffer::Command;
 use crate::editor::Image;
 use crate::editor::image_operation::{ImageOperation};
@@ -91,7 +91,7 @@ impl EffectDrawTool {
     }
 }
 
-impl DrawTool for EffectDrawTool {
+impl Tool for EffectDrawTool {
     fn on_active(&mut self) {
         self.changed = true;
     }
