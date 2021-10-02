@@ -9,23 +9,23 @@ use crate::rendering::prelude::Position;
 use crate::editor::tools::pencil::PencilDrawTool;
 use crate::editor::tools::line::LineDrawTool;
 use crate::editor::tools::rectangle::RectangleDrawTool;
-use crate::editor::tools::selection::SelectionTool;
 use crate::editor::tools::effect::EffectDrawTool;
 use crate::editor::tools::circle::CircleDrawTool;
 use crate::editor::tools::bucket_fill::BucketFillDrawTool;
-use crate::editor::tools::move_pixels::MovePixelsTool;
+use crate::editor::tools::selection::SelectionTool;
 
 pub mod pencil;
 pub mod line;
 pub mod rectangle;
 pub mod circle;
 pub mod bucket_fill;
+// pub mod selection;
+// pub mod move_pixels;
 pub mod selection;
-pub mod move_pixels;
 pub mod effect;
 
 pub trait Tool {
-    fn on_active(&mut self) -> Option<ImageOperation> {
+    fn on_active(&mut self, tool: Tools) -> Option<ImageOperation> {
         None
     }
 
@@ -37,7 +37,9 @@ pub trait Tool {
 
     }
 
-    fn handle_command(&mut self, command: &Command);
+    fn handle_command(&mut self, command: &Command) {
+
+    }
 
     fn process_event(
         &mut self,
@@ -49,6 +51,46 @@ pub trait Tool {
     ) -> Option<ImageOperation>;
 
     fn preview(&mut self, image: &editor::Image, preview_image: &mut editor::Image) -> bool;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Tools {
+    Pencil,
+    Line,
+    Rectangle,
+    Circle,
+    Selection(SelectionSubTool),
+    BucketFill
+}
+
+impl Tools {
+    pub fn index(&self) -> usize {
+        match self {
+            Tools::Pencil => 0,
+            Tools::Line => 1,
+            Tools::Rectangle => 2,
+            Tools::Circle => 3,
+            Tools::Selection(_) => 4,
+            Tools::BucketFill => 5
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SelectionSubTool {
+    Select,
+    MovePixels
+}
+
+pub fn create_tools() -> Vec<Box<dyn Tool>> {
+    vec![
+        Box::new(PencilDrawTool::new()),
+        Box::new(LineDrawTool::new()),
+        Box::new(RectangleDrawTool::new()),
+        Box::new(CircleDrawTool::new()),
+        Box::new(SelectionTool::new()),
+        Box::new(BucketFillDrawTool::new())
+    ]
 }
 
 pub fn get_valid_rectangle(start_position: &Position, end_position: &Position) -> (i32, i32, i32, i32) {
@@ -71,30 +113,4 @@ pub fn get_valid_rectangle(start_position: &Position, end_position: &Position) -
 pub fn get_transformed_mouse_position(window: &mut glfw::Window, transform: &Matrix3<f32>) -> Position {
     let (mouse_x, mouse_y) = window.get_cursor_pos();
     transform.transform_point(cgmath::Point2::new(mouse_x as f32, mouse_y as f32))
-}
-
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Tools {
-    Pencil = 0,
-    Line = 1,
-    Rectangle = 2,
-    Circle = 3,
-    Selection = 4,
-    MovePixels = 5,
-    BucketFill = 6,
-    // Effect = ?,
-}
-
-pub fn create_tools() -> Vec<Box<dyn Tool>> {
-    vec![
-        Box::new(PencilDrawTool::new()),
-        Box::new(LineDrawTool::new()),
-        Box::new(RectangleDrawTool::new()),
-        Box::new(CircleDrawTool::new()),
-        Box::new(SelectionTool::new()),
-        Box::new(MovePixelsTool::new()),
-        Box::new(BucketFillDrawTool::new()),
-        // Box::new(EffectDrawTool::new("content/shaders/sample.fs")),
-    ]
 }

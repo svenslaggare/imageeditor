@@ -12,7 +12,7 @@ pub use button::TextureButton;
 
 use crate::command_buffer::{Command};
 use crate::rendering::prelude::{Position, Rectangle};
-use crate::editor::tools::Tools;
+use crate::editor::tools::{Tools, SelectionSubTool};
 use crate::editor::image_operation_helpers::hsv_to_rgb;
 use crate::ui::button::{TextButton, SolidColorButton};
 use crate::rendering::font::{Font};
@@ -88,7 +88,7 @@ fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
         "S".to_owned(),
         layout.next().unwrap(),
         Some(Box::new(|command_buffer| {
-            command_buffer.push(Command::SetTool(Tools::Selection));
+            command_buffer.push(Command::SetTool(Tools::Selection(SelectionSubTool::Select)));
         })),
         None,
         None
@@ -99,7 +99,7 @@ fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
         "M".to_owned(),
         layout.next().unwrap(),
         Some(Box::new(|command_buffer| {
-            command_buffer.push(Command::SetTool(Tools::MovePixels));
+            command_buffer.push(Command::SetTool(Tools::Selection(SelectionSubTool::MovePixels)));
         })),
         None,
         None

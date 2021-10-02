@@ -110,7 +110,7 @@ impl Program {
     pub fn update(&mut self,
                   window: &mut glfw::Window,
                   events: &Receiver<(f64, glfw::WindowEvent)>) {
-        self.tools[self.active_tool as usize].update();
+        self.tools[self.active_tool.index()].update();
 
         for (_, event) in glfw::flush_messages(events) {
             match event {
@@ -128,7 +128,7 @@ impl Program {
                     self.ui_manager.process_gui_event(window, &event, &mut self.command_buffer);
 
                     let transform = self.image_area_transform().invert().unwrap();
-                    let op = self.tools[self.active_tool as usize].process_event(
+                    let op = self.tools[self.active_tool.index()].process_event(
                         window,
                         &event,
                         &transform,
@@ -145,13 +145,13 @@ impl Program {
 
         while let Some(command) = self.command_buffer.pop() {
             match command {
-                Command::SetTool(draw_tool) => {
-                    if let Some(op) = self.tools[self.active_tool as usize].on_deactivate(&mut self.command_buffer) {
+                Command::SetTool(tool) => {
+                    if let Some(op) = self.tools[self.active_tool.index()].on_deactivate(&mut self.command_buffer) {
                         self.command_buffer.push(Command::ApplyImageOp(op));
                     }
 
-                    self.active_tool = draw_tool;
-                    if let Some(op) = self.tools[self.active_tool as usize].on_active() {
+                    self.active_tool = tool;
+                    if let Some(op) = self.tools[self.active_tool.index()].on_active(tool) {
                         self.command_buffer.push(Command::ApplyImageOp(op));
                     }
 
@@ -191,7 +191,7 @@ impl Program {
         self.ui_manager.render(&self.renders, &transform);
 
         let changed = {
-            self.tools[self.active_tool as usize].preview(self.editor.image(), &mut self.preview_image)
+            self.tools[self.active_tool.index()].preview(self.editor.image(), &mut self.preview_image)
         };
 
         if changed {
