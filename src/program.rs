@@ -146,8 +146,10 @@ impl Program {
         while let Some(command) = self.command_buffer.pop() {
             match command {
                 Command::SetTool(tool) => {
-                    if let Some(op) = self.tools[self.active_tool.index()].on_deactivate(&mut self.command_buffer) {
-                        self.command_buffer.push(Command::ApplyImageOp(op));
+                    if tool.index() != self.active_tool.index() {
+                        if let Some(op) = self.tools[self.active_tool.index()].on_deactivate(&mut self.command_buffer) {
+                            self.command_buffer.push(Command::ApplyImageOp(op));
+                        }
                     }
 
                     self.active_tool = tool;

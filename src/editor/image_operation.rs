@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::editor::image::{Color};
 use crate::editor::image_operation_helpers::{sub_image, draw_block, draw_line, draw_circle, fill_rectangle, bucket_fill, draw_line_anti_aliased, draw_line_anti_aliased_thick, draw_circle_anti_aliased, draw_circle_anti_aliased_thick};
-use image::Pixel;
+use image::{Pixel, FilterType};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum ImageOperationMarker {
@@ -50,9 +50,10 @@ pub enum ImageOperation {
     Empty,
     Marker(ImageOperationMarker),
     Sequential(Vec<ImageOperation>),
-    SetImageSparse { image: SparseImage },
     SetImage { start_x: i32, start_y: i32, image: image::RgbaImage, blend: bool },
+    SetImageSparse { image: SparseImage },
     SetOptionalImage { image: OptionalImage },
+    ResizeImage { image: image::RgbaImage, start_x: i32, start_y: i32, scale_x: f32, scale_y: f32 },
     SetPixel { x: i32, y: i32, color: Color },
     DrawBlock { x: i32, y: i32, color: Color, side_half_width: i32 },
     DrawLine { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, side_half_width: i32 },
@@ -104,13 +105,6 @@ impl ImageOperation {
                     None
                 }
             }
-            ImageOperation::SetImageSparse { image: changes } => {
-                for ((x, y), pixel) in changes {
-                    update_op.put_pixel(*x, *y, *pixel);
-                }
-
-                None
-            }
             ImageOperation::SetImage { start_x, start_y, image, blend } => {
                 let undo_image = if undo {
                     Some(
@@ -143,6 +137,13 @@ impl ImageOperation {
 
                 undo_image.map(|image| ImageOperation::SetImage { start_x: *start_x, start_y: *start_y, image, blend: false })
             }
+            ImageOperation::SetImageSparse { image: changes } => {
+                for ((x, y), pixel) in changes {
+                    update_op.put_pixel(*x, *y, *pixel);
+                }
+
+                None
+            }
             ImageOperation::SetOptionalImage { image } => {
                 for y in 0..image.height {
                     for x in 0..image.width {
@@ -153,6 +154,24 @@ impl ImageOperation {
                 }
 
                 None
+            }
+            ImageOperation::ResizeImage { image, start_x, start_y, scale_x, scale_y } => {
+                let new_width = (image.width() as f32 * scale_x).round() as u32;
+                let new_height = (image.height() as f32 * scale_y).round() as u32;
+
+                let resized_image = image::imageops::resize(
+                    image,
+                    new_width,
+                    new_height,
+                    FilterType::Triangle
+                );
+
+                ImageOperation::SetImage {
+                    start_x: *start_x,
+                    start_y: *start_y,
+                    image: resized_image,
+                    blend: false
+                }.apply(update_op, undo)
             }
             ImageOperation::SetPixel { x, y, color } => {
                 let width = update_op.width();
@@ -245,41 +264,49 @@ impl ImageOperation {
                 let mut undo_ops = Vec::new();
 
                 let side_half_width = 0;
-                undo_ops.push(ImageOperation::DrawLine {
-                    start_x: start_x.clone(),
-                    start_y: start_y.clone(),
-                    end_x: end_x.clone(),
-                    end_y: start_y.clone(),
-                    color: color.clone(),
-                    side_half_width
-                }.apply(update_op, undo));
+                undo_ops.push(
+                    ImageOperation::DrawLine {
+                        start_x: start_x.clone(),
+                        start_y: start_y.clone(),
+                        end_x: end_x.clone(),
+                        end_y: start_y.clone(),
+                        color: color.clone(),
+                        side_half_width
+                    }.apply(update_op, undo)
+                );
 
-                undo_ops.push(ImageOperation::DrawLine {
-                    start_x: end_x.clone(),
-                    start_y: start_y.clone(),
-                    end_x: end_x.clone(),
-                    end_y: end_y.clone(),
-                    color: color.clone(),
-                    side_half_width
-                }.apply(update_op, undo));
+                undo_ops.push(
+                    ImageOperation::DrawLine {
+                        start_x: end_x.clone(),
+                        start_y: start_y.clone(),
+                        end_x: end_x.clone(),
+                        end_y: end_y.clone(),
+                        color: color.clone(),
+                        side_half_width
+                    }.apply(update_op, undo)
+                );
 
-                undo_ops.push(ImageOperation::DrawLine {
-                    start_x: end_x.clone(),
-                    start_y: end_y.clone(),
-                    end_x: start_x.clone(),
-                    end_y: end_y.clone(),
-                    color: color.clone(),
-                    side_half_width
-                }.apply(update_op, undo));
+                undo_ops.push(
+                    ImageOperation::DrawLine {
+                        start_x: end_x.clone(),
+                        start_y: end_y.clone(),
+                        end_x: start_x.clone(),
+                        end_y: end_y.clone(),
+                        color: color.clone(),
+                        side_half_width
+                    }.apply(update_op, undo)
+                );
 
-                undo_ops.push(ImageOperation::DrawLine {
-                    start_x: start_x.clone(),
-                    start_y: end_y.clone(),
-                    end_x: start_x.clone(),
-                    end_y: start_y.clone(),
-                    color: color.clone(),
-                    side_half_width
-                }.apply(update_op, undo));
+                undo_ops.push(
+                    ImageOperation::DrawLine {
+                        start_x: start_x.clone(),
+                        start_y: end_y.clone(),
+                        end_x: start_x.clone(),
+                        end_y: start_y.clone(),
+                        color: color.clone(),
+                        side_half_width
+                    }.apply(update_op, undo)
+                );
 
                 let mut undo_ops = undo_ops.into_iter().flatten().collect::<Vec<_>>();
                 if !undo_ops.is_empty() {

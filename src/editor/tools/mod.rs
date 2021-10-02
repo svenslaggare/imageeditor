@@ -19,8 +19,6 @@ pub mod line;
 pub mod rectangle;
 pub mod circle;
 pub mod bucket_fill;
-// pub mod selection;
-// pub mod move_pixels;
 pub mod selection;
 pub mod effect;
 
@@ -79,7 +77,8 @@ impl Tools {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SelectionSubTool {
     Select,
-    MovePixels
+    MovePixels,
+    ResizePixels
 }
 
 pub fn create_tools() -> Vec<Box<dyn Tool>> {
