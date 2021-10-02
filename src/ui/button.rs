@@ -13,6 +13,7 @@ use crate::rendering::text_render::{TextRender, TextAlignment};
 use crate::rendering::font::{Font, FontRef};
 use crate::editor::Color;
 use crate::rendering::solid_rectangle_render::SolidRectangleRender;
+use crate::rendering::ShaderAndRender;
 
 pub type ButtonAction = Box<dyn Fn(&mut CommandBuffer)>;
 pub type CommandAction<T> = Box<dyn Fn(&mut T, &Command)>;
@@ -45,9 +46,9 @@ impl TextureButton {
         }
     }
 
-    pub fn render(&self, shader: &Shader, texture_render: &TextureRender, transform: &Matrix4<f32>) {
+    pub fn render(&self, texture_render: &ShaderAndRender<TextureRender>, transform: &Matrix4<f32>) {
         texture_render.render(
-            &shader,
+            texture_render.shader(),
             &transform,
             &self.texture,
             self.position
@@ -124,9 +125,9 @@ impl SolidColorButton {
         }
     }
 
-    pub fn render(&self, shader: &Shader, solid_rectangle_render: &SolidRectangleRender, transform: &Matrix4<f32>) {
+    pub fn render(&self, solid_rectangle_render: &ShaderAndRender<SolidRectangleRender>, transform: &Matrix4<f32>) {
         solid_rectangle_render.render(
-            shader,
+            solid_rectangle_render.shader(),
             &transform,
             self.rectangle.position,
             self.rectangle.size,
@@ -197,12 +198,9 @@ impl TextButton {
         }
     }
 
-    pub fn render(&self,
-                  shader: &Shader,
-                  text_render: &TextRender,
-                  transform: &Matrix4<f32>) {
+    pub fn render(&self, text_render: &ShaderAndRender<TextRender>, transform: &Matrix4<f32>) {
         text_render.draw_line(
-            shader,
+            text_render.shader(),
             transform,
             self.font.borrow_mut().deref_mut(),
             self.text.chars().map(|c| (c, RenderingColor::new(0, 0, 0))),

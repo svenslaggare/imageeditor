@@ -7,6 +7,7 @@ use crate::rendering::texture_render::TextureRender;
 use crate::command_buffer::{CommandBuffer, Command};
 use crate::rendering::text_render::TextRender;
 use crate::rendering::solid_rectangle_render::SolidRectangleRender;
+use crate::rendering::ShaderAndRender;
 
 pub struct Manager {
     texture_buttons: Vec<TextureButton>,
@@ -54,35 +55,20 @@ impl Manager {
     }
 
     pub fn render(&self,
-                  texture_shader: &Shader,
-                  texture_render: &TextureRender,
-                  solid_rectangle_shader: &Shader,
-                  solid_rectangle_render: &SolidRectangleRender,
-                  text_shader: &Shader,
-                  text_render: &TextRender,
+                  texture_render: &ShaderAndRender<TextureRender>,
+                  solid_rectangle_render: &ShaderAndRender<SolidRectangleRender>,
+                  text_render: &ShaderAndRender<TextRender>,
                   transform: &Matrix4<f32>) {
         for button in &self.texture_buttons {
-            button.render(
-                texture_shader,
-                texture_render,
-                transform
-            );
+            button.render(texture_render, transform);
         }
 
         for button in &self.solid_color_buttons {
-            button.render(
-                solid_rectangle_shader,
-                solid_rectangle_render,
-                transform
-            );
+            button.render(solid_rectangle_render, transform);
         }
 
         for button in &self.text_buttons {
-            button.render(
-                text_shader,
-                text_render,
-                transform
-            );
+            button.render(text_render, transform);
         }
     }
 }
