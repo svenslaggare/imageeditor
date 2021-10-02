@@ -2,12 +2,8 @@ use cgmath::Matrix4;
 
 use crate::ui::TextureButton;
 use crate::ui::button::{TextButton, SolidColorButton, GenericButton};
-use crate::rendering::shader::Shader;
-use crate::rendering::texture_render::TextureRender;
 use crate::command_buffer::{CommandBuffer, Command};
-use crate::rendering::text_render::TextRender;
-use crate::rendering::solid_rectangle_render::SolidRectangleRender;
-use crate::rendering::ShaderAndRender;
+use crate::program::Renders;
 
 pub struct Manager {
     texture_buttons: Vec<TextureButton>,
@@ -54,21 +50,17 @@ impl Manager {
         }
     }
 
-    pub fn render(&self,
-                  texture_render: &ShaderAndRender<TextureRender>,
-                  solid_rectangle_render: &ShaderAndRender<SolidRectangleRender>,
-                  text_render: &ShaderAndRender<TextRender>,
-                  transform: &Matrix4<f32>) {
+    pub fn render(&self, renders: &Renders, transform: &Matrix4<f32>) {
         for button in &self.texture_buttons {
-            button.render(texture_render, transform);
+            button.render(&renders.texture_render, transform);
         }
 
         for button in &self.solid_color_buttons {
-            button.render(solid_rectangle_render, transform);
+            button.render(&renders.solid_rectangle_render, transform);
         }
 
         for button in &self.text_buttons {
-            button.render(text_render, transform);
+            button.render(&renders.text_render, transform);
         }
     }
 }

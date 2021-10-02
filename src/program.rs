@@ -15,10 +15,33 @@ use crate::rendering::text_render::TextRender;
 use crate::rendering::solid_rectangle_render::SolidRectangleRender;
 use crate::rendering::ShaderAndRender;
 
+pub struct Renders {
+    pub texture_render: ShaderAndRender<TextureRender>,
+    pub text_render: ShaderAndRender<TextRender>,
+    pub solid_rectangle_render: ShaderAndRender<SolidRectangleRender>,
+}
+
+impl Renders {
+    pub fn new() -> Renders {
+        Renders {
+            texture_render: ShaderAndRender::new(
+                Shader::new("content/shaders/texture.vs", "content/shaders/texture.fs", None).unwrap(),
+                TextureRender::new()
+            ),
+            solid_rectangle_render: ShaderAndRender::new(
+                Shader::new("content/shaders/solid_rectangle.vs", "content/shaders/solid_rectangle.fs", None).unwrap(),
+                SolidRectangleRender::new()
+            ),
+            text_render: ShaderAndRender::new(
+                Shader::new("content/shaders/text.vs", "content/shaders/text.fs", None).unwrap(),
+                TextRender::new()
+            ),
+        }
+    }
+}
+
 pub struct Program {
-    texture_render: ShaderAndRender<TextureRender>,
-    text_render: ShaderAndRender<TextRender>,
-    solid_rectangle_render: ShaderAndRender<SolidRectangleRender>,
+    renders: Renders,
     command_buffer: CommandBuffer,
     editor: editor::Editor,
     ui_manager: ui::Manager,
@@ -34,18 +57,7 @@ impl Program {
         let height = editor.image().height();
 
         let mut program = Program {
-            texture_render: ShaderAndRender::new(
-                Shader::new("content/shaders/texture.vs", "content/shaders/texture.fs", None).unwrap(),
-                TextureRender::new()
-            ),
-            solid_rectangle_render: ShaderAndRender::new(
-                Shader::new("content/shaders/solid_rectangle.vs", "content/shaders/solid_rectangle.fs", None).unwrap(),
-                SolidRectangleRender::new()
-            ),
-            text_render: ShaderAndRender::new(
-                Shader::new("content/shaders/text.vs", "content/shaders/text.fs", None).unwrap(),
-                TextRender::new()
-            ),
+            renders: Renders::new(),
             command_buffer: CommandBuffer::new(),
             editor,
             ui_manager,
@@ -162,19 +174,14 @@ impl Program {
     pub fn render(&mut self, transform: &Matrix4<f32>) {
         let origin = self.image_area_transform().transform_point(Position::new(0.0, 0.0));
 
-        self.texture_render.render(
-            self.texture_render.shader(),
+        self.renders.texture_render.render(
+            self.renders.texture_render.shader(),
             &transform,
             self.editor.image().get_texture(),
             origin
         );
 
-        self.ui_manager.render(
-            &self.texture_render,
-            &self.solid_rectangle_render,
-            &self.text_render,
-            &transform
-        );
+        self.ui_manager.render(&self.renders, &transform);
 
         let changed = {
             self.tools[self.active_tool as usize].preview(self.editor.image(), &mut self.preview_image)
@@ -184,8 +191,8 @@ impl Program {
             self.preview_image.clear_cpu();
         }
 
-        self.texture_render.render(
-            self.texture_render.shader(),
+        self.renders.texture_render.render(
+            self.renders.texture_render.shader(),
             &transform,
             self.preview_image.get_texture(),
             origin
