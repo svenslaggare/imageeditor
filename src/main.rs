@@ -75,6 +75,7 @@ fn main() {
     while !window.should_close() {
         let frame_start_draw = std::time::Instant::now();
 
+        glfw.poll_events();
         program.update(&mut window, &mut events);
 
         unsafe {
@@ -94,7 +95,6 @@ fn main() {
         program.render(&transform);
 
         window.swap_buffers();
-        glfw.poll_events();
 
         let duration = (std::time::Instant::now() - frame_start_draw).as_millis() as f32 / 1000.0;
         let mut wait_time = (1.0 / target_fps - duration) as f32;

@@ -4,7 +4,7 @@ use cgmath::{Matrix3, Transform};
 use crate::rendering::prelude::{Position, Rectangle};
 use crate::editor;
 use crate::command_buffer::{Command, CommandBuffer};
-use crate::editor::tools::{Tool, get_valid_rectangle, SelectionSubTool, Tools};
+use crate::editor::tools::{Tool, get_valid_rectangle, SelectionSubTool, Tools, get_transformed_mouse_position};
 use crate::editor::image_operation::{ImageOperation, ImageSource};
 use crate::editor::image_operation_helpers::sub_image;
 
@@ -57,7 +57,6 @@ impl MovePixelsState {
 
 pub struct SelectionTool {
     tool: SelectionSubTool,
-    current_mouse_position: Option<Position>,
     start_position: Option<Position>,
     end_position: Option<Position>,
     select_state: SelectState,
@@ -68,7 +67,6 @@ impl SelectionTool {
     pub fn new() -> SelectionTool {
         SelectionTool {
             tool: SelectionSubTool::Select,
-            current_mouse_position: None,
             start_position: None,
             end_position: None,
             select_state: SelectState {
@@ -102,7 +100,7 @@ impl SelectionTool {
     }
 
     fn process_event_select(&mut self,
-                            _window: &mut Window,
+                            window: &mut Window,
                             event: &WindowEvent,
                             transform: &Matrix3<f32>,
                             _command_buffer: &mut CommandBuffer,
@@ -110,17 +108,16 @@ impl SelectionTool {
         let mut op = None;
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
-                if let Some(current_mouse_position) = self.current_mouse_position.as_ref() {
-                    if current_mouse_position.x >= 0.0 && current_mouse_position.y >= 0.0 {
-                        if self.move_pixels_state.moved_pixels_image.is_some() {
-                            op = self.create_move(false);
-                            self.move_pixels_state.clear();
-                        }
-
-                        self.start_position = Some(current_mouse_position.clone());
-                        self.end_position = None;
-                        self.select_state.is_selecting = true;
+                let current_mouse_position = get_transformed_mouse_position(window, transform);
+                if current_mouse_position.x >= 0.0 && current_mouse_position.y >= 0.0 {
+                    if self.move_pixels_state.moved_pixels_image.is_some() {
+                        op = self.create_move(false);
+                        self.move_pixels_state.clear();
                     }
+
+                    self.start_position = Some(current_mouse_position.clone());
+                    self.end_position = None;
+                    self.select_state.is_selecting = true;
                 }
             }
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Release, _) => {
@@ -128,12 +125,9 @@ impl SelectionTool {
             }
             glfw::WindowEvent::CursorPos(raw_mouse_x, raw_mouse_y) => {
                 let mouse_position = transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32));
-
                 if self.select_state.is_selecting {
                     self.end_position = Some(mouse_position);
                 }
-
-                self.current_mouse_position = Some(mouse_position);
             }
             glfw::WindowEvent::Key(Key::A, _, Action::Press, Modifiers::Control) => {
                 self.start_position = Some(Position::new(0.0, 0.0));
@@ -167,13 +161,12 @@ impl SelectionTool {
                 }
             }
             glfw::WindowEvent::Key(Key::V, _, Action::Press, Modifiers::Control) => {
-                if let Some(mouse_position) = self.current_mouse_position.as_ref() {
-                    let start_x = mouse_position.x as i32;
-                    let start_y = mouse_position.y as i32;
+                let mouse_position = get_transformed_mouse_position(window, transform);
+                let start_x = mouse_position.x as i32;
+                let start_y = mouse_position.y as i32;
 
-                    if let Some(copied_image) = self.select_state.copied_image.as_ref() {
-                        op = Some(ImageOperation::SetImage { start_x, start_y, image: copied_image.clone(), blend: false });
-                    }
+                if let Some(copied_image) = self.select_state.copied_image.as_ref() {
+                    op = Some(ImageOperation::SetImage { start_x, start_y, image: copied_image.clone(), blend: false });
                 }
             }
             glfw::WindowEvent::Key(Key::X, _, Action::Press, Modifiers::Control) => {
@@ -204,7 +197,7 @@ impl SelectionTool {
     }
 
     fn process_event_move_pixels(&mut self,
-                                 _window: &mut Window,
+                                 window: &mut Window,
                                  event: &WindowEvent,
                                  transform: &Matrix3<f32>,
                                  _command_buffer: &mut CommandBuffer,
@@ -213,9 +206,10 @@ impl SelectionTool {
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
                 self.move_pixels_state.is_moving = false;
-                if let (Some(selection), Some(current_mouse_position)) = (self.selection(), self.current_mouse_position.as_ref()) {
+                let current_mouse_position = get_transformed_mouse_position(window, transform);
+                if let Some(selection) = self.selection() {
                     let selection_rectangle = Rectangle::from_min_and_max(&selection.start_position(), &selection.end_position());
-                    if selection_rectangle.contains(current_mouse_position) {
+                    if selection_rectangle.contains(&current_mouse_position) {
                         if self.move_pixels_state.moved_pixels_image.is_none() {
                             self.move_pixels_state.original_selection = Some(selection.clone());
                             self.move_pixels_state.moved_pixels_image = Some(sub_image(image, selection.start_x, selection.start_y, selection.end_x, selection.end_y));
@@ -248,8 +242,6 @@ impl SelectionTool {
                     self.start_position = Some(new_start_position);
                     self.end_position = Some(new_start_position + offset);
                 }
-
-                self.current_mouse_position = Some(mouse_position);
             }
             _ => {}
         }

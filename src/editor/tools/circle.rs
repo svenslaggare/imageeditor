@@ -4,11 +4,10 @@ use cgmath::{Matrix3, Transform};
 use crate::rendering::prelude::Position;
 use crate::editor;
 use crate::command_buffer::{Command, CommandBuffer};
-use crate::editor::tools::{Tool};
+use crate::editor::tools::{Tool, get_transformed_mouse_position};
 use crate::editor::image_operation::{ImageOperation};
 
 pub struct CircleDrawTool {
-    current_mouse_position: Option<Position>,
     start_position: Option<Position>,
     end_position: Option<Position>,
     border_color: editor::Color,
@@ -18,7 +17,6 @@ pub struct CircleDrawTool {
 impl CircleDrawTool {
     pub fn new() -> CircleDrawTool {
         CircleDrawTool {
-            current_mouse_position: None,
             start_position: None,
             end_position: None,
             border_color: image::Rgba([0, 0, 0, 255]),
@@ -65,7 +63,7 @@ impl Tool for CircleDrawTool {
     }
 
     fn process_event(&mut self,
-                     _window: &mut glfw::Window,
+                     window: &mut glfw::Window,
                      event: &WindowEvent,
                      transform: &Matrix3<f32>,
                      _command_buffer: &mut CommandBuffer,
@@ -73,10 +71,7 @@ impl Tool for CircleDrawTool {
         let mut op = None;
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
-                if self.current_mouse_position.is_some() {
-                    self.start_position = self.current_mouse_position.clone();
-                }
-
+                self.start_position = Some(get_transformed_mouse_position(window, transform));
                 self.end_position = None;
             }
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Release, _) => {
@@ -90,7 +85,6 @@ impl Tool for CircleDrawTool {
             glfw::WindowEvent::CursorPos(raw_mouse_x, raw_mouse_y) => {
                 let mouse_position = transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32));
                 self.end_position = Some(mouse_position);
-                self.current_mouse_position = Some(mouse_position);
             }
             _ => {}
         }
