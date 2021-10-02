@@ -13,6 +13,7 @@ pub struct MovePixelsTool {
     selection: Option<Selection>,
     is_moving: bool,
     move_position: Option<Position>,
+    move_offset: cgmath::Vector2<f32>,
     moved_pixels_image: Option<image::RgbaImage>
 }
 
@@ -23,7 +24,24 @@ impl MovePixelsTool {
             selection: None,
             is_moving: false,
             move_position: None,
+            move_offset: cgmath::Vector2::new(0.0, 0.0),
             moved_pixels_image: None
+        }
+    }
+
+    fn get_selection(&self, selection: &Selection) -> (Position, Position) {
+        if let Some(move_position) = self.move_position.as_ref() {
+            let move_position = move_position + self.move_offset;
+
+            (
+                move_position,
+                Position::new(
+                    move_position.x + (selection.end_x as f32 - selection.start_x as f32),
+                    move_position.y + (selection.end_y as f32 - selection.start_y as f32)
+                )
+            )
+        } else {
+            (selection.start_position(), selection.end_position())
         }
     }
 
@@ -54,6 +72,7 @@ impl MovePixelsTool {
                self.move_position.as_ref(),
                self.moved_pixels_image.as_ref()) {
             (Some(selection), Some(move_position), Some(moved_pixels_image)) => {
+                let move_position = move_position + self.move_offset;
                 return Some(
                     ImageOperation::Sequential(
                         vec![
@@ -83,6 +102,12 @@ impl MovePixelsTool {
 }
 
 impl Tool for MovePixelsTool {
+    fn on_active(&mut self) {
+        self.is_moving = false;
+        self.move_position = None;
+        self.moved_pixels_image = None;
+    }
+
     fn handle_command(&mut self, command: &Command) {
         match command {
             Command::SetSelection(selection) => {
@@ -108,6 +133,13 @@ impl Tool for MovePixelsTool {
                     }
                 } else {
                     self.is_moving = true;
+                }
+
+                if let Some(selection) = self.selection.as_ref() {
+                    if let Some(current_mouse_position) = self.current_mouse_position.as_ref() {
+                        let (selection_start, _) = self.get_selection(selection);
+                        self.move_offset = selection_start - current_mouse_position;
+                    }
                 }
             }
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Release, _) => {
@@ -141,22 +173,12 @@ impl Tool for MovePixelsTool {
     fn preview(&mut self, _image: &editor::Image, preview_image: &mut editor::Image) -> bool {
         let mut update_op = preview_image.update_operation();
         if let Some(selection) = self.selection.as_ref() {
+            let (selection_start, selection_end) = self.get_selection(selection);
             if let Some(move_op) = self.create_move(true) {
-                let move_position = self.move_position.as_ref().unwrap();
                 move_op.apply(&mut update_op, false);
-                self.create_selection(
-                    move_position,
-                    &Position::new(
-                        move_position.x + (selection.end_x as f32 - selection.start_x as f32),
-                        move_position.y + (selection.end_y as f32 - selection.start_y as f32)
-                    )
-                ).apply(&mut update_op, false);
-            } else {
-                self.create_selection(
-                    &selection.start_position(),
-                    &selection.end_position(),
-                ).apply(&mut update_op, false);
             }
+
+            self.create_selection(&selection_start, &selection_end).apply(&mut update_op, false);
         }
 
         return true;
