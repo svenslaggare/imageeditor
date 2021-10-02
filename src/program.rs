@@ -145,7 +145,7 @@ impl Program {
 
         while let Some(command) = self.command_buffer.pop() {
             match command {
-                Command::SetDrawTool(draw_tool) => {
+                Command::SetTool(draw_tool) => {
                     self.active_tool = draw_tool;
                     self.tools[self.active_tool as usize].on_active();
                     self.preview_image.clear_cpu();

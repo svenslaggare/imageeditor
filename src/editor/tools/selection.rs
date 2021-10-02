@@ -3,7 +3,7 @@ use cgmath::{Matrix3, Transform};
 
 use crate::rendering::prelude::Position;
 use crate::editor;
-use crate::command_buffer::{Command, CommandBuffer};
+use crate::command_buffer::{Command, CommandBuffer, Selection};
 use crate::editor::tools::{Tool, get_valid_rectangle};
 use crate::editor::image_operation::{ImageOperation, ImageSource};
 use crate::editor::image_operation_helpers::sub_image;
@@ -48,28 +48,55 @@ impl SelectionTool {
             }
         ])
     }
+
+    fn send_set_selection(&self, command_buffer: &mut CommandBuffer) {
+        match (self.start_position, self.end_position) {
+            (Some(start_position), Some(end_position)) => {
+                let (start_x, start_y, end_x, end_y) = get_valid_rectangle(&start_position, &end_position);
+                command_buffer.push(Command::SetSelection(Some(Selection {
+                    start_x,
+                    start_y,
+                    end_x,
+                    end_y
+                })));
+            }
+            _ => command_buffer.push(Command::SetSelection(None))
+        }
+    }
 }
 
 impl Tool for SelectionTool {
-    fn handle_command(&mut self, _command: &Command) {
-
+    fn handle_command(&mut self, command: &Command) {
+        match command {
+            Command::SetSelection(Some(selection)) if !self.is_selecting => {
+                self.start_position = Some(selection.start_position());
+                self.end_position = Some(selection.end_position());
+            }
+            Command::SetSelection(None) if !self.is_selecting => {
+                self.start_position = None;
+                self.end_position = None;
+            }
+            _ => {}
+        }
     }
 
     fn process_event(&mut self,
                      _window: &mut Window,
                      event: &WindowEvent,
                      transform: &Matrix3<f32>,
-                     _command_buffer: &mut CommandBuffer,
+                     command_buffer: &mut CommandBuffer,
                      image: &editor::Image) -> Option<ImageOperation> {
         let mut op = None;
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
-                if self.current_mouse_position.is_some() {
-                    self.start_position = self.current_mouse_position.clone();
+                if let Some(current_mouse_position) = self.current_mouse_position.as_ref() {
+                    if current_mouse_position.x >= 0.0 && current_mouse_position.y >= 0.0 {
+                        self.start_position = Some(current_mouse_position.clone());
+                        self.end_position = None;
+                        self.is_selecting = true;
+                        self.send_set_selection(command_buffer);
+                    }
                 }
-
-                self.end_position = None;
-                self.is_selecting = true;
             }
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Release, _) => {
                 self.is_selecting = false;
@@ -79,6 +106,7 @@ impl Tool for SelectionTool {
 
                 if self.is_selecting {
                     self.end_position = Some(mouse_position);
+                    self.send_set_selection(command_buffer);
                 }
 
                 self.current_mouse_position = Some(mouse_position);
@@ -86,6 +114,7 @@ impl Tool for SelectionTool {
             glfw::WindowEvent::Key(Key::A, _, Action::Press, Modifiers::Control) => {
                 self.start_position = Some(Position::new(0.0, 0.0));
                 self.end_position = Some(Position::new(image.width() as f32, image.height() as f32));
+                self.send_set_selection(command_buffer);
             }
             glfw::WindowEvent::Key(Key::Delete, _, Action::Press, _) => {
                 if let (Some(start_position), Some(end_position)) = (self.start_position.as_ref(), self.end_position.as_ref()) {
@@ -103,6 +132,7 @@ impl Tool for SelectionTool {
 
                     self.start_position = None;
                     self.end_position = None;
+                    self.send_set_selection(command_buffer);
                 }
             }
             glfw::WindowEvent::Key(Key::C, _, Action::Press, Modifiers::Control) => {
@@ -111,6 +141,7 @@ impl Tool for SelectionTool {
                     self.copied_image = Some(sub_image(image, start_x, start_y, end_x, end_y));
                     self.start_position = None;
                     self.end_position = None;
+                    self.send_set_selection(command_buffer);
                 }
             }
             glfw::WindowEvent::Key(Key::V, _, Action::Press, Modifiers::Control) => {
@@ -141,6 +172,7 @@ impl Tool for SelectionTool {
 
                     self.start_position = None;
                     self.end_position = None;
+                    self.send_set_selection(command_buffer);
                 }
             }
             _ => {}
