@@ -62,7 +62,7 @@ impl Program {
             editor,
             ui_manager,
             tools: create_tools(),
-            active_tool: Tools::Pencil,
+            active_tool: Tools::Circle,
             preview_image
         };
 

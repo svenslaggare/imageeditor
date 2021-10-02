@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::editor::image::{Color};
-use crate::editor::image_operation_helpers::{sub_image, draw_block, draw_line, draw_circle, fill_rectangle, bucket_fill, draw_line_anti_aliased, draw_line_anti_aliased_thick};
+use crate::editor::image_operation_helpers::{sub_image, draw_block, draw_line, draw_circle, fill_rectangle, bucket_fill, draw_line_anti_aliased, draw_line_anti_aliased_thick, draw_circle_anti_aliased, draw_circle_anti_aliased_thick};
 use image::Pixel;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
@@ -292,14 +292,25 @@ impl ImageOperation {
             ImageOperation::DrawCircle { center_x, center_y, radius, border_side_half_width, color } => {
                 let mut undo_image = SparseImage::new();
 
-                draw_circle(
+                // draw_circle(
+                //     *center_x,
+                //     *center_y,
+                //     *radius,
+                //     false,
+                //     |center_x: i32, center_y: i32| {
+                //         draw_block(update_op, center_x, center_y, *border_side_half_width, *color, undo, &mut undo_image);
+                //     }
+                // );
+
+                draw_circle_anti_aliased_thick(
+                    update_op,
                     *center_x,
                     *center_y,
                     *radius,
-                    false,
-                    |center_x: i32, center_y: i32| {
-                        draw_block(update_op, center_x, center_y, *border_side_half_width, *color, undo, &mut undo_image);
-                    }
+                    *border_side_half_width,
+                    *color,
+                    undo,
+                    &mut undo_image
                 );
 
                 if undo {

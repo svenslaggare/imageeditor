@@ -66,11 +66,7 @@ fn main() {
     let (mut glfw, mut window, mut events) = setup_window(image_to_edit.width(), image_to_edit.height());
 
     let mut program = Program::new(
-        editor::Editor::new(
-            editor::Image::new(
-                image_to_edit
-            )
-        ),
+        editor::Editor::new(editor::Image::new(image_to_edit)),
         ui::create(),
     );
 

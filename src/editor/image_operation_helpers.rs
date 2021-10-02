@@ -331,31 +331,31 @@ pub fn draw_line_anti_aliased_thick<T: ImageOperationSource>(update_op: &mut T,
 }
 
 pub fn draw_circle<F: FnMut(i32, i32)>(center_x: i32, center_y: i32, radius: i32, filled: bool, mut set_pixel: F) {
-    let mut draw_circle_internal = |xc: i32, yc: i32, x: i32, y: i32| {
+    let mut draw = |x: i32, y: i32| {
         if filled {
-            draw_line(xc - x, yc + y, xc + x, yc + y, |x, y| set_pixel(x, y));
-            draw_line(xc - x, yc - y, xc + x, yc - y, |x, y| set_pixel(x, y));
-            draw_line(xc - y, yc + x, xc + y, yc + x, |x, y| set_pixel(x, y));
-            draw_line(xc - y, yc - x, xc + y, yc - x, |x, y| set_pixel(x, y));
+            draw_line(center_x - x, center_y + y, center_x + x, center_y + y, |x, y| set_pixel(x, y));
+            draw_line(center_x - x, center_y - y, center_x + x, center_y - y, |x, y| set_pixel(x, y));
+            draw_line(center_x - y, center_y + x, center_x + y, center_y + x, |x, y| set_pixel(x, y));
+            draw_line(center_x - y, center_y - x, center_x + y, center_y - x, |x, y| set_pixel(x, y));
         } else {
-            set_pixel(xc - x, yc + y);
-            set_pixel(xc + x, yc + y);
+            set_pixel(center_x - x, center_y + y);
+            set_pixel(center_x + x, center_y + y);
 
-            set_pixel(xc - x, yc - y);
-            set_pixel(xc + x, yc - y);
+            set_pixel(center_x - x, center_y - y);
+            set_pixel(center_x + x, center_y - y);
 
-            set_pixel(xc - y, yc + x);
-            set_pixel(xc + y, yc + x);
+            set_pixel(center_x - y, center_y + x);
+            set_pixel(center_x + y, center_y + x);
 
-            set_pixel(xc - y, yc - x);
-            set_pixel(xc + y, yc - x);
+            set_pixel(center_x - y, center_y - x);
+            set_pixel(center_x + y, center_y - x);
         }
     };
 
     let mut x = 0;
     let mut y = radius;
     let mut d = 3 - 2 * radius;
-    draw_circle_internal(center_x, center_y, x, y);
+    draw(x, y);
     while y >= x {
         x += 1;
 
@@ -366,7 +366,105 @@ pub fn draw_circle<F: FnMut(i32, i32)>(center_x: i32, center_y: i32, radius: i32
             d += 4 * x + 6;
         }
 
-        draw_circle_internal(center_x, center_y, x, y);
+        draw(x, y);
+    }
+}
+
+pub fn draw_circle_anti_aliased<T: ImageOperationSource>(update_op: &mut T,
+                                                         center_x: i32, center_y: i32,
+                                                         radius: i32,
+                                                         color: Color,
+                                                         blend: bool,
+                                                         undo: bool,
+                                                         undo_image: &mut SparseImage) {
+    let mut set_pixel = |x: i32, y: i32, color: Color| {
+        if !(x >= 0 && x < update_op.width() as i32 && y >= 0 && y < update_op.height() as i32) {
+            return;
+        }
+
+        let pixel = update_op.get_pixel(x as u32, y as u32);
+        if undo && !undo_image.contains_key(&(x as u32, y as u32)) {
+            undo_image.insert((x as u32, y as u32), pixel);
+        }
+
+        update_op.put_pixel_with_blend(x as u32, y as u32, color);
+    };
+
+    let mut draw = |x: i32, y: i32, alpha: f32| {
+        let color = if blend {
+            let mut color = color;
+            color[3] = alpha.clamp(0.0, 255.0) as u8;
+            color
+        } else {
+            color
+        };
+
+        set_pixel(center_x - x, center_y + y, color);
+        set_pixel(center_x + x, center_y + y, color);
+
+        set_pixel(center_x - x, center_y - y, color);
+        set_pixel(center_x + x, center_y - y, color);
+
+        set_pixel(center_x - y, center_y + x, color);
+        set_pixel(center_x + y, center_y + x, color);
+
+        set_pixel(center_x - y, center_y - x, color);
+        set_pixel(center_x + y, center_y - x, color);
+    };
+
+    let mut i = 0;
+    let mut j = radius;
+    let mut last_fade_amount = 0.0;
+
+    while i < j {
+        let height = ((radius * radius - (i * i)).max(0) as f32).sqrt();
+        let fade_amount = 255.0 * (height.ceil() - height);
+
+        if fade_amount < last_fade_amount {
+            j -= 1;
+        }
+        last_fade_amount = fade_amount;
+
+        let fade_amount = fade_amount.floor();
+        draw(i, j, 255.0 - fade_amount);
+        draw(i, j - 1, fade_amount);
+        i += 1;
+    }
+}
+
+pub fn draw_circle_anti_aliased_thick<T: ImageOperationSource>(update_op: &mut T,
+                                                               center_x: i32, center_y: i32,
+                                                               radius: i32,
+                                                               side_half_width: i32,
+                                                               color: Color,
+                                                               undo: bool,
+                                                               undo_image: &mut SparseImage) {
+    if side_half_width == 0 {
+        draw_circle_anti_aliased(
+            update_op,
+            center_x,
+            center_y,
+            radius,
+            color,
+            true,
+            undo,
+            undo_image
+        );
+
+        return;
+    }
+
+    for radius_offset in -side_half_width..(side_half_width + 1) {
+        draw_circle_anti_aliased(
+            update_op,
+            center_x,
+            center_y,
+            radius - radius_offset,
+            color,
+            radius_offset != 0,
+            undo,
+            undo_image
+        );
     }
 }
 
