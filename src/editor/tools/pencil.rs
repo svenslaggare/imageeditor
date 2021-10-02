@@ -49,9 +49,11 @@ impl Tool for PencilDrawTool {
         let create_begin_draw = |this: &Self, mouse_position: Position, color: editor::Color| {
             Some(ImageOperation::Sequential(vec![
                 ImageOperation::Marker(ImageOperationMarker::BeginDraw),
-                ImageOperation::DrawBlock {
-                    x: mouse_position.x as i32,
-                    y: mouse_position.y as i32,
+                ImageOperation::DrawLine {
+                    start_x: mouse_position.x as i32,
+                    start_y: mouse_position.y as i32,
+                    end_x: mouse_position.x as i32,
+                    end_y: mouse_position.y as i32,
                     color,
                     side_half_width: this.side_half_width
                 }
