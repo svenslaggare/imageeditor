@@ -146,8 +146,15 @@ impl Program {
         while let Some(command) = self.command_buffer.pop() {
             match command {
                 Command::SetTool(draw_tool) => {
+                    if let Some(op) = self.tools[self.active_tool as usize].on_deactivate(&mut self.command_buffer) {
+                        self.command_buffer.push(Command::ApplyImageOp(op));
+                    }
+
                     self.active_tool = draw_tool;
-                    self.tools[self.active_tool as usize].on_active();
+                    if let Some(op) = self.tools[self.active_tool as usize].on_active() {
+                        self.command_buffer.push(Command::ApplyImageOp(op));
+                    }
+
                     self.preview_image.clear_cpu();
                     self.preview_image.update_operation();
                 }

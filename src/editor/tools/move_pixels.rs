@@ -1,7 +1,7 @@
 use glfw::{WindowEvent, Action, Key, Modifiers, Window};
 use cgmath::{Matrix3, Transform};
 
-use crate::rendering::prelude::Position;
+use crate::rendering::prelude::{Position, Rectangle};
 use crate::editor;
 use crate::command_buffer::{Command, CommandBuffer, Selection};
 use crate::editor::tools::{Tool, get_valid_rectangle};
@@ -99,13 +99,33 @@ impl MovePixelsTool {
 
         None
     }
+
+    fn clear_move(&mut self) {
+        self.is_moving = false;
+        self.moved_pixels_image = None;
+        self.move_position = None;
+    }
 }
 
 impl Tool for MovePixelsTool {
-    fn on_active(&mut self) {
-        self.is_moving = false;
-        self.move_position = None;
-        self.moved_pixels_image = None;
+    fn on_active(&mut self) -> Option<ImageOperation> {
+        self.clear_move();
+        None
+    }
+
+    fn on_deactivate(&mut self, command_buffer: &mut CommandBuffer) -> Option<ImageOperation> {
+        // if let (Some(selection)) = self.selection.as_ref() {
+        //     let (selection_start, selection_end) = self.get_selection(selection);
+        //     command_buffer.push(Command::SetSelection(Some(Selection {
+        //         start_x: selection_start.x as i32,
+        //         start_y: selection_start.y as i32,
+        //         end_x: selection_end.x as i32,
+        //         end_y: selection_end.y as i32
+        //     })))
+        // }
+        //
+        // self.create_move(false)
+        None
     }
 
     fn handle_command(&mut self, command: &Command) {
@@ -126,20 +146,24 @@ impl Tool for MovePixelsTool {
         let mut op = None;
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
-                if self.moved_pixels_image.is_none() {
-                    if let Some(selection) = self.selection.as_ref() {
-                        self.moved_pixels_image = Some(sub_image(image, selection.start_x, selection.start_y, selection.end_x, selection.end_y));
-                        self.is_moving = true;
+                if let (Some(selection), Some(current_mouse_position)) = (self.selection.as_ref(), self.current_mouse_position.as_ref()) {
+                    let (selection_start, selection_end) = self.get_selection(selection);
+                    let selection_rectangle = Rectangle::from_min_and_max(&selection_start, &selection_end);
+
+                    if selection_rectangle.contains(current_mouse_position) {
+                        if self.moved_pixels_image.is_none() {
+                            self.moved_pixels_image = Some(sub_image(image, selection.start_x, selection.start_y, selection.end_x, selection.end_y));
+                            self.is_moving = true;
+                        } else {
+                            self.is_moving = true;
+                        }
+
+                        self.move_offset = selection_start - current_mouse_position;
+                    } else {
+                        self.is_moving = false;
                     }
                 } else {
-                    self.is_moving = true;
-                }
-
-                if let Some(selection) = self.selection.as_ref() {
-                    if let Some(current_mouse_position) = self.current_mouse_position.as_ref() {
-                        let (selection_start, _) = self.get_selection(selection);
-                        self.move_offset = selection_start - current_mouse_position;
-                    }
+                    self.is_moving = false;
                 }
             }
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Release, _) => {
@@ -151,9 +175,7 @@ impl Tool for MovePixelsTool {
                 self.selection = None;
                 command_buffer.push(Command::SetSelection(None));
 
-                self.is_moving = false;
-                self.moved_pixels_image = None;
-                self.move_position = None;
+                self.clear_move();
             }
             glfw::WindowEvent::CursorPos(raw_mouse_x, raw_mouse_y) => {
                 let mouse_position = transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32));

@@ -15,6 +15,15 @@ impl Rectangle {
         }
     }
 
+    pub fn from_min_and_max(min_position: &Position, max_position: &Position) -> Rectangle {
+        Rectangle::new(
+            min_position.x,
+            min_position.y,
+            max_position.x - min_position.x,
+            max_position.y - min_position.y
+        )
+    }
+
     pub fn top(&self) -> f32 {
         return self.position.y;
     }

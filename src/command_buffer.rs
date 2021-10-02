@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use crate::editor::image_operation::ImageOperation;
 use crate::editor::tools::Tools;
-use crate::rendering::prelude::Position;
+use crate::rendering::prelude::{Position, Rectangle};
 
 #[derive(Debug, Clone)]
 pub struct Selection {
@@ -19,6 +19,15 @@ impl Selection {
 
     pub fn end_position(&self) -> Position {
         Position::new(self.end_x as f32, self.end_y as f32)
+    }
+
+    pub fn rectangle(&self) -> Rectangle {
+        Rectangle::new(
+            self.start_x as f32,
+            self.start_y as f32,
+            (self.end_x - self.start_x) as f32,
+            (self.end_y - self.start_y) as f32
+        )
     }
 }
 

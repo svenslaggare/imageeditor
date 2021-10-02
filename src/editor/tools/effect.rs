@@ -92,8 +92,9 @@ impl EffectDrawTool {
 }
 
 impl Tool for EffectDrawTool {
-    fn on_active(&mut self) {
+    fn on_active(&mut self) -> Option<ImageOperation> {
         self.changed = true;
+        None
     }
 
     fn update(&mut self) {

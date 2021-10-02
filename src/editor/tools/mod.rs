@@ -25,8 +25,12 @@ pub mod move_pixels;
 pub mod effect;
 
 pub trait Tool {
-    fn on_active(&mut self) {
+    fn on_active(&mut self) -> Option<ImageOperation> {
+        None
+    }
 
+    fn on_deactivate(&mut self, command_buffer: &mut CommandBuffer) -> Option<ImageOperation> {
+        None
     }
 
     fn update(&mut self) {
