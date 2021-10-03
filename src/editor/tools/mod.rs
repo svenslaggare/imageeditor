@@ -7,6 +7,7 @@ use crate::editor;
 use crate::editor::image_operation::ImageOperation;
 use crate::rendering::prelude::Position;
 use crate::editor::tools::pencil::PencilDrawTool;
+use crate::editor::tools::eraser::EraserDrawTool;
 use crate::editor::tools::line::LineDrawTool;
 use crate::editor::tools::rectangle::RectangleDrawTool;
 use crate::editor::tools::effect::EffectDrawTool;
@@ -15,6 +16,7 @@ use crate::editor::tools::bucket_fill::BucketFillDrawTool;
 use crate::editor::tools::selection::SelectionTool;
 
 pub mod pencil;
+pub mod eraser;
 pub mod line;
 pub mod rectangle;
 pub mod circle;
@@ -54,6 +56,7 @@ pub trait Tool {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Tools {
     Pencil,
+    Eraser,
     Line,
     Rectangle,
     Circle,
@@ -65,11 +68,12 @@ impl Tools {
     pub fn index(&self) -> usize {
         match self {
             Tools::Pencil => 0,
-            Tools::Line => 1,
-            Tools::Rectangle => 2,
-            Tools::Circle => 3,
-            Tools::Selection(_) => 4,
-            Tools::BucketFill => 5
+            Tools::Eraser => 1,
+            Tools::Line => 2,
+            Tools::Rectangle => 3,
+            Tools::Circle => 4,
+            Tools::Selection(_) => 5,
+            Tools::BucketFill => 6
         }
     }
 }
@@ -84,6 +88,7 @@ pub enum SelectionSubTool {
 pub fn create_tools() -> Vec<Box<dyn Tool>> {
     vec![
         Box::new(PencilDrawTool::new()),
+        Box::new(EraserDrawTool::new()),
         Box::new(LineDrawTool::new()),
         Box::new(RectangleDrawTool::new()),
         Box::new(CircleDrawTool::new()),

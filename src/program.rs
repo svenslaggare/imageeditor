@@ -85,7 +85,7 @@ impl Program {
 
     fn image_area_transform(&self) -> Matrix3<f32> {
         cgmath::Matrix3::from_cols(
-            cgmath::Vector3::new(1.0, 0.0, 48.0),
+            cgmath::Vector3::new(1.0, 0.0, 70.0),
             cgmath::Vector3::new(0.0, 1.0, 0.0),
             cgmath::Vector3::new(0.0, 0.0, 1.0),
         ).transpose()

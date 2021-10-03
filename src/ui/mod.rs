@@ -34,9 +34,9 @@ fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
 
     let mut layout = layout::adaptive_rows(
         Position::new(5.0, 5.0),
-        (40.0, line_height + 5.0),
-        40.0,
-        8
+        (35.0, line_height + 5.0),
+        70.0,
+        9
     );
 
     texture_buttons.push(TextButton::new(
@@ -45,6 +45,17 @@ fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
         layout.next().unwrap(),
         Some(Box::new(|command_buffer| {
             command_buffer.push(Command::SetTool(Tools::Pencil));
+        })),
+        None,
+        None
+    ));
+
+    texture_buttons.push(TextButton::new(
+        font.clone(),
+        "E".to_owned(),
+        layout.next().unwrap(),
+        Some(Box::new(|command_buffer| {
+            command_buffer.push(Command::SetTool(Tools::Eraser));
         })),
         None,
         None
@@ -85,6 +96,17 @@ fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
 
     texture_buttons.push(TextButton::new(
         font.clone(),
+        "BF".to_owned(),
+        layout.next().unwrap(),
+        Some(Box::new(|command_buffer| {
+            command_buffer.push(Command::SetTool(Tools::BucketFill));
+        })),
+        None,
+        None
+    ));
+
+    texture_buttons.push(TextButton::new(
+        font.clone(),
         "S".to_owned(),
         layout.next().unwrap(),
         Some(Box::new(|command_buffer| {
@@ -115,17 +137,6 @@ fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
         None,
         None
     ));
-
-    texture_buttons.push(TextButton::new(
-        font.clone(),
-        "BF".to_owned(),
-        layout.next().unwrap(),
-        Some(Box::new(|command_buffer| {
-            command_buffer.push(Command::SetTool(Tools::BucketFill));
-        })),
-        None,
-        None
-    ));
 }
 
 fn generate_color_palette(buttons: &mut Vec<TextureButton>,
@@ -148,13 +159,14 @@ fn generate_color_palette(buttons: &mut Vec<TextureButton>,
         }
     }
 
+    let start_x = 0.0;
     let start_y = 280.0;
     let selected_color_width = 32.0;
     let selected_color_height = 32.0;
 
     solid_color_buttons.push(SolidColorButton::new(
         image::Rgba([255, 0, 0, 255]),
-        Rectangle::new(0.0, start_y, selected_color_width, selected_color_height),
+        Rectangle::new(start_x, start_y, selected_color_width, selected_color_height),
         None,
         None,
         Some(Box::new(move |button, command| {
@@ -179,7 +191,7 @@ fn generate_color_palette(buttons: &mut Vec<TextureButton>,
     let cell_size = (16, 16);
 
     let layout = layout::adaptive_rows(
-        Position::new(0.0, start_y + selected_color_height * 1.5 + 5.0),
+        Position::new(start_x, start_y + selected_color_height * 1.5 + 5.0),
         (cell_size.0 as f32, cell_size.1 as f32),
         48.0,
         colors.len()
