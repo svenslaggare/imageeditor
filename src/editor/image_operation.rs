@@ -1,8 +1,20 @@
 use std::collections::HashMap;
 
-use crate::editor::image::{Color};
-use crate::editor::image_operation_helpers::{sub_image, draw_block, draw_line, draw_circle, fill_rectangle, bucket_fill, draw_line_anti_aliased, draw_line_anti_aliased_thick, draw_circle_anti_aliased, draw_circle_anti_aliased_thick};
 use image::{Pixel, FilterType};
+
+use crate::editor::image::{Color};
+use crate::editor::image_operation_helpers::{
+    sub_image,
+    draw_block,
+    draw_line,
+    draw_circle,
+    fill_rectangle,
+    bucket_fill,
+    draw_line_anti_aliased,
+    draw_line_anti_aliased_thick,
+    draw_circle_anti_aliased,
+    draw_circle_anti_aliased_thick
+};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum ImageOperationMarker {
