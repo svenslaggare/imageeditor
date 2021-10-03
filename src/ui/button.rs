@@ -24,7 +24,7 @@ pub trait GenericButton<T> {
     fn process_command(&mut self, command: &Command);
 }
 
-pub struct TextureButton<T> {
+pub struct TextureButton<T=CommandBuffer> {
     texture: Texture,
     position: Position,
     left_click_action: Option<ButtonAction<T>>,
@@ -103,7 +103,7 @@ impl<T> GenericButton<T> for TextureButton<T> {
     }
 }
 
-pub struct SolidColorButton<T> {
+pub struct SolidColorButton<T=CommandBuffer> {
     color: Color,
     rectangle: Rectangle,
     left_click_action: Option<ButtonAction<T>>,
@@ -173,7 +173,7 @@ impl<T> GenericButton<T> for SolidColorButton<T> {
     }
 }
 
-pub struct TextButton<T> {
+pub struct TextButton<T=CommandBuffer> {
     font: FontRef,
     text: String,
     position: Position,

@@ -76,6 +76,7 @@ impl Tool for PencilDrawTool {
                     end_x: mouse_position.x as i32,
                     end_y: mouse_position.y as i32,
                     color,
+                    anti_aliased: None,
                     side_half_width: this.side_half_width
                 }
             ]))
@@ -101,14 +102,17 @@ impl Tool for PencilDrawTool {
                     let mouse_position = transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32));
 
                     if let Some(prev_mouse_position) = self.prev_mouse_position {
-                        op = Some(ImageOperation::Line {
-                            start_x: prev_mouse_position.x as i32,
-                            start_y: prev_mouse_position.y as i32,
-                            end_x: mouse_position.x as i32,
-                            end_y: mouse_position.y as i32,
-                            color,
-                            side_half_width: self.side_half_width
-                        });
+                        op = Some(
+                            ImageOperation::Line {
+                                start_x: prev_mouse_position.x as i32,
+                                start_y: prev_mouse_position.y as i32,
+                                end_x: mouse_position.x as i32,
+                                end_y: mouse_position.y as i32,
+                                color,
+                                anti_aliased: None,
+                                side_half_width: self.side_half_width
+                            }
+                        );
                     }
 
                     self.prev_mouse_position = Some(mouse_position);

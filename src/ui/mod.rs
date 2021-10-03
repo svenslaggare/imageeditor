@@ -28,7 +28,7 @@ pub fn create() -> Manager {
     Manager::new(texture_buttons, solid_color_buttons, text_buttons)
 }
 
-fn generate_draw_tools(texture_buttons: &mut Vec<TextButton<CommandBuffer>>) {
+fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
     let font = Rc::new(RefCell::new(Font::new("content/fonts/NotoMono-Regular.ttf", 24).unwrap()));
     let line_height = font.borrow_mut().line_height();
 
@@ -150,8 +150,8 @@ fn generate_draw_tools(texture_buttons: &mut Vec<TextButton<CommandBuffer>>) {
     ));
 }
 
-fn generate_color_palette(buttons: &mut Vec<TextureButton<CommandBuffer>>,
-                          solid_color_buttons: &mut Vec<SolidColorButton<CommandBuffer>>) {
+fn generate_color_palette(buttons: &mut Vec<TextureButton>,
+                          solid_color_buttons: &mut Vec<SolidColorButton>) {
     let mut colors = Vec::new();
     colors.push(image::Rgba([255, 255, 255, 255]));
     colors.push(image::Rgba([0, 0, 0, 255]));

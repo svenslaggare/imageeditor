@@ -56,7 +56,7 @@ pub enum ImageOperation {
     ResizeImage { image: image::RgbaImage, start_x: i32, start_y: i32, scale_x: f32, scale_y: f32 },
     SetPixel { x: i32, y: i32, color: Color },
     Block { x: i32, y: i32, color: Color, side_half_width: i32 },
-    Line { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, side_half_width: i32 },
+    Line { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, anti_aliased: Option<bool>, side_half_width: i32 },
     Rectangle { start_x: i32, start_y: i32, end_x: i32, end_y: i32, border_half_width: i32, color: Color },
     FillRectangle { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, blend: bool },
     Circle { center_x: i32, center_y: i32, radius: i32, border_half_width: i32, color: Color },
@@ -201,29 +201,32 @@ impl ImageOperation {
                     None
                 }
             }
-            ImageOperation::Line { start_x, start_y, end_x, end_y, color, side_half_width } => {
+            ImageOperation::Line { start_x, start_y, end_x, end_y, color, anti_aliased, side_half_width } => {
                 let mut undo_image = SparseImage::new();
-                // draw_line(
-                //     *start_x,
-                //     *start_y,
-                //     *end_x,
-                //     *end_y,
-                //     |center_x: i32, center_y: i32| {
-                //         draw_block(update_op, center_x, center_y, *side_half_width, *color, undo, &mut undo_image);
-                //     }
-                // );
 
-                draw_line_anti_aliased_thick(
-                    update_op,
-                    *start_x,
-                    *start_y,
-                    *end_x,
-                    *end_y,
-                    *side_half_width,
-                    *color,
-                    undo,
-                    &mut undo_image
-                );
+                if anti_aliased.unwrap_or(true) {
+                    draw_line_anti_aliased_thick(
+                        update_op,
+                        *start_x,
+                        *start_y,
+                        *end_x,
+                        *end_y,
+                        *side_half_width,
+                        *color,
+                        undo,
+                        &mut undo_image
+                    );
+                } else {
+                    draw_line(
+                        *start_x,
+                        *start_y,
+                        *end_x,
+                        *end_y,
+                        |center_x: i32, center_y: i32| {
+                            draw_block(update_op, center_x, center_y, *side_half_width, *color, undo, &mut undo_image);
+                        }
+                    );
+                }
 
                 if undo {
                     Some(ImageOperation::SetImageSparse { image: undo_image })
@@ -270,6 +273,7 @@ impl ImageOperation {
                         end_x: end_x.clone(),
                         end_y: start_y.clone(),
                         color: color.clone(),
+                        anti_aliased: Some(false),
                         side_half_width: *side_half_width
                     }.apply(update_op, undo)
                 );
@@ -281,6 +285,7 @@ impl ImageOperation {
                         end_x: end_x.clone(),
                         end_y: end_y.clone(),
                         color: color.clone(),
+                        anti_aliased: Some(false),
                         side_half_width: *side_half_width
                     }.apply(update_op, undo)
                 );
@@ -292,6 +297,7 @@ impl ImageOperation {
                         end_x: start_x.clone(),
                         end_y: end_y.clone(),
                         color: color.clone(),
+                        anti_aliased: Some(false),
                         side_half_width: *side_half_width
                     }.apply(update_op, undo)
                 );
@@ -303,6 +309,7 @@ impl ImageOperation {
                         end_x: start_x.clone(),
                         end_y: start_y.clone(),
                         color: color.clone(),
+                        anti_aliased: Some(false),
                         side_half_width: *side_half_width
                     }.apply(update_op, undo)
                 );
