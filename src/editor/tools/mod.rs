@@ -98,7 +98,7 @@ pub fn create_tools(renders: &Renders) -> Vec<Box<dyn Tool>> {
     vec![
         Box::new(PencilDrawTool::new(renders)),
         Box::new(EraserDrawTool::new(renders)),
-        Box::new(LineDrawTool::new()),
+        Box::new(LineDrawTool::new(renders)),
         Box::new(RectangleDrawTool::new(renders)),
         Box::new(CircleDrawTool::new(renders)),
         Box::new(SelectionTool::new()),

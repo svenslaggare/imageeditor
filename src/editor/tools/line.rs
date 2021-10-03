@@ -1,26 +1,41 @@
 use glfw::{WindowEvent, Action};
-use cgmath::{Matrix3, Transform};
+use cgmath::{Matrix3, Transform, Matrix4};
 
 use crate::rendering::prelude::Position;
 use crate::editor;
 use crate::command_buffer::{Command, CommandBuffer};
 use crate::editor::tools::{Tool, get_transformed_mouse_position};
 use crate::editor::image_operation::{ImageOperation};
+use crate::ui::button::{TextButton, GenericButton};
+use crate::program::Renders;
 
 pub struct LineDrawTool {
     start_position: Option<Position>,
     end_position: Option<Position>,
     color: editor::Color,
-    side_half_width: i32
+    side_half_width: i32,
+    change_size_button: TextButton<i32>
 }
 
 impl LineDrawTool {
-    pub fn new() -> LineDrawTool {
+    pub fn new(renders: &Renders) -> LineDrawTool {
         LineDrawTool {
             start_position: None,
             end_position: None,
             color: image::Rgba([0, 0, 0, 255]),
-            side_half_width: 1
+            side_half_width: 1,
+            change_size_button: TextButton::new(
+                renders.ui_font.clone(),
+                "".to_owned(),
+                Position::new(70.0, 10.0),
+                Some(Box::new(|side_half_width| {
+                    *side_half_width += 1;
+                })),
+                Some(Box::new(|side_half_width| {
+                    *side_half_width = (*side_half_width - 1).max(0);
+                })),
+                None,
+            )
         }
     }
 
@@ -75,6 +90,8 @@ impl Tool for LineDrawTool {
             _ => {}
         }
 
+        self.change_size_button.process_gui_event(window, event, &mut self.side_half_width);
+
         return op;
     }
 
@@ -85,5 +102,10 @@ impl Tool for LineDrawTool {
         }
 
         return true;
+    }
+
+    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>) {
+        self.change_size_button.change_text(format!("Line width: {}", self.side_half_width * 2 + 1));
+        self.change_size_button.render(renders, transform);
     }
 }
