@@ -75,7 +75,8 @@ pub struct SelectionTool {
     end_position: Option<Position>,
     select_state: SelectState,
     move_pixels_state: MovePixelsState,
-    resize_pixels_state: ResizePixelsState
+    resize_pixels_state: ResizePixelsState,
+    transparent_image: image::RgbaImage
 }
 
 impl SelectionTool {
@@ -98,7 +99,8 @@ impl SelectionTool {
                 is_resizing: false,
                 original_selection: None,
                 resize_pixels_image: None
-            }
+            },
+            transparent_image: image::open("content/ui/checkerboard.png").unwrap().into_rgba()
         }
     }
 
@@ -325,14 +327,7 @@ impl SelectionTool {
                 return Some(
                     ImageOperation::Sequential(
                         vec![
-                            ImageOperation::FillRectangle {
-                                start_x: original_selection.start_x,
-                                start_y: original_selection.start_y,
-                                end_x: original_selection.end_x,
-                                end_y: original_selection.end_y,
-                                color: if preview {image::Rgba([255, 255, 255, 255])} else {image::Rgba([0, 0, 0, 0])},
-                                blend: preview
-                            },
+                            self.create_erased_area(&original_selection, preview),
                             ImageOperation::SetImage {
                                 start_x: selection.start_x as i32,
                                 start_y: selection.start_y as i32,
@@ -354,14 +349,7 @@ impl SelectionTool {
             (Some(selection), Some(original_selection), Some(resize_pixels_image)) => {
                 return Some(
                     ImageOperation::Sequential(vec![
-                        ImageOperation::FillRectangle {
-                            start_x: original_selection.start_x,
-                            start_y: original_selection.start_y,
-                            end_x: original_selection.end_x,
-                            end_y: original_selection.end_y,
-                            color: if preview {image::Rgba([255, 255, 255, 255])} else {image::Rgba([0, 0, 0, 0])},
-                            blend: preview
-                        },
+                        self.create_erased_area(&original_selection, preview),
                         ImageOperation::ResizeImage {
                             image: resize_pixels_image.clone(),
                             start_x: selection.start_x,
@@ -376,6 +364,27 @@ impl SelectionTool {
         }
 
         None
+    }
+
+    fn create_erased_area(&self, selection: &Selection, preview: bool) -> ImageOperation {
+        if preview {
+            ImageOperation::SetPseudoTransparent {
+                start_x: selection.start_x,
+                start_y: selection.start_y,
+                end_x: selection.end_x,
+                end_y: selection.end_y,
+                pattern: self.transparent_image.clone()
+            }
+        } else {
+            ImageOperation::FillRectangle {
+                start_x: selection.start_x,
+                start_y: selection.start_y,
+                end_x: selection.end_x,
+                end_y: selection.end_y,
+                color: image::Rgba([0, 0, 0, 0]),
+                blend: false
+            }
+        }
     }
 
     fn create_selection_gui(&self, selection: &Selection) -> ImageOperation {
