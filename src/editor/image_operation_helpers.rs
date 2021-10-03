@@ -5,6 +5,7 @@ use image::Pixel;
 use crate::editor::image_operation::{ImageSource, ImageOperationSource, SparseImage, OptionalImage};
 use crate::editor::Color;
 use crate::helpers::TimeMeasurement;
+use cgmath::{ElementWise, InnerSpace};
 
 pub fn draw_block<T: ImageOperationSource>(update_op: &mut T,
                                            center_x: i32,
@@ -479,6 +480,7 @@ pub fn fill_rectangle<F: FnMut(i32, i32)>(min_x: i32, min_y: i32, max_x: i32, ma
 pub fn bucket_fill<T: ImageOperationSource>(update_op: &mut T,
                                             start_x: i32, start_y: i32,
                                             fill_color: Color,
+                                            tolerance: f32,
                                             undo: bool,
                                             undo_image: &mut OptionalImage) {
     let _tm = TimeMeasurement::new("bucket fill");
@@ -505,7 +507,7 @@ pub fn bucket_fill<T: ImageOperationSource>(update_op: &mut T,
                     if nx >= 0 && nx < width && ny >= 0 && ny < height {
                         if !visited[(ny * width + nx) as usize] {
                             let color = update_op.get_pixel(nx as u32, ny as u32);
-                            if color == ref_color {
+                            if within_tolerance(&ref_color, tolerance, &color) {
                                 stack.push((nx, ny, color));
                             }
                         }
@@ -514,6 +516,30 @@ pub fn bucket_fill<T: ImageOperationSource>(update_op: &mut T,
             }
         }
     }
+}
+
+fn within_tolerance(ref_color: &Color, tolerance: f32, color: &Color) -> bool {
+    if color == &image::Rgba([0, 0, 0, 0]) {
+        return true;
+    }
+
+    let ref_color = cgmath::Vector3::new(ref_color[0], ref_color[1], ref_color[2]);
+    let color = cgmath::Vector3::new(color[0], color[1], color[2]);
+
+    if tolerance == 0.0 {
+        return ref_color == color;
+    }
+
+    let mut ref_color = cgmath::Vector3::new(ref_color[0] as f32, ref_color[1] as f32, ref_color[2] as f32);
+    let color = cgmath::Vector3::new(color[0] as f32, color[1] as f32, color[2] as f32);
+
+    let diff = ref_color - color;
+    if ref_color.magnitude() <= 1E-7 {
+        ref_color = cgmath::Vector3::new(255.0, 255.0, 255.0);
+    }
+
+    let relative_diff = diff.div_element_wise(ref_color);
+    relative_diff.magnitude() <= tolerance
 }
 
 pub fn sub_image<T: ImageSource>(image: &T, min_x: i32, min_y: i32, max_x: i32, max_y: i32) -> image::RgbaImage {
@@ -528,7 +554,8 @@ pub fn sub_image<T: ImageSource>(image: &T, min_x: i32, min_y: i32, max_x: i32, 
             sub_image.put_pixel(
                 (x - min_x) as u32,
                 (y - min_y) as u32,
-                image.get_pixel(x as u32, y as u32));
+                image.get_pixel(x as u32, y as u32)
+            );
         }
     }
 

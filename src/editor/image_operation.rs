@@ -373,6 +373,7 @@ impl ImageOperation {
                     *start_x,
                     *start_y,
                     *fill_color,
+                    0.25,
                     undo,
                     &mut undo_image
                 );
