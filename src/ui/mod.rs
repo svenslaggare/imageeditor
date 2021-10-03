@@ -170,7 +170,7 @@ fn generate_color_palette(buttons: &mut Vec<TextureButton>,
         }
     }
 
-    let start_x = 0.0;
+    let start_x = 10.0;
     let start_y = 280.0;
     let selected_color_width = 32.0;
     let selected_color_height = 32.0;
@@ -189,7 +189,12 @@ fn generate_color_palette(buttons: &mut Vec<TextureButton>,
 
     solid_color_buttons.push(SolidColorButton::new(
         image::Rgba([0, 0, 0, 255]),
-        Rectangle::new(selected_color_width / 2.0, start_y + selected_color_height / 2.0, selected_color_width, selected_color_height),
+        Rectangle::new(
+            start_x + selected_color_width / 2.0,
+            start_y + selected_color_height / 2.0,
+            selected_color_width,
+            selected_color_height
+        ),
         None,
         None,
         Some(Box::new(move |button, command| {
