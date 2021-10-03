@@ -55,11 +55,11 @@ pub enum ImageOperation {
     SetOptionalImage { image: OptionalImage },
     ResizeImage { image: image::RgbaImage, start_x: i32, start_y: i32, scale_x: f32, scale_y: f32 },
     SetPixel { x: i32, y: i32, color: Color },
-    DrawBlock { x: i32, y: i32, color: Color, side_half_width: i32 },
-    DrawLine { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, side_half_width: i32 },
+    Block { x: i32, y: i32, color: Color, side_half_width: i32 },
+    Line { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, side_half_width: i32 },
+    Rectangle { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color },
     FillRectangle { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, blend: bool },
-    DrawRectangle { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color },
-    DrawCircle { center_x: i32, center_y: i32, radius: i32, border_side_half_width: i32, color: Color },
+    Circle { center_x: i32, center_y: i32, radius: i32, border_side_half_width: i32, color: Color },
     FillCircle { center_x: i32, center_y: i32, radius: i32, color: Color },
     BucketFill { start_x: i32, start_y: i32, fill_color: Color }
 }
@@ -191,7 +191,7 @@ impl ImageOperation {
 
                 original_color.map(|original_color| ImageOperation::SetPixel { x: *x, y: *y, color: original_color })
             }
-            ImageOperation::DrawBlock { x, y, color, side_half_width } => {
+            ImageOperation::Block { x, y, color, side_half_width } => {
                 let mut undo_image = SparseImage::new();
                 draw_block(update_op, *x, *y, *side_half_width, *color, undo, &mut undo_image);
 
@@ -201,7 +201,7 @@ impl ImageOperation {
                     None
                 }
             }
-            ImageOperation::DrawLine { start_x, start_y, end_x, end_y, color, side_half_width } => {
+            ImageOperation::Line { start_x, start_y, end_x, end_y, color, side_half_width } => {
                 let mut undo_image = SparseImage::new();
                 // draw_line(
                 //     *start_x,
@@ -260,12 +260,12 @@ impl ImageOperation {
 
                 undo_image.map(|image| ImageOperation::SetImage { start_x: min_x, start_y: min_y, image, blend: false })
             }
-            ImageOperation::DrawRectangle { start_x, start_y, end_x, end_y, color } => {
+            ImageOperation::Rectangle { start_x, start_y, end_x, end_y, color } => {
                 let mut undo_ops = Vec::new();
 
                 let side_half_width = 0;
                 undo_ops.push(
-                    ImageOperation::DrawLine {
+                    ImageOperation::Line {
                         start_x: start_x.clone(),
                         start_y: start_y.clone(),
                         end_x: end_x.clone(),
@@ -276,7 +276,7 @@ impl ImageOperation {
                 );
 
                 undo_ops.push(
-                    ImageOperation::DrawLine {
+                    ImageOperation::Line {
                         start_x: end_x.clone(),
                         start_y: start_y.clone(),
                         end_x: end_x.clone(),
@@ -287,7 +287,7 @@ impl ImageOperation {
                 );
 
                 undo_ops.push(
-                    ImageOperation::DrawLine {
+                    ImageOperation::Line {
                         start_x: end_x.clone(),
                         start_y: end_y.clone(),
                         end_x: start_x.clone(),
@@ -298,7 +298,7 @@ impl ImageOperation {
                 );
 
                 undo_ops.push(
-                    ImageOperation::DrawLine {
+                    ImageOperation::Line {
                         start_x: start_x.clone(),
                         start_y: end_y.clone(),
                         end_x: start_x.clone(),
@@ -316,7 +316,7 @@ impl ImageOperation {
                     None
                 }
             }
-            ImageOperation::DrawCircle { center_x, center_y, radius, border_side_half_width, color } => {
+            ImageOperation::Circle { center_x, center_y, radius, border_side_half_width, color } => {
                 let mut undo_image = SparseImage::new();
 
                 // draw_circle(

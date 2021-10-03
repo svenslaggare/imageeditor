@@ -25,7 +25,7 @@ impl LineDrawTool {
     }
 
     fn create_op(&self, start_position: &Position, end_position: &Position) -> ImageOperation {
-        ImageOperation::DrawLine {
+        ImageOperation::Line {
             start_x: start_position.x as i32,
             start_y: start_position.y as i32,
             end_x: end_position.x as i32,

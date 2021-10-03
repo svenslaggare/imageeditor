@@ -38,7 +38,7 @@ impl CircleDrawTool {
                 radius,
                 color: self.fill_color,
             },
-            ImageOperation::DrawCircle {
+            ImageOperation::Circle {
                 center_x: start_x,
                 center_y: start_y,
                 radius,

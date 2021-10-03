@@ -388,7 +388,7 @@ impl SelectionTool {
                 color: image::Rgba([0, 148, 255, 64]),
                 blend: true
             },
-            ImageOperation::DrawRectangle {
+            ImageOperation::Rectangle {
                 start_x: selection.start_x,
                 start_y: selection.start_y,
                 end_x: selection.end_x,

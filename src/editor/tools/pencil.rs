@@ -49,7 +49,7 @@ impl Tool for PencilDrawTool {
         let create_begin_draw = |this: &Self, mouse_position: Position, color: editor::Color| {
             Some(ImageOperation::Sequential(vec![
                 ImageOperation::Marker(ImageOperationMarker::BeginDraw),
-                ImageOperation::DrawLine {
+                ImageOperation::Line {
                     start_x: mouse_position.x as i32,
                     start_y: mouse_position.y as i32,
                     end_x: mouse_position.x as i32,
@@ -80,7 +80,7 @@ impl Tool for PencilDrawTool {
                     let mouse_position = transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32));
 
                     if let Some(prev_mouse_position) = self.prev_mouse_position {
-                        op = Some(ImageOperation::DrawLine {
+                        op = Some(ImageOperation::Line {
                             start_x: prev_mouse_position.x as i32,
                             start_y: prev_mouse_position.y as i32,
                             end_x: mouse_position.x as i32,
