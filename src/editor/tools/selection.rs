@@ -5,7 +5,7 @@ use crate::rendering::prelude::{Position, Rectangle};
 use crate::editor;
 use crate::command_buffer::{Command, CommandBuffer};
 use crate::editor::tools::{Tool, get_valid_rectangle, SelectionSubTool, Tools, get_transformed_mouse_position};
-use crate::editor::image_operation::{ImageOperation, ImageSource};
+use crate::editor::image_operation::{ImageOperation, ImageSource, add_op_sequential};
 use crate::editor::image_operation_helpers::sub_image;
 
 #[derive(Debug, Clone)]
@@ -57,6 +57,7 @@ impl MovePixelsState {
 
 struct ResizePixelsState {
     is_resizing: bool,
+    original_selection: Option<Selection>,
     resize_pixels_image: Option<image::RgbaImage>
 }
 
@@ -64,6 +65,7 @@ impl ResizePixelsState {
     pub fn clear(&mut self) {
         self.is_resizing = false;
         self.resize_pixels_image = None;
+        self.original_selection = None;
     }
 }
 
@@ -94,6 +96,7 @@ impl SelectionTool {
             },
             resize_pixels_state: ResizePixelsState {
                 is_resizing: false,
+                original_selection: None,
                 resize_pixels_image: None
             }
         }
@@ -116,6 +119,18 @@ impl SelectionTool {
         }
     }
 
+    fn original_selection(&self) -> Option<Selection> {
+        if let Some(selection) = self.resize_pixels_state.original_selection.as_ref() {
+            return Some(selection.clone());
+        }
+
+        if let Some(selection) = self.move_pixels_state.original_selection.as_ref() {
+            return Some(selection.clone());
+        }
+
+        None
+    }
+
     fn process_event_select(&mut self,
                             window: &mut Window,
                             event: &WindowEvent,
@@ -128,12 +143,12 @@ impl SelectionTool {
                 let current_mouse_position = get_transformed_mouse_position(window, transform);
                 if current_mouse_position.x >= 0.0 && current_mouse_position.y >= 0.0 {
                     if self.move_pixels_state.moved_pixels_image.is_some() {
-                        op = self.create_move(false);
+                        add_op_sequential(&mut op, self.create_move(false));
                         self.move_pixels_state.clear();
                     }
 
                     if self.resize_pixels_state.resize_pixels_image.is_some() {
-                        op = self.create_resize(false);
+                        add_op_sequential(&mut op, self.create_move(false));
                         self.resize_pixels_state.clear();
                     }
 
@@ -246,14 +261,6 @@ impl SelectionTool {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Release, _) => {
                 self.move_pixels_state.is_moving = false;
             }
-            glfw::WindowEvent::Key(Key::Enter, _, Action::Release, _) => {
-                op = self.create_move(false);
-
-                self.start_position = None;
-                self.end_position = None;
-
-                self.move_pixels_state.clear();
-            }
             glfw::WindowEvent::CursorPos(raw_mouse_x, raw_mouse_y) => {
                 let mouse_position = transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32));
 
@@ -288,6 +295,7 @@ impl SelectionTool {
                     let selection_rectangle = Rectangle::from_min_and_max(&selection.start_position(), &selection.end_position());
                     if selection_rectangle.contains(&current_mouse_position) {
                         if self.resize_pixels_state.resize_pixels_image.is_none() {
+                            self.resize_pixels_state.original_selection = Some(selection.clone());
                             self.resize_pixels_state.resize_pixels_image = Some(sub_image(image, selection.start_x, selection.start_y, selection.end_x, selection.end_y));
                         }
 
@@ -297,14 +305,6 @@ impl SelectionTool {
             }
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Release, _) => {
                 self.resize_pixels_state.is_resizing = false;
-            }
-            glfw::WindowEvent::Key(Key::Enter, _, Action::Release, _) => {
-                op = self.create_resize(false);
-
-                self.start_position = None;
-                self.end_position = None;
-
-                self.resize_pixels_state.clear();
             }
             glfw::WindowEvent::CursorPos(raw_mouse_x, raw_mouse_y) => {
                 let mouse_position = transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32));
@@ -320,9 +320,7 @@ impl SelectionTool {
     }
 
     fn create_move(&self, preview: bool) -> Option<ImageOperation> {
-        match (self.selection(),
-               self.move_pixels_state.original_selection.as_ref(),
-               self.move_pixels_state.moved_pixels_image.as_ref()) {
+        match (self.selection(), self.original_selection(), self.move_pixels_state.moved_pixels_image.as_ref()) {
             (Some(selection), Some(original_selection), Some(moved_pixels_image)) => {
                 return Some(
                     ImageOperation::Sequential(
@@ -352,15 +350,15 @@ impl SelectionTool {
     }
 
     fn create_resize(&self, preview: bool) -> Option<ImageOperation> {
-        match (self.selection(), self.resize_pixels_state.resize_pixels_image.as_ref()) {
-            (Some(selection), Some(resize_pixels_image)) => {
+        match (self.selection(), self.original_selection(), self.resize_pixels_state.resize_pixels_image.as_ref()) {
+            (Some(selection), Some(original_selection), Some(resize_pixels_image)) => {
                 return Some(
                     ImageOperation::Sequential(vec![
                         ImageOperation::FillRectangle {
-                            start_x: selection.start_x,
-                            start_y: selection.start_y,
-                            end_x: selection.start_x + resize_pixels_image.width() as i32,
-                            end_y: selection.start_y + resize_pixels_image.height() as i32,
+                            start_x: original_selection.start_x,
+                            start_y: original_selection.start_y,
+                            end_x: original_selection.end_x,
+                            end_y: original_selection.end_y,
                             color: if preview {image::Rgba([255, 255, 255, 255])} else {image::Rgba([0, 0, 0, 0])},
                             blend: preview
                         },
@@ -380,7 +378,7 @@ impl SelectionTool {
         None
     }
 
-    fn create_selection(&self, selection: &Selection) -> ImageOperation {
+    fn create_selection_gui(&self, selection: &Selection) -> ImageOperation {
         ImageOperation::Sequential(vec![
             ImageOperation::FillRectangle {
                 start_x: selection.start_x,
@@ -414,15 +412,16 @@ impl Tool for SelectionTool {
         let mut op = None;
 
         if self.move_pixels_state.moved_pixels_image.is_some() {
-            op = self.create_move(false);
+            add_op_sequential(&mut op, self.create_move(false));
             self.move_pixels_state.clear();
-            self.start_position = None;
-            self.end_position = None;
         }
 
         if self.resize_pixels_state.resize_pixels_image.is_some() {
-            op = self.create_resize(false);
+            add_op_sequential(&mut op, self.create_resize(false));
             self.resize_pixels_state.clear();
+        }
+
+        if op.is_some() {
             self.start_position = None;
             self.end_position = None;
         }
@@ -436,11 +435,27 @@ impl Tool for SelectionTool {
                      transform: &Matrix3<f32>,
                      command_buffer: &mut CommandBuffer,
                      image: &editor::Image) -> Option<ImageOperation> {
-        match self.tool {
+        let mut op = match self.tool {
             SelectionSubTool::Select => self.process_event_select(window, event, transform, command_buffer, image),
             SelectionSubTool::MovePixels => self.process_event_move_pixels(window, event, transform, command_buffer, image),
             SelectionSubTool::ResizePixels => self.process_event_resize_pixels(window, event, transform, command_buffer, image),
+        };
+
+        match event {
+            glfw::WindowEvent::Key(Key::Enter, _, Action::Release, _) => {
+                add_op_sequential(&mut op, self.create_move(false));
+                add_op_sequential(&mut op, self.create_resize(false));
+
+                self.start_position = None;
+                self.end_position = None;
+
+                self.move_pixels_state.clear();
+                self.resize_pixels_state.clear();
+            }
+            _ => {}
         }
+
+        op
     }
 
     fn preview(&mut self, _image: &editor::Image, preview_image: &mut editor::Image) -> bool {
@@ -454,7 +469,7 @@ impl Tool for SelectionTool {
                 resize_op.apply(&mut update_op, false);
             }
 
-            self.create_selection(&selection).apply(&mut update_op, false);
+            self.create_selection_gui(&selection).apply(&mut update_op, false);
         }
 
         return true;

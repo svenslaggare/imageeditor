@@ -406,3 +406,21 @@ impl ImageOperation {
         }
     }
 }
+
+pub fn add_op_sequential(op: &mut Option<ImageOperation>, new_op: Option<ImageOperation>) {
+    if let Some(new_op) = new_op {
+        match op {
+            Some(ImageOperation::Sequential(ops)) => {
+                ops.push(new_op);
+            }
+            Some(current_op) => {
+                let mut current_op_stolen = ImageOperation::Empty;
+                std::mem::swap(&mut current_op_stolen, current_op);
+                *current_op = ImageOperation::Sequential(vec![current_op_stolen, new_op]);
+            }
+            None => {
+                *op = Some(new_op);
+            }
+        }
+    }
+}
