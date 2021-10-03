@@ -61,7 +61,7 @@ pub enum ImageOperation {
     FillRectangle { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, blend: bool },
     Circle { center_x: i32, center_y: i32, radius: i32, border_half_width: i32, color: Color },
     FillCircle { center_x: i32, center_y: i32, radius: i32, color: Color },
-    BucketFill { start_x: i32, start_y: i32, fill_color: Color }
+    BucketFill { start_x: i32, start_y: i32, fill_color: Color, tolerance: f32 }
 }
 
 pub trait ImageSource {
@@ -371,7 +371,7 @@ impl ImageOperation {
                     None
                 }
             }
-            ImageOperation::BucketFill { start_x, start_y, fill_color } => {
+            ImageOperation::BucketFill { start_x, start_y, fill_color, tolerance } => {
                 let mut undo_image = OptionalImage::new(update_op.width(), update_op.height());
 
                 bucket_fill(
@@ -379,7 +379,7 @@ impl ImageOperation {
                     *start_x,
                     *start_y,
                     *fill_color,
-                    0.25,
+                    *tolerance,
                     undo,
                     &mut undo_image
                 );

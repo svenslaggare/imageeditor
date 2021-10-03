@@ -102,7 +102,7 @@ pub fn create_tools(renders: &Renders) -> Vec<Box<dyn Tool>> {
         Box::new(RectangleDrawTool::new(renders)),
         Box::new(CircleDrawTool::new(renders)),
         Box::new(SelectionTool::new()),
-        Box::new(BucketFillDrawTool::new()),
+        Box::new(BucketFillDrawTool::new(renders)),
         Box::new(ColorPickerTool::new())
     ]
 }
