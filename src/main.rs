@@ -58,11 +58,11 @@ fn main() {
         return;
     }
 
-    // let image_to_edit = image::open(&args[1]).unwrap().into_rgba();
+    let image_to_edit = image::open(&args[1]).unwrap().into_rgba();
 
-    let width = 1280;
-    let height = 800;
-    let mut image_to_edit: image::RgbaImage = image::RgbaImage::new(width, height);
+    // let width = 1280;
+    // let height = 800;
+    // let mut image_to_edit: image::RgbaImage = image::RgbaImage::new(width, height);
 
     let (mut glfw, mut window, mut events) = setup_window(image_to_edit.width() + 70, image_to_edit.height());
 

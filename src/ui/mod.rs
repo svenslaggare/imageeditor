@@ -36,7 +36,7 @@ fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
         Position::new(5.0, 5.0),
         (35.0, line_height + 5.0),
         70.0,
-        9
+        10
     );
 
     texture_buttons.push(TextButton::new(
@@ -100,6 +100,17 @@ fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
         layout.next().unwrap(),
         Some(Box::new(|command_buffer| {
             command_buffer.push(Command::SetTool(Tools::BucketFill));
+        })),
+        None,
+        None
+    ));
+
+    texture_buttons.push(TextButton::new(
+        font.clone(),
+        "CP".to_owned(),
+        layout.next().unwrap(),
+        Some(Box::new(|command_buffer| {
+            command_buffer.push(Command::SetTool(Tools::ColorPicker));
         })),
         None,
         None

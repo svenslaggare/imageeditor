@@ -14,6 +14,7 @@ use crate::editor::tools::effect::EffectDrawTool;
 use crate::editor::tools::circle::CircleDrawTool;
 use crate::editor::tools::bucket_fill::BucketFillDrawTool;
 use crate::editor::tools::selection::SelectionTool;
+use crate::editor::tools::color_picker::ColorPickerTool;
 
 pub mod pencil;
 pub mod eraser;
@@ -21,6 +22,7 @@ pub mod line;
 pub mod rectangle;
 pub mod circle;
 pub mod bucket_fill;
+pub mod color_picker;
 pub mod selection;
 pub mod effect;
 
@@ -61,7 +63,8 @@ pub enum Tools {
     Rectangle,
     Circle,
     Selection(SelectionSubTool),
-    BucketFill
+    BucketFill,
+    ColorPicker
 }
 
 impl Tools {
@@ -73,7 +76,8 @@ impl Tools {
             Tools::Rectangle => 3,
             Tools::Circle => 4,
             Tools::Selection(_) => 5,
-            Tools::BucketFill => 6
+            Tools::BucketFill => 6,
+            Tools::ColorPicker => 7
         }
     }
 }
@@ -93,7 +97,8 @@ pub fn create_tools() -> Vec<Box<dyn Tool>> {
         Box::new(RectangleDrawTool::new()),
         Box::new(CircleDrawTool::new()),
         Box::new(SelectionTool::new()),
-        Box::new(BucketFillDrawTool::new())
+        Box::new(BucketFillDrawTool::new()),
+        Box::new(ColorPickerTool::new())
     ]
 }
 
