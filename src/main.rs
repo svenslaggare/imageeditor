@@ -54,7 +54,8 @@ fn setup_window(width: u32, height: u32) -> (Glfw, Window, Receiver<(f64, Window
 fn main() {
     let args = std::env::args().collect::<Vec<_>>();
     if args.len() < 2 {
-        println!("Usage: ./imageeditor <filename>")
+        println!("Usage: ./imageeditor <filename>");
+        return;
     }
 
     let image_to_edit = image::open(&args[1]).unwrap().into_rgba();
@@ -93,7 +94,6 @@ fn main() {
         );
 
         program.render(&transform);
-
         window.swap_buffers();
 
         let duration = (std::time::Instant::now() - frame_start_draw).as_millis() as f32 / 1000.0;

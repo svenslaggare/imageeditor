@@ -7,13 +7,14 @@ use glfw::{Key, Action, Modifiers};
 use crate::command_buffer::{CommandBuffer, Command};
 use crate::{editor, ui};
 use crate::rendering::shader::Shader;
-use crate::rendering::prelude::Position;
+use crate::rendering::prelude::{Position, Rectangle};
 use crate::rendering::texture_render::TextureRender;
 use crate::editor::image_operation::{ImageSource};
 use crate::editor::tools::{Tool, create_tools, Tools};
 use crate::rendering::text_render::TextRender;
 use crate::rendering::solid_rectangle_render::SolidRectangleRender;
 use crate::rendering::ShaderAndRender;
+use crate::rendering::texture::Texture;
 
 pub struct Renders {
     pub texture_render: ShaderAndRender<TextureRender>,
@@ -47,6 +48,7 @@ pub struct Program {
     ui_manager: ui::Manager,
     tools: Vec<Box<dyn Tool>>,
     active_tool: Tools,
+    background_texture: Texture,
     preview_image: editor::Image,
 }
 
@@ -56,6 +58,13 @@ impl Program {
         let width = editor.image().width();
         let height = editor.image().height();
 
+        let background_texture = Texture::from_image(&image::open("content/ui/checkerboard.png").unwrap().into_rgba());
+        background_texture.bind();
+        unsafe {
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
+        }
+
         let mut program = Program {
             renders: Renders::new(),
             command_buffer: CommandBuffer::new(),
@@ -63,6 +72,7 @@ impl Program {
             ui_manager,
             tools: create_tools(),
             active_tool: Tools::Pencil,
+            background_texture,
             preview_image
         };
 
@@ -182,6 +192,15 @@ impl Program {
 
     pub fn render(&mut self, transform: &Matrix4<f32>) {
         let origin = self.image_area_transform().transform_point(Position::new(0.0, 0.0));
+
+        self.renders.texture_render.render_sub(
+            self.renders.texture_render.shader(),
+            &transform,
+            &self.background_texture,
+            origin,
+            1.0,
+            Some(Rectangle::new(0.0, 0.0, self.editor.image().width() as f32, self.editor.image().height() as f32))
+        );
 
         self.renders.texture_render.render(
             self.renders.texture_render.shader(),
