@@ -1,28 +1,49 @@
+use std::ops::DerefMut;
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use glfw::{WindowEvent, Action};
-use cgmath::{Matrix3, Transform};
+use cgmath::{Matrix3, Transform, Matrix4};
 
 use crate::rendering::prelude::Position;
-use crate::editor;
+use crate::{editor, rendering};
 use crate::command_buffer::{Command, CommandBuffer};
 use crate::editor::tools::{Tool, get_transformed_mouse_position};
 use crate::editor::image_operation::{ImageOperation, ImageOperationMarker};
+use crate::program::Renders;
+use crate::rendering::text_render::TextAlignment;
+use crate::ui::button::{TextButton, GenericButton};
+use crate::rendering::font::Font;
 
 pub struct PencilDrawTool {
     is_drawing: Option<editor::Color>,
     prev_mouse_position: Option<Position>,
     color: editor::Color,
     alternative_color: editor::Color,
-    side_half_width: i32
+    side_half_width: i32,
+    change_size_button: TextButton<i32>
 }
 
 impl PencilDrawTool {
-    pub fn new() -> PencilDrawTool {
+    pub fn new(renders: &Renders) -> PencilDrawTool {
         PencilDrawTool {
             is_drawing: None,
             prev_mouse_position: None,
             color: image::Rgba([0, 0, 0, 255]),
             alternative_color: image::Rgba([0, 0, 0, 255]),
-            side_half_width: 1
+            side_half_width: 1,
+            change_size_button: TextButton::new(
+                renders.ui_font.clone(),
+                "".to_owned(),
+                Position::new(70.0, 10.0),
+                Some(Box::new(|side_half_width| {
+                    *side_half_width += 1;
+                })),
+                Some(Box::new(|side_half_width| {
+                    *side_half_width = (*side_half_width - 1).max(0);
+                })),
+                None,
+            )
         }
     }
 }
@@ -40,12 +61,12 @@ impl Tool for PencilDrawTool {
         }
     }
 
-    fn process_event(&mut self,
-                     window: &mut glfw::Window,
-                     event: &WindowEvent,
-                     transform: &Matrix3<f32>,
-                     _command_buffer: &mut CommandBuffer,
-                     _image: &editor::Image) -> Option<ImageOperation> {
+    fn process_gui_event(&mut self,
+                         window: &mut glfw::Window,
+                         event: &WindowEvent,
+                         transform: &Matrix3<f32>,
+                         _command_buffer: &mut CommandBuffer,
+                         _image: &editor::Image) -> Option<ImageOperation> {
         let create_begin_draw = |this: &Self, mouse_position: Position, color: editor::Color| {
             Some(ImageOperation::Sequential(vec![
                 ImageOperation::Marker(ImageOperationMarker::BeginDraw),
@@ -96,10 +117,17 @@ impl Tool for PencilDrawTool {
             _ => {}
         }
 
+        self.change_size_button.process_gui_event(window, event, &mut self.side_half_width);
+
         return op;
     }
 
     fn preview(&mut self, _image: &editor::Image, _preview_image: &mut editor::Image) -> bool {
         false
+    }
+
+    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>) {
+        self.change_size_button.change_text(format!("Pencil size: {}", self.side_half_width * 2 + 1));
+        self.change_size_button.render(renders, transform);
     }
 }

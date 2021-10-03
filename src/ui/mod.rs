@@ -10,7 +10,7 @@ pub mod layout;
 pub use manager::Manager;
 pub use button::TextureButton;
 
-use crate::command_buffer::{Command};
+use crate::command_buffer::{Command, CommandBuffer};
 use crate::rendering::prelude::{Position, Rectangle};
 use crate::editor::tools::{Tools, SelectionSubTool};
 use crate::editor::image_operation_helpers::hsv_to_rgb;
@@ -28,7 +28,7 @@ pub fn create() -> Manager {
     Manager::new(texture_buttons, solid_color_buttons, text_buttons)
 }
 
-fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
+fn generate_draw_tools(texture_buttons: &mut Vec<TextButton<CommandBuffer>>) {
     let font = Rc::new(RefCell::new(Font::new("content/fonts/NotoMono-Regular.ttf", 24).unwrap()));
     let line_height = font.borrow_mut().line_height();
 
@@ -150,8 +150,8 @@ fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
     ));
 }
 
-fn generate_color_palette(buttons: &mut Vec<TextureButton>,
-                          solid_color_buttons: &mut Vec<SolidColorButton>) {
+fn generate_color_palette(buttons: &mut Vec<TextureButton<CommandBuffer>>,
+                          solid_color_buttons: &mut Vec<SolidColorButton<CommandBuffer>>) {
     let mut colors = Vec::new();
     colors.push(image::Rgba([255, 255, 255, 255]));
     colors.push(image::Rgba([0, 0, 0, 255]));

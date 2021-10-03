@@ -57,9 +57,9 @@ pub enum ImageOperation {
     SetPixel { x: i32, y: i32, color: Color },
     Block { x: i32, y: i32, color: Color, side_half_width: i32 },
     Line { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, side_half_width: i32 },
-    Rectangle { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color },
+    Rectangle { start_x: i32, start_y: i32, end_x: i32, end_y: i32, border_half_width: i32, color: Color },
     FillRectangle { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, blend: bool },
-    Circle { center_x: i32, center_y: i32, radius: i32, border_side_half_width: i32, color: Color },
+    Circle { center_x: i32, center_y: i32, radius: i32, border_half_width: i32, color: Color },
     FillCircle { center_x: i32, center_y: i32, radius: i32, color: Color },
     BucketFill { start_x: i32, start_y: i32, fill_color: Color }
 }
@@ -260,10 +260,9 @@ impl ImageOperation {
 
                 undo_image.map(|image| ImageOperation::SetImage { start_x: min_x, start_y: min_y, image, blend: false })
             }
-            ImageOperation::Rectangle { start_x, start_y, end_x, end_y, color } => {
+            ImageOperation::Rectangle { start_x, start_y, end_x, end_y, border_half_width: side_half_width, color } => {
                 let mut undo_ops = Vec::new();
 
-                let side_half_width = 0;
                 undo_ops.push(
                     ImageOperation::Line {
                         start_x: start_x.clone(),
@@ -271,7 +270,7 @@ impl ImageOperation {
                         end_x: end_x.clone(),
                         end_y: start_y.clone(),
                         color: color.clone(),
-                        side_half_width
+                        side_half_width: *side_half_width
                     }.apply(update_op, undo)
                 );
 
@@ -282,7 +281,7 @@ impl ImageOperation {
                         end_x: end_x.clone(),
                         end_y: end_y.clone(),
                         color: color.clone(),
-                        side_half_width
+                        side_half_width: *side_half_width
                     }.apply(update_op, undo)
                 );
 
@@ -293,7 +292,7 @@ impl ImageOperation {
                         end_x: start_x.clone(),
                         end_y: end_y.clone(),
                         color: color.clone(),
-                        side_half_width
+                        side_half_width: *side_half_width
                     }.apply(update_op, undo)
                 );
 
@@ -304,7 +303,7 @@ impl ImageOperation {
                         end_x: start_x.clone(),
                         end_y: start_y.clone(),
                         color: color.clone(),
-                        side_half_width
+                        side_half_width: *side_half_width
                     }.apply(update_op, undo)
                 );
 
@@ -316,7 +315,7 @@ impl ImageOperation {
                     None
                 }
             }
-            ImageOperation::Circle { center_x, center_y, radius, border_side_half_width, color } => {
+            ImageOperation::Circle { center_x, center_y, radius, border_half_width: border_side_half_width, color } => {
                 let mut undo_image = SparseImage::new();
 
                 // draw_circle(

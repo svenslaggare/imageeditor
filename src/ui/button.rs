@@ -14,29 +14,30 @@ use crate::rendering::font::{Font, FontRef};
 use crate::editor::Color;
 use crate::rendering::solid_rectangle_render::SolidRectangleRender;
 use crate::rendering::ShaderAndRender;
+use crate::program::Renders;
 
-pub type ButtonAction = Box<dyn Fn(&mut CommandBuffer)>;
+pub type ButtonAction<T> = Box<dyn Fn(&mut T)>;
 pub type CommandAction<T> = Box<dyn Fn(&mut T, &Command)>;
 
-pub trait GenericButton {
-    fn process_gui_event(&mut self, window: &mut glfw::Window, event: &glfw::WindowEvent, command_buffer: &mut CommandBuffer);
+pub trait GenericButton<T> {
+    fn process_gui_event(&mut self, window: &mut glfw::Window, event: &glfw::WindowEvent, argument: &mut T);
     fn process_command(&mut self, command: &Command);
 }
 
-pub struct TextureButton {
+pub struct TextureButton<T> {
     texture: Texture,
     position: Position,
-    left_click_action: Option<ButtonAction>,
-    right_click_action: Option<ButtonAction>,
+    left_click_action: Option<ButtonAction<T>>,
+    right_click_action: Option<ButtonAction<T>>,
     command_action: Option<CommandAction<Self>>
 }
 
-impl TextureButton {
+impl<T> TextureButton<T> {
     pub fn new(image: &image::RgbaImage,
                position: Position,
-               left_click_action: Option<ButtonAction>,
-               right_click_action: Option<ButtonAction>,
-               command_action: Option<CommandAction<Self>>) -> TextureButton {
+               left_click_action: Option<ButtonAction<T>>,
+               right_click_action: Option<ButtonAction<T>>,
+               command_action: Option<CommandAction<Self>>) -> TextureButton<T> {
         TextureButton {
             texture: Texture::from_image(image),
             position,
@@ -46,9 +47,9 @@ impl TextureButton {
         }
     }
 
-    pub fn render(&self, texture_render: &ShaderAndRender<TextureRender>, transform: &Matrix4<f32>) {
-        texture_render.render(
-            texture_render.shader(),
+    pub fn render(&self, renders: &Renders, transform: &Matrix4<f32>) {
+        renders.texture_render.render(
+            renders.texture_render.shader(),
             &transform,
             &self.texture,
             self.position
@@ -56,8 +57,8 @@ impl TextureButton {
     }
 }
 
-impl GenericButton for TextureButton {
-    fn process_gui_event(&mut self, window: &mut glfw::Window, event: &glfw::WindowEvent, command_buffer: &mut CommandBuffer) {
+impl<T> GenericButton<T> for TextureButton<T> {
+    fn process_gui_event(&mut self, window: &mut glfw::Window, event: &glfw::WindowEvent, argument: &mut T) {
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Release, _) => {
                 if let Some(left_click_action) = self.left_click_action.as_ref() {
@@ -70,7 +71,7 @@ impl GenericButton for TextureButton {
 
                     let mouse_position = window.get_cursor_pos();
                     if bounding_rectangle.contains(&Position::new(mouse_position.0 as f32, mouse_position.1 as f32)) {
-                        (left_click_action)(command_buffer);
+                        (left_click_action)(argument);
                     }
                 }
             }
@@ -85,7 +86,7 @@ impl GenericButton for TextureButton {
 
                     let mouse_position = window.get_cursor_pos();
                     if bounding_rectangle.contains(&Position::new(mouse_position.0 as f32, mouse_position.1 as f32)) {
-                        (right_click_action)(command_buffer);
+                        (right_click_action)(argument);
                     }
                 }
             }
@@ -102,20 +103,20 @@ impl GenericButton for TextureButton {
     }
 }
 
-pub struct SolidColorButton {
+pub struct SolidColorButton<T> {
     color: Color,
     rectangle: Rectangle,
-    left_click_action: Option<ButtonAction>,
-    right_click_action: Option<ButtonAction>,
+    left_click_action: Option<ButtonAction<T>>,
+    right_click_action: Option<ButtonAction<T>>,
     command_action: Option<CommandAction<Self>>
 }
 
-impl SolidColorButton {
+impl<T> SolidColorButton<T> {
     pub fn new(color: Color,
                rectangle: Rectangle,
-               left_click_action: Option<ButtonAction>,
-               right_click_action: Option<ButtonAction>,
-               command_action: Option<CommandAction<Self>>) -> SolidColorButton {
+               left_click_action: Option<ButtonAction<T>>,
+               right_click_action: Option<ButtonAction<T>>,
+               command_action: Option<CommandAction<Self>>) -> SolidColorButton<T> {
         SolidColorButton {
             color,
             rectangle,
@@ -125,9 +126,9 @@ impl SolidColorButton {
         }
     }
 
-    pub fn render(&self, solid_rectangle_render: &ShaderAndRender<SolidRectangleRender>, transform: &Matrix4<f32>) {
-        solid_rectangle_render.render(
-            solid_rectangle_render.shader(),
+    pub fn render(&self, renders: &Renders, transform: &Matrix4<f32>) {
+        renders.solid_rectangle_render.render(
+            renders.solid_rectangle_render.shader(),
             &transform,
             self.rectangle.position,
             self.rectangle.size,
@@ -140,14 +141,14 @@ impl SolidColorButton {
     }
 }
 
-impl GenericButton for SolidColorButton {
-    fn process_gui_event(&mut self, window: &mut glfw::Window, event: &glfw::WindowEvent, command_buffer: &mut CommandBuffer) {
+impl<T> GenericButton<T> for SolidColorButton<T> {
+    fn process_gui_event(&mut self, window: &mut glfw::Window, event: &glfw::WindowEvent, argument: &mut T) {
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Release, _) => {
                 if let Some(left_click_action) = self.left_click_action.as_ref() {
                     let mouse_position = window.get_cursor_pos();
                     if self.rectangle.contains(&Position::new(mouse_position.0 as f32, mouse_position.1 as f32)) {
-                        (left_click_action)(command_buffer);
+                        (left_click_action)(argument);
                     }
                 }
             }
@@ -155,7 +156,7 @@ impl GenericButton for SolidColorButton {
                 if let Some(right_click_action) = self.right_click_action.as_ref() {
                     let mouse_position = window.get_cursor_pos();
                     if self.rectangle.contains(&Position::new(mouse_position.0 as f32, mouse_position.1 as f32)) {
-                        (right_click_action)(command_buffer);
+                        (right_click_action)(argument);
                     }
                 }
             }
@@ -172,22 +173,22 @@ impl GenericButton for SolidColorButton {
     }
 }
 
-pub struct TextButton {
+pub struct TextButton<T> {
     font: FontRef,
     text: String,
     position: Position,
-    left_click_action: Option<ButtonAction>,
-    right_click_action: Option<ButtonAction>,
+    left_click_action: Option<ButtonAction<T>>,
+    right_click_action: Option<ButtonAction<T>>,
     command_action: Option<CommandAction<Self>>
 }
 
-impl TextButton {
+impl<T> TextButton<T> {
     pub fn new(font: FontRef,
                text: String,
                position: Position,
-               left_click_action: Option<ButtonAction>,
-               right_click_action: Option<ButtonAction>,
-               command_action: Option<CommandAction<Self>>) -> TextButton {
+               left_click_action: Option<ButtonAction<T>>,
+               right_click_action: Option<ButtonAction<T>>,
+               command_action: Option<CommandAction<Self>>) -> TextButton<T> {
         TextButton {
             font,
             text,
@@ -198,9 +199,22 @@ impl TextButton {
         }
     }
 
-    pub fn render(&self, text_render: &ShaderAndRender<TextRender>, transform: &Matrix4<f32>) {
-        text_render.draw_line(
-            text_render.shader(),
+    pub fn change_text(&mut self, text: String) {
+        self.text = text;
+    }
+
+    pub fn render(&self, renders: &Renders, transform: &Matrix4<f32>) {
+        // let bounding_rectangle = self.bounding_rectangle();
+        // renders.solid_rectangle_render.render(
+        //     renders.solid_rectangle_render.shader(),
+        //     transform,
+        //     bounding_rectangle.position,
+        //     bounding_rectangle.size,
+        //     RenderingColor::new(255, 0, 0)
+        // );
+
+        renders.text_render.draw_line(
+            renders.text_render.shader(),
             transform,
             self.font.borrow_mut().deref_mut(),
             self.text.chars().map(|c| (c, RenderingColor::new(0, 0, 0))),
@@ -208,42 +222,37 @@ impl TextButton {
             TextAlignment::Top
         );
     }
-}
 
-impl GenericButton for TextButton {
-    fn process_gui_event(&mut self, window: &mut glfw::Window, event: &glfw::WindowEvent, command_buffer: &mut CommandBuffer) {
+    fn bounding_rectangle(&self) -> Rectangle {
         let mut font = self.font.borrow_mut();
         let width = font.line_width(&self.text);
         let height = font.line_height();
 
+         Rectangle::new(
+            self.position.x,
+            self.position.y,
+            width,
+            height
+        )
+    }
+}
+
+impl<T> GenericButton<T> for TextButton<T> {
+    fn process_gui_event(&mut self, window: &mut glfw::Window, event: &glfw::WindowEvent, argument: &mut T) {
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Release, _) => {
                 if let Some(left_click_action) = self.left_click_action.as_ref() {
-                    let bounding_rectangle = Rectangle::new(
-                        self.position.x,
-                        self.position.y,
-                        width,
-                        height
-                    );
-
                     let mouse_position = window.get_cursor_pos();
-                    if bounding_rectangle.contains(&Position::new(mouse_position.0 as f32, mouse_position.1 as f32)) {
-                        (left_click_action)(command_buffer);
+                    if self.bounding_rectangle().contains(&Position::new(mouse_position.0 as f32, mouse_position.1 as f32)) {
+                        (left_click_action)(argument);
                     }
                 }
             }
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button2, Action::Release, _) => {
                 if let Some(right_click_action) = self.right_click_action.as_ref() {
-                    let bounding_rectangle = Rectangle::new(
-                        self.position.x,
-                        self.position.y,
-                        width,
-                        height
-                    );
-
                     let mouse_position = window.get_cursor_pos();
-                    if bounding_rectangle.contains(&Position::new(mouse_position.0 as f32, mouse_position.1 as f32)) {
-                        (right_click_action)(command_buffer);
+                    if self.bounding_rectangle().contains(&Position::new(mouse_position.0 as f32, mouse_position.1 as f32)) {
+                        (right_click_action)(argument);
                     }
                 }
             }

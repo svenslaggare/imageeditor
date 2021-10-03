@@ -143,7 +143,7 @@ impl TextRender {
 
             let x = draw_x + font_character.bearing.x as f32;
             let y = match alignment {
-                TextAlignment::Top => draw_y,
+                TextAlignment::Top => draw_y - font_character.bearing.y as f32 + font_character.line_height,
                 TextAlignment::Bottom => draw_y - font_character.bearing.y as f32
             };
 

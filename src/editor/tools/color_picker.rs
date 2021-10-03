@@ -35,12 +35,12 @@ impl ColorPickerTool {
 }
 
 impl Tool for ColorPickerTool {
-    fn process_event(&mut self,
-                     window: &mut glfw::Window,
-                     event: &WindowEvent,
-                     transform: &Matrix3<f32>,
-                     command_buffer: &mut CommandBuffer,
-                     image: &editor::Image) -> Option<ImageOperation> {
+    fn process_gui_event(&mut self,
+                         window: &mut glfw::Window,
+                         event: &WindowEvent,
+                         transform: &Matrix3<f32>,
+                         command_buffer: &mut CommandBuffer,
+                         image: &editor::Image) -> Option<ImageOperation> {
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
                 if let Some(color) = self.select_color(window, transform, image) {

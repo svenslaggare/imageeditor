@@ -1,6 +1,6 @@
 use glfw::WindowEvent;
 
-use cgmath::{Matrix3, Transform};
+use cgmath::{Matrix3, Transform, Matrix4};
 
 use crate::command_buffer::{Command, CommandBuffer};
 use crate::editor;
@@ -15,6 +15,7 @@ use crate::editor::tools::circle::CircleDrawTool;
 use crate::editor::tools::bucket_fill::BucketFillDrawTool;
 use crate::editor::tools::selection::SelectionTool;
 use crate::editor::tools::color_picker::ColorPickerTool;
+use crate::program::Renders;
 
 pub mod pencil;
 pub mod eraser;
@@ -43,7 +44,7 @@ pub trait Tool {
 
     }
 
-    fn process_event(
+    fn process_gui_event(
         &mut self,
         window: &mut glfw::Window,
         event: &WindowEvent,
@@ -53,6 +54,10 @@ pub trait Tool {
     ) -> Option<ImageOperation>;
 
     fn preview(&mut self, image: &editor::Image, preview_image: &mut editor::Image) -> bool;
+
+    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>) {
+
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -89,13 +94,13 @@ pub enum SelectionSubTool {
     ResizePixels
 }
 
-pub fn create_tools() -> Vec<Box<dyn Tool>> {
+pub fn create_tools(renders: &Renders) -> Vec<Box<dyn Tool>> {
     vec![
-        Box::new(PencilDrawTool::new()),
+        Box::new(PencilDrawTool::new(renders)),
         Box::new(EraserDrawTool::new()),
         Box::new(LineDrawTool::new()),
-        Box::new(RectangleDrawTool::new()),
-        Box::new(CircleDrawTool::new()),
+        Box::new(RectangleDrawTool::new(renders)),
+        Box::new(CircleDrawTool::new(renders)),
         Box::new(SelectionTool::new()),
         Box::new(BucketFillDrawTool::new()),
         Box::new(ColorPickerTool::new())

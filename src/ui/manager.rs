@@ -6,15 +6,15 @@ use crate::command_buffer::{CommandBuffer, Command};
 use crate::program::Renders;
 
 pub struct Manager {
-    texture_buttons: Vec<TextureButton>,
-    solid_color_buttons: Vec<SolidColorButton>,
-    text_buttons: Vec<TextButton>
+    texture_buttons: Vec<TextureButton<CommandBuffer>>,
+    solid_color_buttons: Vec<SolidColorButton<CommandBuffer>>,
+    text_buttons: Vec<TextButton<CommandBuffer>>
 }
 
 impl Manager {
-    pub fn new(texture_buttons: Vec<TextureButton>,
-               solid_color_buttons: Vec<SolidColorButton>,
-               text_buttons: Vec<TextButton>) -> Manager {
+    pub fn new(texture_buttons: Vec<TextureButton<CommandBuffer>>,
+               solid_color_buttons: Vec<SolidColorButton<CommandBuffer>>,
+               text_buttons: Vec<TextButton<CommandBuffer>>) -> Manager {
         Manager {
             texture_buttons,
             solid_color_buttons,
@@ -52,15 +52,15 @@ impl Manager {
 
     pub fn render(&self, renders: &Renders, transform: &Matrix4<f32>) {
         for button in &self.texture_buttons {
-            button.render(&renders.texture_render, transform);
+            button.render(renders, transform);
         }
 
         for button in &self.solid_color_buttons {
-            button.render(&renders.solid_rectangle_render, transform);
+            button.render(renders, transform);
         }
 
         for button in &self.text_buttons {
-            button.render(&renders.text_render, transform);
+            button.render(renders, transform);
         }
     }
 }

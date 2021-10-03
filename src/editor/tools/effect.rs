@@ -118,12 +118,12 @@ impl Tool for EffectDrawTool {
         }
     }
 
-    fn process_event(&mut self,
-                     _window: &mut Window,
-                     event: &WindowEvent,
-                     _transform: &Matrix3<f32>,
-                     _command_buffer: &mut CommandBuffer,
-                     image: &Image) -> Option<ImageOperation> {
+    fn process_gui_event(&mut self,
+                         _window: &mut Window,
+                         event: &WindowEvent,
+                         _transform: &Matrix3<f32>,
+                         _command_buffer: &mut CommandBuffer,
+                         image: &Image) -> Option<ImageOperation> {
         match event {
             glfw::WindowEvent::Key(Key::Enter, _, Action::Press, _) => {
                 if let Some(frame_buffer) = self.op_frame_buffer.as_ref() {

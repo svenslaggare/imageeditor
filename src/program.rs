@@ -1,4 +1,6 @@
 use std::sync::mpsc::Receiver;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use cgmath::{Matrix3, Matrix4, Transform, Matrix, SquareMatrix};
 
@@ -15,11 +17,13 @@ use crate::rendering::text_render::TextRender;
 use crate::rendering::solid_rectangle_render::SolidRectangleRender;
 use crate::rendering::ShaderAndRender;
 use crate::rendering::texture::Texture;
+use crate::rendering::font::Font;
 
 pub struct Renders {
     pub texture_render: ShaderAndRender<TextureRender>,
-    pub text_render: ShaderAndRender<TextRender>,
     pub solid_rectangle_render: ShaderAndRender<SolidRectangleRender>,
+    pub text_render: ShaderAndRender<TextRender>,
+    pub ui_font: Rc<RefCell<Font>>,
 }
 
 impl Renders {
@@ -37,6 +41,7 @@ impl Renders {
                 Shader::new("content/shaders/text.vs", "content/shaders/text.fs", None).unwrap(),
                 TextRender::new()
             ),
+            ui_font: Rc::new(RefCell::new(Font::new("content/fonts/NotoMono-Regular.ttf", 16).unwrap()))
         }
     }
 }
@@ -65,12 +70,15 @@ impl Program {
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
         }
 
+        let renders = Renders::new();
+        let tools = create_tools(&renders);
+
         let mut program = Program {
-            renders: Renders::new(),
+            renders,
             command_buffer: CommandBuffer::new(),
             editor,
             ui_manager,
-            tools: create_tools(),
+            tools,
             active_tool: Tools::Pencil,
             background_texture,
             preview_image
@@ -86,7 +94,7 @@ impl Program {
     fn image_area_transform(&self) -> Matrix3<f32> {
         cgmath::Matrix3::from_cols(
             cgmath::Vector3::new(1.0, 0.0, 70.0),
-            cgmath::Vector3::new(0.0, 1.0, 0.0),
+            cgmath::Vector3::new(0.0, 1.0, 40.0),
             cgmath::Vector3::new(0.0, 0.0, 1.0),
         ).transpose()
     }
@@ -138,7 +146,7 @@ impl Program {
                     self.ui_manager.process_gui_event(window, &event, &mut self.command_buffer);
 
                     let transform = self.image_area_transform().invert().unwrap();
-                    let op = self.tools[self.active_tool.index()].process_event(
+                    let op = self.tools[self.active_tool.index()].process_gui_event(
                         window,
                         &event,
                         &transform,
@@ -210,6 +218,7 @@ impl Program {
         );
 
         self.ui_manager.render(&self.renders, &transform);
+        self.tools[self.active_tool.index()].render(&self.renders, transform);
 
         let changed = {
             self.tools[self.active_tool.index()].preview(self.editor.image(), &mut self.preview_image)

@@ -393,6 +393,7 @@ impl SelectionTool {
                 start_y: selection.start_y,
                 end_x: selection.end_x,
                 end_y: selection.end_y,
+                border_half_width: 0,
                 color: image::Rgba([0, 0, 0, 255])
             }
         ])
@@ -429,12 +430,12 @@ impl Tool for SelectionTool {
         op
     }
 
-    fn process_event(&mut self,
-                     window: &mut Window,
-                     event: &WindowEvent,
-                     transform: &Matrix3<f32>,
-                     command_buffer: &mut CommandBuffer,
-                     image: &editor::Image) -> Option<ImageOperation> {
+    fn process_gui_event(&mut self,
+                         window: &mut Window,
+                         event: &WindowEvent,
+                         transform: &Matrix3<f32>,
+                         command_buffer: &mut CommandBuffer,
+                         image: &editor::Image) -> Option<ImageOperation> {
         let mut op = match self.tool {
             SelectionSubTool::Select => self.process_event_select(window, event, transform, command_buffer, image),
             SelectionSubTool::MovePixels => self.process_event_move_pixels(window, event, transform, command_buffer, image),

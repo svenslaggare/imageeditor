@@ -34,12 +34,12 @@ impl Tool for BucketFillDrawTool {
         }
     }
 
-    fn process_event(&mut self,
-                     window: &mut glfw::Window,
-                     event: &WindowEvent,
-                     transform: &Matrix3<f32>,
-                     _command_buffer: &mut CommandBuffer,
-                     _image: &editor::Image) -> Option<ImageOperation> {
+    fn process_gui_event(&mut self,
+                         window: &mut glfw::Window,
+                         event: &WindowEvent,
+                         transform: &Matrix3<f32>,
+                         _command_buffer: &mut CommandBuffer,
+                         _image: &editor::Image) -> Option<ImageOperation> {
         let mut op = None;
 
         match event {
