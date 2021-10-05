@@ -21,7 +21,7 @@ impl BucketFillDrawTool {
         BucketFillDrawTool {
             color: image::Rgba([0, 0, 0, 255]),
             alternative_color: image::Rgba([0, 0, 0, 255]),
-            tolerance: 0.25,
+            tolerance: 0.1,
             change_tolerance_button: TextButton::new(
                 renders.ui_font.clone(),
                 "".to_owned(),

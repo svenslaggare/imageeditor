@@ -68,18 +68,19 @@ impl Tool for PencilDrawTool {
                          _command_buffer: &mut CommandBuffer,
                          _image: &editor::Image) -> Option<ImageOperation> {
         let create_begin_draw = |this: &Self, mouse_position: Position, color: editor::Color| {
-            Some(ImageOperation::Sequential(vec![
-                ImageOperation::Marker(ImageOperationMarker::BeginDraw),
-                ImageOperation::Line {
-                    start_x: mouse_position.x as i32,
-                    start_y: mouse_position.y as i32,
-                    end_x: mouse_position.x as i32,
-                    end_y: mouse_position.y as i32,
-                    color,
-                    anti_aliased: None,
-                    side_half_width: this.side_half_width
-                }
-            ]))
+            Some(
+                ImageOperation::Sequential(
+                    vec![
+                        ImageOperation::Marker(ImageOperationMarker::BeginDraw),
+                        ImageOperation::Block {
+                            x: mouse_position.x as i32,
+                            y: mouse_position.y as i32,
+                            color,
+                            side_half_width: this.side_half_width
+                        }
+                    ]
+                )
+            )
         };
 
         let mut op = None;

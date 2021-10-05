@@ -507,7 +507,7 @@ pub fn bucket_fill<T: ImageOperationSource>(update_op: &mut T,
                     if nx >= 0 && nx < width && ny >= 0 && ny < height {
                         if !visited[(ny * width + nx) as usize] {
                             let color = update_op.get_pixel(nx as u32, ny as u32);
-                            if within_tolerance(&ref_color, tolerance, &color) {
+                            if color_within_tolerance(&ref_color, tolerance, &color) {
                                 stack.push((nx, ny, color));
                             }
                         }
@@ -518,7 +518,7 @@ pub fn bucket_fill<T: ImageOperationSource>(update_op: &mut T,
     }
 }
 
-fn within_tolerance(ref_color: &Color, tolerance: f32, color: &Color) -> bool {
+fn color_within_tolerance(ref_color: &Color, tolerance: f32, color: &Color) -> bool {
     if color == &image::Rgba([0, 0, 0, 0]) {
         return true;
     }
@@ -530,16 +530,11 @@ fn within_tolerance(ref_color: &Color, tolerance: f32, color: &Color) -> bool {
         return ref_color == color;
     }
 
-    let mut ref_color = cgmath::Vector3::new(ref_color[0] as f32, ref_color[1] as f32, ref_color[2] as f32);
+    let ref_color = cgmath::Vector3::new(ref_color[0] as f32, ref_color[1] as f32, ref_color[2] as f32);
     let color = cgmath::Vector3::new(color[0] as f32, color[1] as f32, color[2] as f32);
 
-    let diff = ref_color - color;
-    if ref_color.magnitude() <= 1E-7 {
-        ref_color = cgmath::Vector3::new(255.0, 255.0, 255.0);
-    }
-
-    let relative_diff = diff.div_element_wise(ref_color);
-    relative_diff.magnitude() <= tolerance
+    let diff = (ref_color - color).div_element_wise(cgmath::Vector3::new(255.0, 255.0, 255.0));
+    ((diff.x.abs() + diff.y.abs() + diff.z.abs()) / 3.0) <= tolerance
 }
 
 pub fn sub_image<T: ImageSource>(image: &T, min_x: i32, min_y: i32, max_x: i32, max_y: i32) -> image::RgbaImage {
