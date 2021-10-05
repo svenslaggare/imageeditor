@@ -99,6 +99,17 @@ impl Program {
         ).transpose()
     }
 
+    fn image_area_transform_matrix4(&self) -> Matrix4<f32> {
+        let image_area_transform = self.image_area_transform().transpose();
+
+        cgmath::Matrix4::from_cols(
+            cgmath::Vector4::new(image_area_transform.x.x, image_area_transform.x.y, 0.0, image_area_transform.x.z),
+            cgmath::Vector4::new(image_area_transform.y.x, image_area_transform.y.y, 0.0, image_area_transform.y.z),
+            cgmath::Vector4::new(0.0, 0.0, 1.0, 0.0),
+            cgmath::Vector4::new(0.0, 0.0, 0.0, 1.0)
+        ).transpose()
+    }
+
     fn process_internal_events(&mut self, event: &glfw::WindowEvent) {
         match event {
             glfw::WindowEvent::Key(Key::Z, _, Action::Press, Modifiers::Control) => {
@@ -199,26 +210,26 @@ impl Program {
     }
 
     pub fn render(&mut self, transform: &Matrix4<f32>) {
-        let origin = self.image_area_transform().transform_point(Position::new(0.0, 0.0));
+        let image_area_transform = self.image_area_transform_matrix4();
 
         self.renders.texture_render.render_sub(
             self.renders.texture_render.shader(),
-            &transform,
+            &(transform * image_area_transform),
             &self.background_texture,
-            origin,
+            Position::new(0.0, 0.0),
             1.0,
             Some(Rectangle::new(0.0, 0.0, self.editor.image().width() as f32, self.editor.image().height() as f32))
         );
 
         self.renders.texture_render.render(
             self.renders.texture_render.shader(),
-            &transform,
+            &(transform * image_area_transform),
             self.editor.image().get_texture(),
-            origin
+            Position::new(0.0, 0.0)
         );
 
         self.ui_manager.render(&self.renders, &transform);
-        self.tools[self.active_tool.index()].render(&self.renders, transform);
+        self.tools[self.active_tool.index()].render(&self.renders, &transform);
 
         let changed = {
             self.tools[self.active_tool.index()].preview(self.editor.image(), &mut self.preview_image)
@@ -230,9 +241,9 @@ impl Program {
 
         self.renders.texture_render.render(
             self.renders.texture_render.shader(),
-            &transform,
+            &(transform * image_area_transform),
             self.preview_image.get_texture(),
-            origin
+            Position::new(0.0, 0.0)
         );
     }
 }
