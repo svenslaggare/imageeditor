@@ -55,6 +55,9 @@ pub struct Program {
     active_tool: Tools,
     background_texture: Texture,
     preview_image: editor::Image,
+    zoom: f32,
+    view_x: f32,
+    view_y: f32
 }
 
 impl Program {
@@ -81,7 +84,10 @@ impl Program {
             tools,
             active_tool: Tools::Pencil,
             background_texture,
-            preview_image
+            preview_image,
+            zoom: 1.0,
+            view_x: 0.0,
+            view_y: 0.0
         };
 
         program.command_buffer.push(Command::SetImageSize(width, height));
@@ -91,16 +97,34 @@ impl Program {
         program
     }
 
-    fn image_area_transform(&self) -> Matrix3<f32> {
-        cgmath::Matrix3::from_cols(
+    fn image_area_transform(&self, only_origin: bool) -> Matrix3<f32> {
+        let origin_transform = cgmath::Matrix3::from_cols(
             cgmath::Vector3::new(1.0, 0.0, 70.0),
             cgmath::Vector3::new(0.0, 1.0, 40.0),
             cgmath::Vector3::new(0.0, 0.0, 1.0),
-        ).transpose()
+        ).transpose();
+
+        if only_origin {
+            origin_transform
+        } else {
+            origin_transform
+            *
+            cgmath::Matrix3::from_cols(
+                cgmath::Vector3::new(self.zoom, 0.0, 0.0),
+                cgmath::Vector3::new(0.0, self.zoom, 0.0),
+                cgmath::Vector3::new(0.0, 0.0, 1.0),
+            ).transpose()
+            *
+            cgmath::Matrix3::from_cols(
+                cgmath::Vector3::new(1.0, 0.0, -self.view_x),
+                cgmath::Vector3::new(0.0, 1.0, -self.view_y),
+                cgmath::Vector3::new(0.0, 0.0, 1.0),
+            ).transpose()
+        }
     }
 
-    fn image_area_transform_matrix4(&self) -> Matrix4<f32> {
-        let image_area_transform = self.image_area_transform().transpose();
+    fn image_area_transform_matrix4(&self, only_origin: bool) -> Matrix4<f32> {
+        let image_area_transform = self.image_area_transform(only_origin).transpose();
 
         cgmath::Matrix4::from_cols(
             cgmath::Vector4::new(image_area_transform.x.x, image_area_transform.x.y, 0.0, image_area_transform.x.z),
@@ -108,6 +132,13 @@ impl Program {
             cgmath::Vector4::new(0.0, 0.0, 1.0, 0.0),
             cgmath::Vector4::new(0.0, 0.0, 0.0, 1.0)
         ).transpose()
+    }
+
+    fn image_area_rectangle(&self) -> Rectangle {
+        let origin_transform = self.image_area_transform(true);
+        let x = origin_transform.z.x;
+        let y = origin_transform.z.y;
+        Rectangle::new(x, y, self.editor.image().width() as f32 + x, self.editor.image().height() as f32 + y)
     }
 
     fn process_internal_events(&mut self, event: &glfw::WindowEvent) {
@@ -151,16 +182,52 @@ impl Program {
                 glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
                     window.set_should_close(true);
                 }
+                glfw::WindowEvent::Key(Key::Left, _, Action::Press | Action::Repeat, _) => {
+                    if self.zoom >= 1.0 {
+                        self.view_x -= 10.0;
+                    }
+                }
+                glfw::WindowEvent::Key(Key::Right, _, Action::Press | Action::Repeat, _) => {
+                    if self.zoom >= 1.0 {
+                        self.view_x += 10.0;
+                    }
+                }
+                glfw::WindowEvent::Key(Key::Up, _, Action::Press | Action::Repeat, _) => {
+                    if self.zoom >= 1.0 {
+                        self.view_y -= 10.0;
+                    }
+                }
+                glfw::WindowEvent::Key(Key::Down, _, Action::Press | Action::Repeat, _) => {
+                    if self.zoom >= 1.0 {
+                        self.view_y += 10.0;
+                    }
+                }
+                glfw::WindowEvent::Scroll(_, y) => {
+                    let prev_zoom = self.zoom;
+                    self.zoom = (self.zoom + y as f32 * 0.1).max(0.3);
+
+                    if self.zoom < 1.0 || prev_zoom < 1.0 {
+                        self.view_x = self.editor.image().width() as f32 * 0.5 - (self.editor.image().width() as f32 / self.zoom) * 0.5;
+                        self.view_y = self.editor.image().height() as f32 * 0.5 - (self.editor.image().height() as f32 / self.zoom) * 0.5;
+                    }
+                }
+                glfw::WindowEvent::Key(Key::Num0, _, Action::Press, Modifiers::Control) => {
+                    self.view_x = 0.0;
+                    self.view_y = 0.0;
+                    self.zoom = 1.0;
+                }
                 event => {
                     self.process_internal_events(&event);
 
                     self.ui_manager.process_gui_event(window, &event, &mut self.command_buffer);
 
-                    let transform = self.image_area_transform().invert().unwrap();
+                    let image_area_transform = self.image_area_transform(false).invert().unwrap();
+                    let image_area_rectangle = self.image_area_rectangle();
                     let op = self.tools[self.active_tool.index()].process_gui_event(
                         window,
                         &event,
-                        &transform,
+                        &image_area_transform,
+                        &image_area_rectangle,
                         &mut self.command_buffer,
                         self.editor.image()
                     );
@@ -210,22 +277,37 @@ impl Program {
     }
 
     pub fn render(&mut self, transform: &Matrix4<f32>) {
-        let image_area_transform = self.image_area_transform_matrix4();
+        let image_area_transform = self.image_area_transform_matrix4(true);
+
+        self.renders.texture_render.render_sized(
+            self.renders.texture_render.shader(),
+            &(transform * image_area_transform),
+            &self.background_texture,
+            Position::new((-self.view_x * self.zoom).max(0.0), (-self.view_y * self.zoom).max(0.0)),
+            (self.editor.image().width() as f32 - self.view_x.max(0.0)) * self.zoom,
+            (self.editor.image().height() as f32 - self.view_y.max(0.0)) * self.zoom,
+            Rectangle::new(
+                0.0,
+                0.0,
+                (self.editor.image().width() as f32 - self.view_x.max(0.0)) * self.zoom,
+                (self.editor.image().height() as f32 - self.view_y.max(0.0)) * self.zoom
+            )
+        );
+
+        let image_crop_rectangle = Rectangle::new(
+            self.view_x,
+            self.view_y,
+            self.editor.image().width() as f32 / self.zoom,
+            self.editor.image().height() as f32 / self.zoom
+        );
 
         self.renders.texture_render.render_sub(
             self.renders.texture_render.shader(),
             &(transform * image_area_transform),
-            &self.background_texture,
-            Position::new(0.0, 0.0),
-            1.0,
-            Some(Rectangle::new(0.0, 0.0, self.editor.image().width() as f32, self.editor.image().height() as f32))
-        );
-
-        self.renders.texture_render.render(
-            self.renders.texture_render.shader(),
-            &(transform * image_area_transform),
             self.editor.image().get_texture(),
-            Position::new(0.0, 0.0)
+            Position::new(0.0, 0.0),
+            self.zoom,
+            Some(image_crop_rectangle.clone())
         );
 
         self.ui_manager.render(&self.renders, &transform);
@@ -239,11 +321,13 @@ impl Program {
             self.preview_image.clear_cpu();
         }
 
-        self.renders.texture_render.render(
+        self.renders.texture_render.render_sub(
             self.renders.texture_render.shader(),
             &(transform * image_area_transform),
             self.preview_image.get_texture(),
-            Position::new(0.0, 0.0)
+            Position::new(0.0, 0.0),
+            self.zoom,
+            Some(image_crop_rectangle.clone())
         );
     }
 }

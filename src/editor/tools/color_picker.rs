@@ -1,7 +1,7 @@
 use glfw::{WindowEvent, Action};
 use cgmath::{Matrix3, Transform};
 
-use crate::rendering::prelude::Position;
+use crate::rendering::prelude::{Position, Rectangle};
 use crate::editor;
 use crate::command_buffer::{Command, CommandBuffer};
 use crate::editor::tools::{Tool, get_transformed_mouse_position};
@@ -38,17 +38,18 @@ impl Tool for ColorPickerTool {
     fn process_gui_event(&mut self,
                          window: &mut glfw::Window,
                          event: &WindowEvent,
-                         transform: &Matrix3<f32>,
+                         image_area_transform: &Matrix3<f32>,
+                         _image_area_rectangle: &Rectangle,
                          command_buffer: &mut CommandBuffer,
                          image: &editor::Image) -> Option<ImageOperation> {
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
-                if let Some(color) = self.select_color(window, transform, image) {
+                if let Some(color) = self.select_color(window, image_area_transform, image) {
                     command_buffer.push(Command::SetColor(color))
                 }
             }
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button2, Action::Press, _) => {
-                if let Some(color) = self.select_color(window, transform, image) {
+                if let Some(color) = self.select_color(window, image_area_transform, image) {
                     command_buffer.push(Command::SetAlternativeColor(color))
                 }
             }

@@ -1,7 +1,7 @@
 use glfw::{WindowEvent, Action};
 use cgmath::{Matrix3, Transform, Matrix4};
 
-use crate::rendering::prelude::Position;
+use crate::rendering::prelude::{Position, Rectangle};
 use crate::editor;
 use crate::command_buffer::{Command, CommandBuffer};
 use crate::editor::tools::{Tool, get_transformed_mouse_position};
@@ -54,14 +54,15 @@ impl Tool for BucketFillDrawTool {
     fn process_gui_event(&mut self,
                          window: &mut glfw::Window,
                          event: &WindowEvent,
-                         transform: &Matrix3<f32>,
+                         image_area_transform: &Matrix3<f32>,
+                         _image_area_rectangle: &Rectangle,
                          _command_buffer: &mut CommandBuffer,
                          _image: &editor::Image) -> Option<ImageOperation> {
         let mut op = None;
 
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
-                let mouse_position = get_transformed_mouse_position(window, transform);
+                let mouse_position = get_transformed_mouse_position(window, image_area_transform);
                 op = Some(
                     ImageOperation::BucketFill {
                         start_x: mouse_position.x as i32,
@@ -72,7 +73,7 @@ impl Tool for BucketFillDrawTool {
                 );
             }
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button2, Action::Press, _) => {
-                let mouse_position = get_transformed_mouse_position(window, transform);
+                let mouse_position = get_transformed_mouse_position(window, image_area_transform);
                 op = Some(
                     ImageOperation::BucketFill {
                         start_x: mouse_position.x as i32,

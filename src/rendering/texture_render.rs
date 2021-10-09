@@ -112,6 +112,55 @@ impl TextureRender {
         }
     }
 
+    pub fn render_sized(&self,
+                        shader: &Shader,
+                        transform: &Matrix4<f32>,
+                        texture: &Texture,
+                        position: cgmath::Point2<f32>,
+                        width: f32,
+                        height: f32,
+                        source_rectangle: Rectangle) {
+        unsafe {
+            shader.activate();
+            shader.set_matrix4(c_str!("transform"), &transform);
+
+            gl::ActiveTexture(gl::TEXTURE0);
+            texture.bind();
+
+            gl::BindVertexArray(self.vertex_array);
+            gl::BindBuffer(gl::ARRAY_BUFFER, self.vertex_buffer);
+
+            let top_left_x = source_rectangle.left() / texture.width() as f32;
+            let top_left_y = source_rectangle.top() / texture.height() as f32;
+            let top_right_x = source_rectangle.right() / texture.width() as f32;
+            let top_right_y = source_rectangle.top() / texture.height() as f32;
+
+            let bottom_left_x = source_rectangle.left() / texture.width() as f32;
+            let bottom_left_y = source_rectangle.bottom() / texture.height() as f32;
+            let bottom_right_x = source_rectangle.right() / texture.width() as f32;
+            let bottom_right_y = source_rectangle.bottom() / texture.height() as f32;
+
+            let vertices: [f32; BUFFER_SIZE] = [
+                position.x, position.y,                   top_left_x, top_left_y,               // Top-left
+                position.x + width, position.y,           top_right_x, top_right_y,             // Top-right
+                position.x + width, position.y + height,  bottom_right_x, bottom_right_y,       // Bottom-right
+
+                position.x, position.y + height,          bottom_left_x, bottom_left_y,         // Bottom-left
+                position.x + width, position.y + height,  bottom_right_x, bottom_right_y,       // Bottom-right
+                position.x, position.y,                   top_left_x, top_left_y,               // Top-left
+            ];
+
+            gl::BufferSubData(
+                gl::ARRAY_BUFFER,
+                0,
+                (BUFFER_SIZE * mem::size_of::<GLfloat>()) as GLsizeiptr,
+                &vertices[0] as *const f32 as *const c_void
+            );
+            gl::DrawArrays(gl::TRIANGLES, 0, NUM_VERTICES);
+        }
+    }
+
+
     pub fn render(&self,
                   shader: &Shader,
                   transform: &Matrix4<f32>,

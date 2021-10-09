@@ -1,7 +1,7 @@
 use glfw::{WindowEvent, Action};
 use cgmath::{Matrix3, Transform, Matrix4};
 
-use crate::rendering::prelude::Position;
+use crate::rendering::prelude::{Position, Rectangle};
 use crate::editor;
 use crate::command_buffer::{Command, CommandBuffer};
 use crate::editor::tools::{Tool, get_transformed_mouse_position};
@@ -42,7 +42,8 @@ impl Tool for EraserDrawTool {
     fn process_gui_event(&mut self,
                          window: &mut glfw::Window,
                          event: &WindowEvent,
-                         transform: &Matrix3<f32>,
+                         image_area_transform: &Matrix3<f32>,
+                         _image_area_rectangle: &Rectangle,
                          _command_buffer: &mut CommandBuffer,
                          _image: &editor::Image) -> Option<ImageOperation> {
         let create_begin_draw = |this: &Self, mouse_position: Position| {
@@ -61,7 +62,7 @@ impl Tool for EraserDrawTool {
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
                 self.is_drawing = true;
-                op = create_begin_draw(self, get_transformed_mouse_position(window, transform));
+                op = create_begin_draw(self, get_transformed_mouse_position(window, image_area_transform));
             }
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1 | glfw::MouseButton::Button2, Action::Release, _) => {
                 self.is_drawing = false;
@@ -70,7 +71,7 @@ impl Tool for EraserDrawTool {
             }
             glfw::WindowEvent::CursorPos(raw_mouse_x, raw_mouse_y) => {
                 if self.is_drawing {
-                    let mouse_position = transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32));
+                    let mouse_position = image_area_transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32));
 
                     if let Some(prev_mouse_position) = self.prev_mouse_position {
                         op = Some(

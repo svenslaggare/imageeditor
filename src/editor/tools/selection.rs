@@ -1,5 +1,5 @@
 use glfw::{WindowEvent, Action, Key, Modifiers, Window};
-use cgmath::{Matrix3, Transform};
+use cgmath::{Matrix3, Transform, Matrix};
 
 use crate::rendering::prelude::{Position, Rectangle};
 use crate::editor;
@@ -136,14 +136,15 @@ impl SelectionTool {
     fn process_event_select(&mut self,
                             window: &mut Window,
                             event: &WindowEvent,
-                            transform: &Matrix3<f32>,
+                            image_area_transform: &Matrix3<f32>,
+                            image_area_rectangle: &Rectangle,
                             _command_buffer: &mut CommandBuffer,
                             image: &editor::Image) -> Option<ImageOperation> {
         let mut op = None;
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
-                let current_mouse_position = get_transformed_mouse_position(window, transform);
-                if current_mouse_position.x >= 0.0 && current_mouse_position.y >= 0.0 {
+                let (mouse_x, mouse_y) = window.get_cursor_pos();
+                if image_area_rectangle.contains(&Position::new(mouse_x as f32, mouse_y as f32)) {
                     if self.move_pixels_state.moved_pixels_image.is_some() {
                         add_op_sequential(&mut op, self.create_move(false));
                         self.move_pixels_state.clear();
@@ -154,7 +155,7 @@ impl SelectionTool {
                         self.resize_pixels_state.clear();
                     }
 
-                    self.start_position = Some(current_mouse_position.clone());
+                    self.start_position = Some(get_transformed_mouse_position(window, image_area_transform));
                     self.end_position = None;
                     self.select_state.is_selecting = true;
                 }
@@ -163,7 +164,7 @@ impl SelectionTool {
                 self.select_state.is_selecting = false;
             }
             glfw::WindowEvent::CursorPos(raw_mouse_x, raw_mouse_y) => {
-                let mouse_position = transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32));
+                let mouse_position = image_area_transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32));
                 if self.select_state.is_selecting {
                     self.end_position = Some(mouse_position);
                 }
@@ -200,7 +201,7 @@ impl SelectionTool {
                 }
             }
             glfw::WindowEvent::Key(Key::V, _, Action::Press, Modifiers::Control) => {
-                let mouse_position = get_transformed_mouse_position(window, transform);
+                let mouse_position = get_transformed_mouse_position(window, image_area_transform);
                 let start_x = mouse_position.x as i32;
                 let start_y = mouse_position.y as i32;
 
@@ -238,7 +239,8 @@ impl SelectionTool {
     fn process_event_move_pixels(&mut self,
                                  window: &mut Window,
                                  event: &WindowEvent,
-                                 transform: &Matrix3<f32>,
+                                 image_area_transform: &Matrix3<f32>,
+                                 _image_area_rectangle: &Rectangle,
                                  _command_buffer: &mut CommandBuffer,
                                  image: &editor::Image) -> Option<ImageOperation> {
         let mut op = None;
@@ -246,7 +248,7 @@ impl SelectionTool {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
                 self.move_pixels_state.is_moving = false;
 
-                let current_mouse_position = get_transformed_mouse_position(window, transform);
+                let current_mouse_position = get_transformed_mouse_position(window, image_area_transform);
                 if let Some(selection) = self.selection() {
                     let selection_rectangle = Rectangle::from_min_and_max(&selection.start_position(), &selection.end_position());
                     if selection_rectangle.contains(&current_mouse_position) {
@@ -264,7 +266,7 @@ impl SelectionTool {
                 self.move_pixels_state.is_moving = false;
             }
             glfw::WindowEvent::CursorPos(raw_mouse_x, raw_mouse_y) => {
-                let mouse_position = transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32));
+                let mouse_position = image_area_transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32));
 
                 if self.move_pixels_state.is_moving {
                     let selection = self.selection().unwrap();
@@ -284,7 +286,8 @@ impl SelectionTool {
     fn process_event_resize_pixels(&mut self,
                                    window: &mut Window,
                                    event: &WindowEvent,
-                                   transform: &Matrix3<f32>,
+                                   image_area_transform: &Matrix3<f32>,
+                                   _image_area_rectangle: &Rectangle,
                                    _command_buffer: &mut CommandBuffer,
                                    image: &editor::Image) -> Option<ImageOperation> {
         let mut op = None;
@@ -292,7 +295,7 @@ impl SelectionTool {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
                 self.resize_pixels_state.is_resizing = false;
 
-                let current_mouse_position = get_transformed_mouse_position(window, transform);
+                let current_mouse_position = get_transformed_mouse_position(window, image_area_transform);
                 if let Some(selection) = self.selection() {
                     let selection_rectangle = Rectangle::from_min_and_max(&selection.start_position(), &selection.end_position());
                     if selection_rectangle.contains(&current_mouse_position) {
@@ -309,10 +312,10 @@ impl SelectionTool {
                 self.resize_pixels_state.is_resizing = false;
             }
             glfw::WindowEvent::CursorPos(raw_mouse_x, raw_mouse_y) => {
-                let mouse_position = transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32));
-
                 if self.resize_pixels_state.is_resizing {
-                    self.end_position = Some(mouse_position);
+                    self.end_position = Some(
+                        image_area_transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32))
+                    );
                 }
             }
             _ => {}
@@ -442,13 +445,14 @@ impl Tool for SelectionTool {
     fn process_gui_event(&mut self,
                          window: &mut Window,
                          event: &WindowEvent,
-                         transform: &Matrix3<f32>,
+                         image_area_transform: &Matrix3<f32>,
+                         image_area_rectangle: &Rectangle,
                          command_buffer: &mut CommandBuffer,
                          image: &editor::Image) -> Option<ImageOperation> {
         let mut op = match self.tool {
-            SelectionSubTool::Select => self.process_event_select(window, event, transform, command_buffer, image),
-            SelectionSubTool::MovePixels => self.process_event_move_pixels(window, event, transform, command_buffer, image),
-            SelectionSubTool::ResizePixels => self.process_event_resize_pixels(window, event, transform, command_buffer, image),
+            SelectionSubTool::Select => self.process_event_select(window, event, image_area_transform, image_area_rectangle, command_buffer, image),
+            SelectionSubTool::MovePixels => self.process_event_move_pixels(window, event, image_area_transform, image_area_rectangle, command_buffer, image),
+            SelectionSubTool::ResizePixels => self.process_event_resize_pixels(window, event, image_area_transform, image_area_rectangle, command_buffer, image),
         };
 
         match event {

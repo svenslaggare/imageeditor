@@ -5,7 +5,7 @@ use cgmath::{Matrix3, Transform, Matrix4};
 use crate::command_buffer::{Command, CommandBuffer};
 use crate::editor;
 use crate::editor::image_operation::ImageOperation;
-use crate::rendering::prelude::Position;
+use crate::rendering::prelude::{Position, Rectangle};
 use crate::editor::tools::pencil::PencilDrawTool;
 use crate::editor::tools::eraser::EraserDrawTool;
 use crate::editor::tools::line::LineDrawTool;
@@ -48,7 +48,8 @@ pub trait Tool {
         &mut self,
         window: &mut glfw::Window,
         event: &WindowEvent,
-        transform: &Matrix3<f32>,
+        image_area_transform: &Matrix3<f32>,
+        image_area_rectangle: &Rectangle,
         command_buffer: &mut CommandBuffer,
         image: &editor::Image
     ) -> Option<ImageOperation>;
