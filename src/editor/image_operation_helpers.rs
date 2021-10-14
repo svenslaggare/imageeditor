@@ -2,10 +2,10 @@ use std::collections::{HashSet, VecDeque};
 
 use image::Pixel;
 
-use crate::editor::image_operation::{ImageSource, ImageOperationSource, SparseImage, OptionalImage};
+use crate::editor::image_operation::{ImageSource, ImageOperationSource, SparseImage, OptionalImage, ColorGradientType};
 use crate::editor::Color;
 use crate::helpers::TimeMeasurement;
-use cgmath::{ElementWise, InnerSpace};
+use cgmath::{ElementWise, InnerSpace, Vector4};
 
 pub fn draw_block<T: ImageOperationSource>(update_op: &mut T,
                                            center_x: i32,
@@ -514,6 +514,53 @@ pub fn bucket_fill<T: ImageOperationSource>(update_op: &mut T,
                     }
                 }
             }
+        }
+    }
+}
+
+pub fn color_gradient<T: ImageOperationSource>(update_op: &mut T,
+                                               start_x: i32, start_y: i32,
+                                               end_x: i32, end_y: i32,
+                                               first_color: Color,
+                                               second_color: Color,
+                                               gradient_type: ColorGradientType) {
+    let first_color = Vector4::new(first_color[0] as f32, first_color[1] as f32, first_color[2] as f32, first_color[3] as f32);
+    let second_color = Vector4::new(second_color[0] as f32, second_color[1] as f32, second_color[2] as f32, second_color[3] as f32);
+
+
+    let calc_distance = |x: i32, y: i32| {
+        match gradient_type {
+            ColorGradientType::Linear => {
+                (-(end_y - start_y) * (start_y - y) - (start_x - x) * (end_x - start_x)).abs() as f32
+                / (((end_x - start_x).pow(2) + (end_y - start_y).pow(2)) as f32).sqrt()
+            }
+            ColorGradientType::Radial => {
+                (((x - start_x).pow(2) + (y - start_y).pow(2)) as f32).sqrt()
+            }
+        }
+    };
+
+    let max_distance = match gradient_type {
+        ColorGradientType::Linear => (((end_x - start_x).pow(2) + (end_y - start_y).pow(2)) as f32).sqrt(),
+        ColorGradientType::Radial => calc_distance(end_x, end_y)
+    };
+
+    for y in 0..update_op.height() {
+        for x in 0..update_op.width() {
+            let distance = calc_distance(x as i32, y as i32);
+
+            let factor = distance / max_distance;
+            let color = factor * first_color + (1.0 - factor) * second_color;
+            update_op.put_pixel(
+                x,
+                y,
+                image::Rgba([
+                    color.x.clamp(0.0, 255.0) as u8,
+                    color.y.clamp(0.0, 255.0) as u8,
+                    color.z.clamp(0.0, 255.0) as u8,
+                    color.w.clamp(0.0, 255.0) as u8
+                ])
+            );
         }
     }
 }

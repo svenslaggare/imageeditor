@@ -3,18 +3,7 @@ use std::collections::HashMap;
 use image::{Pixel, FilterType};
 
 use crate::editor::image::{Color};
-use crate::editor::image_operation_helpers::{
-    sub_image,
-    draw_block,
-    draw_line,
-    draw_circle,
-    fill_rectangle,
-    bucket_fill,
-    draw_line_anti_aliased,
-    draw_line_anti_aliased_thick,
-    draw_circle_anti_aliased,
-    draw_circle_anti_aliased_thick
-};
+use crate::editor::image_operation_helpers::{sub_image, draw_block, draw_line, draw_circle, fill_rectangle, bucket_fill, draw_line_anti_aliased, draw_line_anti_aliased_thick, draw_circle_anti_aliased, draw_circle_anti_aliased_thick, color_gradient};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum ImageOperationMarker {
@@ -57,6 +46,12 @@ impl OptionalImage {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum ColorGradientType {
+    Linear,
+    Radial
+}
+
 #[derive(Debug)]
 pub enum ImageOperation {
     Empty,
@@ -74,7 +69,8 @@ pub enum ImageOperation {
     FillRectangle { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, blend: bool },
     Circle { center_x: i32, center_y: i32, radius: i32, border_half_width: i32, color: Color },
     FillCircle { center_x: i32, center_y: i32, radius: i32, color: Color },
-    BucketFill { start_x: i32, start_y: i32, fill_color: Color, tolerance: f32 }
+    BucketFill { start_x: i32, start_y: i32, fill_color: Color, tolerance: f32 },
+    ColorGradient { start_x: i32, start_y: i32, end_x: i32, end_y: i32, first_color: Color, second_color: Color, gradient_type: ColorGradientType }
 }
 
 pub trait ImageSource {
@@ -430,6 +426,34 @@ impl ImageOperation {
                 } else {
                     None
                 }
+            }
+            ImageOperation::ColorGradient { start_x, start_y, end_x, end_y, first_color, second_color, gradient_type } => {
+                let undo_image = if undo {
+                    Some(
+                        sub_image(
+                            update_op,
+                            0,
+                            0,
+                            update_op.width() as i32,
+                            update_op.height() as i32
+                        )
+                    )
+                } else {
+                    None
+                };
+
+                color_gradient(
+                    update_op,
+                    *start_x,
+                    *start_y,
+                    *end_x,
+                    *end_y,
+                    *first_color,
+                    *second_color,
+                    gradient_type.clone()
+                );
+
+                undo_image.map(|image| ImageOperation::SetImage { start_x: 0, start_y: 0, image, blend: false })
             }
         }
     }
