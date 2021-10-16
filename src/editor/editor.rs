@@ -24,6 +24,12 @@ impl Editor {
         Image::new(image::RgbaImage::new(self.image.width(), self.image.height()))
     }
 
+    pub fn set_image(&mut self, image: Image) {
+        self.image = image;
+        self.undo_stack.clear();
+        self.redo_stack.clear();
+    }
+
     fn merge_draw_operations(&mut self) {
         for i in (0..self.undo_stack.len()).rev() {
             let (op, _) = &self.undo_stack[i];

@@ -4,10 +4,11 @@ use cgmath::{Matrix3, Transform, Matrix4};
 use crate::rendering::prelude::{Position, Rectangle};
 use crate::editor;
 use crate::command_buffer::{Command, CommandBuffer};
-use crate::editor::tools::{Tool, get_transformed_mouse_position};
+use crate::editor::tools::{Tool, get_transformed_mouse_position, EditorWindow};
 use crate::editor::image_operation::{ImageOperation, ImageOperationMarker};
 use crate::ui::button::{TextButton, GenericButton};
 use crate::program::Renders;
+use crate::editor::Image;
 
 pub struct EraserDrawTool {
     is_drawing: bool,
@@ -40,12 +41,12 @@ impl EraserDrawTool {
 
 impl Tool for EraserDrawTool {
     fn process_gui_event(&mut self,
-                         window: &mut glfw::Window,
+                         window: &mut dyn EditorWindow,
                          event: &WindowEvent,
                          image_area_transform: &Matrix3<f32>,
-                         _image_area_rectangle: &Rectangle,
-                         _command_buffer: &mut CommandBuffer,
-                         _image: &editor::Image) -> Option<ImageOperation> {
+                         image_area_rectangle: &Rectangle,
+                         command_buffer: &mut CommandBuffer,
+                         image: &editor::Image) -> Option<ImageOperation> {
         let create_begin_draw = |this: &Self, mouse_position: Position| {
             Some(ImageOperation::Sequential(vec![
                 ImageOperation::Marker(ImageOperationMarker::BeginDraw),

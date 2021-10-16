@@ -102,7 +102,7 @@ impl Shader {
             }
 
             gl::LinkProgram(program_id);
-            if let Some(err) = get_compile_error(&vertex_shader_path.replace(".vs", ".pŕogram"), program_id, true) {
+            if let Some(err) = get_compile_error(&vertex_shader_path.replace(".vs", ".program"), program_id, true) {
                 gl::DeleteShader(vertex_shader);
                 gl::DeleteShader(fragment_shader);
 

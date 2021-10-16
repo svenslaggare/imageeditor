@@ -4,9 +4,10 @@ use cgmath::{Matrix3, Transform, Matrix};
 use crate::rendering::prelude::{Position, Rectangle};
 use crate::editor;
 use crate::command_buffer::{Command, CommandBuffer};
-use crate::editor::tools::{Tool, get_valid_rectangle, SelectionSubTool, Tools, get_transformed_mouse_position};
+use crate::editor::tools::{Tool, get_valid_rectangle, SelectionSubTool, Tools, get_transformed_mouse_position, EditorWindow};
 use crate::editor::image_operation::{ImageOperation, ImageSource, add_op_sequential};
 use crate::editor::image_operation_helpers::sub_image;
+use crate::editor::Image;
 
 #[derive(Debug, Clone)]
 pub struct Selection {
@@ -134,8 +135,8 @@ impl SelectionTool {
     }
 
     fn process_event_select(&mut self,
-                            window: &mut Window,
-                            event: &WindowEvent,
+                            window: &mut dyn EditorWindow,
+                            event: &glfw::WindowEvent,
                             image_area_transform: &Matrix3<f32>,
                             image_area_rectangle: &Rectangle,
                             _command_buffer: &mut CommandBuffer,
@@ -237,8 +238,8 @@ impl SelectionTool {
     }
 
     fn process_event_move_pixels(&mut self,
-                                 window: &mut Window,
-                                 event: &WindowEvent,
+                                 window: &mut dyn EditorWindow,
+                                 event: &glfw::WindowEvent,
                                  image_area_transform: &Matrix3<f32>,
                                  _image_area_rectangle: &Rectangle,
                                  _command_buffer: &mut CommandBuffer,
@@ -284,8 +285,8 @@ impl SelectionTool {
     }
 
     fn process_event_resize_pixels(&mut self,
-                                   window: &mut Window,
-                                   event: &WindowEvent,
+                                   window: &mut dyn EditorWindow,
+                                   event: &glfw::WindowEvent,
                                    image_area_transform: &Matrix3<f32>,
                                    _image_area_rectangle: &Rectangle,
                                    _command_buffer: &mut CommandBuffer,
@@ -443,7 +444,7 @@ impl Tool for SelectionTool {
     }
 
     fn process_gui_event(&mut self,
-                         window: &mut Window,
+                         window: &mut dyn EditorWindow,
                          event: &WindowEvent,
                          image_area_transform: &Matrix3<f32>,
                          image_area_rectangle: &Rectangle,

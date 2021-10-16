@@ -4,6 +4,7 @@ use crate::ui::TextureButton;
 use crate::ui::button::{TextButton, SolidColorButton, GenericButton};
 use crate::command_buffer::{CommandBuffer, Command};
 use crate::program::Renders;
+use crate::editor::tools::EditorWindow;
 
 pub struct Manager {
     texture_buttons: Vec<TextureButton<CommandBuffer>>,
@@ -22,7 +23,7 @@ impl Manager {
         }
     }
 
-    pub fn process_gui_event(&mut self, window: &mut glfw::Window, event: &glfw::WindowEvent, command_buffer: &mut CommandBuffer) {
+    pub fn process_gui_event(&mut self, window: &mut dyn EditorWindow, event: &glfw::WindowEvent, command_buffer: &mut CommandBuffer) {
         for button in &mut self.texture_buttons {
             button.process_gui_event(window, event, command_buffer);
         }

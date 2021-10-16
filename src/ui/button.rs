@@ -15,12 +15,13 @@ use crate::editor::Color;
 use crate::rendering::solid_rectangle_render::SolidRectangleRender;
 use crate::rendering::ShaderAndRender;
 use crate::program::Renders;
+use crate::editor::tools::EditorWindow;
 
 pub type ButtonAction<T> = Box<dyn Fn(&mut T)>;
 pub type CommandAction<T> = Box<dyn Fn(&mut T, &Command)>;
 
 pub trait GenericButton<T> {
-    fn process_gui_event(&mut self, window: &mut glfw::Window, event: &glfw::WindowEvent, argument: &mut T);
+    fn process_gui_event(&mut self, window: &mut dyn EditorWindow, event: &glfw::WindowEvent, argument: &mut T);
     fn process_command(&mut self, command: &Command);
 }
 
@@ -58,7 +59,7 @@ impl<T> TextureButton<T> {
 }
 
 impl<T> GenericButton<T> for TextureButton<T> {
-    fn process_gui_event(&mut self, window: &mut glfw::Window, event: &glfw::WindowEvent, argument: &mut T) {
+    fn process_gui_event(&mut self, window: &mut dyn EditorWindow, event: &glfw::WindowEvent, argument: &mut T) {
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Release, _) => {
                 if let Some(left_click_action) = self.left_click_action.as_ref() {
@@ -142,7 +143,7 @@ impl<T> SolidColorButton<T> {
 }
 
 impl<T> GenericButton<T> for SolidColorButton<T> {
-    fn process_gui_event(&mut self, window: &mut glfw::Window, event: &glfw::WindowEvent, argument: &mut T) {
+    fn process_gui_event(&mut self, window: &mut dyn EditorWindow, event: &glfw::WindowEvent, argument: &mut T) {
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Release, _) => {
                 if let Some(left_click_action) = self.left_click_action.as_ref() {
@@ -238,7 +239,7 @@ impl<T> TextButton<T> {
 }
 
 impl<T> GenericButton<T> for TextButton<T> {
-    fn process_gui_event(&mut self, window: &mut glfw::Window, event: &glfw::WindowEvent, argument: &mut T) {
+    fn process_gui_event(&mut self, window: &mut dyn EditorWindow, event: &glfw::WindowEvent, argument: &mut T) {
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Release, _) => {
                 if let Some(left_click_action) = self.left_click_action.as_ref() {

@@ -8,12 +8,13 @@ use cgmath::{Matrix3, Transform, Matrix4, Matrix};
 use crate::rendering::prelude::{Position, Rectangle};
 use crate::{editor, rendering};
 use crate::command_buffer::{Command, CommandBuffer};
-use crate::editor::tools::{Tool, get_transformed_mouse_position};
+use crate::editor::tools::{Tool, get_transformed_mouse_position, EditorWindow};
 use crate::editor::image_operation::{ImageOperation, ImageOperationMarker};
 use crate::program::Renders;
 use crate::rendering::text_render::TextAlignment;
 use crate::ui::button::{TextButton, GenericButton};
 use crate::rendering::font::Font;
+use crate::editor::Image;
 
 pub struct PencilDrawTool {
     is_drawing: Option<editor::Color>,
@@ -62,12 +63,12 @@ impl Tool for PencilDrawTool {
     }
 
     fn process_gui_event(&mut self,
-                         window: &mut glfw::Window,
+                         window: &mut dyn EditorWindow,
                          event: &WindowEvent,
                          image_area_transform: &Matrix3<f32>,
                          image_area_rectangle: &Rectangle,
-                         _command_buffer: &mut CommandBuffer,
-                         _image: &editor::Image) -> Option<ImageOperation> {
+                         command_buffer: &mut CommandBuffer,
+                         image: &editor::Image) -> Option<ImageOperation> {
         let create_begin_draw = |this: &Self, mouse_position: Position, color: editor::Color| {
             Some(
                 ImageOperation::Sequential(

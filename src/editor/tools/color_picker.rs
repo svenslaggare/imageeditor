@@ -4,8 +4,9 @@ use cgmath::{Matrix3, Transform};
 use crate::rendering::prelude::{Position, Rectangle};
 use crate::editor;
 use crate::command_buffer::{Command, CommandBuffer};
-use crate::editor::tools::{Tool, get_transformed_mouse_position};
+use crate::editor::tools::{Tool, get_transformed_mouse_position, EditorWindow};
 use crate::editor::image_operation::{ImageOperation, ImageOperationMarker, ImageSource};
+use crate::editor::Image;
 
 pub struct ColorPickerTool {
 
@@ -19,7 +20,7 @@ impl ColorPickerTool {
     }
 
     fn select_color(&self,
-                    window: &mut glfw::Window,
+                    window: &mut dyn EditorWindow,
                     transform: &Matrix3<f32>,
                     image: &editor::Image) -> Option<editor::Color> {
         let position = get_transformed_mouse_position(window, transform);
@@ -36,10 +37,10 @@ impl ColorPickerTool {
 
 impl Tool for ColorPickerTool {
     fn process_gui_event(&mut self,
-                         window: &mut glfw::Window,
+                         window: &mut dyn EditorWindow,
                          event: &WindowEvent,
                          image_area_transform: &Matrix3<f32>,
-                         _image_area_rectangle: &Rectangle,
+                         image_area_rectangle: &Rectangle,
                          command_buffer: &mut CommandBuffer,
                          image: &editor::Image) -> Option<ImageOperation> {
         match event {

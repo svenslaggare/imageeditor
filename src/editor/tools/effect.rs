@@ -4,7 +4,7 @@ use glfw::{Window, WindowEvent, Key, Action};
 use cgmath::{Matrix3};
 
 use crate::rendering::prelude::{Position, Rectangle};
-use crate::editor::tools::{Tool, Tools};
+use crate::editor::tools::{Tool, Tools, EditorWindow};
 use crate::command_buffer::{Command, CommandBuffer};
 use crate::editor::Image;
 use crate::editor::image_operation::{ImageOperation};
@@ -119,12 +119,12 @@ impl Tool for EffectDrawTool {
     }
 
     fn process_gui_event(&mut self,
-                         _window: &mut Window,
+                         window: &mut dyn EditorWindow,
                          event: &WindowEvent,
-                         _image_area_transform: &Matrix3<f32>,
-                         _image_area_rectangle: &Rectangle,
-                         _command_buffer: &mut CommandBuffer,
-                         image: &Image) -> Option<ImageOperation> {
+                         image_area_transform: &Matrix3<f32>,
+                         image_area_rectangle: &Rectangle,
+                         command_buffer: &mut CommandBuffer,
+                         image: &editor::Image) -> Option<ImageOperation> {
         match event {
             glfw::WindowEvent::Key(Key::Enter, _, Action::Press, _) => {
                 if let Some(frame_buffer) = self.op_frame_buffer.as_ref() {

@@ -12,43 +12,16 @@ use crate::rendering::shader::Shader;
 use crate::rendering::prelude::{Position, Rectangle};
 use crate::rendering::texture_render::TextureRender;
 use crate::editor::image_operation::{ImageSource};
-use crate::editor::tools::{Tool, create_tools, Tools};
+use crate::editor::tools::{Tool, create_tools, Tools, EditorWindow};
 use crate::rendering::text_render::TextRender;
 use crate::rendering::solid_rectangle_render::SolidRectangleRender;
 use crate::rendering::ShaderAndRender;
 use crate::rendering::texture::Texture;
 use crate::rendering::font::Font;
 
-pub struct Renders {
-    pub texture_render: ShaderAndRender<TextureRender>,
-    pub solid_rectangle_render: ShaderAndRender<SolidRectangleRender>,
-    pub text_render: ShaderAndRender<TextRender>,
-    pub ui_font: Rc<RefCell<Font>>,
-}
-
-impl Renders {
-    pub fn new() -> Renders {
-        Renders {
-            texture_render: ShaderAndRender::new(
-                Shader::new("content/shaders/texture.vs", "content/shaders/texture.fs", None).unwrap(),
-                TextureRender::new()
-            ),
-            solid_rectangle_render: ShaderAndRender::new(
-                Shader::new("content/shaders/solid_rectangle.vs", "content/shaders/solid_rectangle.fs", None).unwrap(),
-                SolidRectangleRender::new()
-            ),
-            text_render: ShaderAndRender::new(
-                Shader::new("content/shaders/text.vs", "content/shaders/text.fs", None).unwrap(),
-                TextRender::new()
-            ),
-            ui_font: Rc::new(RefCell::new(Font::new("content/fonts/NotoMono-Regular.ttf", 16).unwrap()))
-        }
-    }
-}
-
 pub struct Program {
     renders: Renders,
-    command_buffer: CommandBuffer,
+    pub command_buffer: CommandBuffer,
     editor: editor::Editor,
     ui_manager: ui::Manager,
     tools: Vec<Box<dyn Tool>>,
@@ -97,82 +70,12 @@ impl Program {
         program
     }
 
-    fn image_area_transform(&self, only_origin: bool) -> Matrix3<f32> {
-        let origin_transform = cgmath::Matrix3::from_cols(
-            cgmath::Vector3::new(1.0, 0.0, 70.0),
-            cgmath::Vector3::new(0.0, 1.0, 40.0),
-            cgmath::Vector3::new(0.0, 0.0, 1.0),
-        ).transpose();
-
-        if only_origin {
-            origin_transform
-        } else {
-            origin_transform
-            *
-            cgmath::Matrix3::from_cols(
-                cgmath::Vector3::new(self.zoom, 0.0, 0.0),
-                cgmath::Vector3::new(0.0, self.zoom, 0.0),
-                cgmath::Vector3::new(0.0, 0.0, 1.0),
-            ).transpose()
-            *
-            cgmath::Matrix3::from_cols(
-                cgmath::Vector3::new(1.0, 0.0, -self.view_x),
-                cgmath::Vector3::new(0.0, 1.0, -self.view_y),
-                cgmath::Vector3::new(0.0, 0.0, 1.0),
-            ).transpose()
-        }
-    }
-
-    fn image_area_transform_matrix4(&self, only_origin: bool) -> Matrix4<f32> {
-        let image_area_transform = self.image_area_transform(only_origin).transpose();
-
-        cgmath::Matrix4::from_cols(
-            cgmath::Vector4::new(image_area_transform.x.x, image_area_transform.x.y, 0.0, image_area_transform.x.z),
-            cgmath::Vector4::new(image_area_transform.y.x, image_area_transform.y.y, 0.0, image_area_transform.y.z),
-            cgmath::Vector4::new(0.0, 0.0, 1.0, 0.0),
-            cgmath::Vector4::new(0.0, 0.0, 0.0, 1.0)
-        ).transpose()
-    }
-
-    fn image_area_rectangle(&self) -> Rectangle {
-        let origin_transform = self.image_area_transform(true);
-        let x = origin_transform.z.x;
-        let y = origin_transform.z.y;
-        Rectangle::new(x, y, self.editor.image().width() as f32 + x, self.editor.image().height() as f32 + y)
-    }
-
-    fn process_internal_events(&mut self, event: &glfw::WindowEvent) {
-        match event {
-            glfw::WindowEvent::Key(Key::Z, _, Action::Press, Modifiers::Control) => {
-                self.command_buffer.push(Command::UndoImageOp);
-            }
-            glfw::WindowEvent::Key(Key::Y, _, Action::Press, Modifiers::Control) => {
-                self.command_buffer.push(Command::RedoImageOp);
-            }
-            glfw::WindowEvent::Key(Key::S, _, Action::Press, Modifiers::Control) => {
-                match std::fs::File::create("output.png") {
-                    Ok(file) => {
-                        let writer = std::io::BufWriter::new(file);
-                        let encoder = image::png::PNGEncoder::new(writer);
-                        let image = self.editor.image();
-                        encoder.encode(image.get_image().as_ref(), image.width(), image.height(), image::ColorType::RGBA(8)).unwrap();
-                        println!("Saved image.");
-                    }
-                    Err(error) => {
-                        println!("Failed to save due to: {}.", error);
-                    }
-                }
-            }
-            _ => {}
-        }
-    }
-
     pub fn update(&mut self,
-                  window: &mut glfw::Window,
-                  events: &Receiver<(f64, glfw::WindowEvent)>) {
+                  window: &mut dyn EditorWindow,
+                  events: impl Iterator<Item=glfw::WindowEvent>) {
         self.tools[self.active_tool.index()].update();
 
-        for (_, event) in glfw::flush_messages(events) {
+        for event in events {
             match event {
                 glfw::WindowEvent::FramebufferSize(width, height) => {
                     unsafe {
@@ -241,6 +144,11 @@ impl Program {
 
         while let Some(command) = self.command_buffer.pop() {
             match command {
+                Command::OpenNew(path) => {
+                    let image = image::open(&path).unwrap().into_rgba();
+                    self.editor.set_image(editor::Image::new(image));
+                    self.preview_image = self.editor.new_image_same();
+                }
                 Command::SetTool(tool) => {
                     if tool.index() != self.active_tool.index() {
                         if let Some(op) = self.tools[self.active_tool.index()].on_deactivate(&mut self.command_buffer) {
@@ -273,6 +181,32 @@ impl Program {
                     self.ui_manager.process_command(&command);
                 }
             }
+        }
+    }
+
+    fn process_internal_events(&mut self, event: &glfw::WindowEvent) {
+        match event {
+            glfw::WindowEvent::Key(Key::Z, _, Action::Press, Modifiers::Control) => {
+                self.command_buffer.push(Command::UndoImageOp);
+            }
+            glfw::WindowEvent::Key(Key::Y, _, Action::Press, Modifiers::Control) => {
+                self.command_buffer.push(Command::RedoImageOp);
+            }
+            glfw::WindowEvent::Key(Key::S, _, Action::Press, Modifiers::Control) => {
+                match std::fs::File::create("output.png") {
+                    Ok(file) => {
+                        let writer = std::io::BufWriter::new(file);
+                        let encoder = image::png::PNGEncoder::new(writer);
+                        let image = self.editor.image();
+                        encoder.encode(image.get_image().as_ref(), image.width(), image.height(), image::ColorType::RGBA(8)).unwrap();
+                        println!("Saved image.");
+                    }
+                    Err(error) => {
+                        println!("Failed to save due to: {}.", error);
+                    }
+                }
+            }
+            _ => {}
         }
     }
 
@@ -329,5 +263,76 @@ impl Program {
             self.zoom,
             Some(image_crop_rectangle.clone())
         );
+    }
+
+    fn image_area_transform(&self, only_origin: bool) -> Matrix3<f32> {
+        let origin_transform = cgmath::Matrix3::from_cols(
+            cgmath::Vector3::new(1.0, 0.0, 70.0),
+            cgmath::Vector3::new(0.0, 1.0, 40.0),
+            cgmath::Vector3::new(0.0, 0.0, 1.0),
+        ).transpose();
+
+        if only_origin {
+            origin_transform
+        } else {
+            origin_transform
+                *
+                cgmath::Matrix3::from_cols(
+                    cgmath::Vector3::new(self.zoom, 0.0, 0.0),
+                    cgmath::Vector3::new(0.0, self.zoom, 0.0),
+                    cgmath::Vector3::new(0.0, 0.0, 1.0),
+                ).transpose()
+                *
+                cgmath::Matrix3::from_cols(
+                    cgmath::Vector3::new(1.0, 0.0, -self.view_x),
+                    cgmath::Vector3::new(0.0, 1.0, -self.view_y),
+                    cgmath::Vector3::new(0.0, 0.0, 1.0),
+                ).transpose()
+        }
+    }
+
+    fn image_area_transform_matrix4(&self, only_origin: bool) -> Matrix4<f32> {
+        let image_area_transform = self.image_area_transform(only_origin).transpose();
+
+        cgmath::Matrix4::from_cols(
+            cgmath::Vector4::new(image_area_transform.x.x, image_area_transform.x.y, 0.0, image_area_transform.x.z),
+            cgmath::Vector4::new(image_area_transform.y.x, image_area_transform.y.y, 0.0, image_area_transform.y.z),
+            cgmath::Vector4::new(0.0, 0.0, 1.0, 0.0),
+            cgmath::Vector4::new(0.0, 0.0, 0.0, 1.0)
+        ).transpose()
+    }
+
+    fn image_area_rectangle(&self) -> Rectangle {
+        let origin_transform = self.image_area_transform(true);
+        let x = origin_transform.z.x;
+        let y = origin_transform.z.y;
+        Rectangle::new(x, y, self.editor.image().width() as f32 + x, self.editor.image().height() as f32 + y)
+    }
+}
+
+pub struct Renders {
+    pub texture_render: ShaderAndRender<TextureRender>,
+    pub solid_rectangle_render: ShaderAndRender<SolidRectangleRender>,
+    pub text_render: ShaderAndRender<TextRender>,
+    pub ui_font: Rc<RefCell<Font>>,
+}
+
+impl Renders {
+    pub fn new() -> Renders {
+        Renders {
+            texture_render: ShaderAndRender::new(
+                Shader::new("content/shaders/texture.vs", "content/shaders/texture.fs", None).unwrap(),
+                TextureRender::new()
+            ),
+            solid_rectangle_render: ShaderAndRender::new(
+                Shader::new("content/shaders/solid_rectangle.vs", "content/shaders/solid_rectangle.fs", None).unwrap(),
+                SolidRectangleRender::new()
+            ),
+            text_render: ShaderAndRender::new(
+                Shader::new("content/shaders/text.vs", "content/shaders/text.fs", None).unwrap(),
+                TextRender::new()
+            ),
+            ui_font: Rc::new(RefCell::new(Font::new("content/fonts/NotoMono-Regular.ttf", 16).unwrap()))
+        }
     }
 }

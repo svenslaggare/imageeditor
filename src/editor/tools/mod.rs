@@ -17,6 +17,7 @@ use crate::editor::tools::selection::SelectionTool;
 use crate::editor::tools::color_picker::ColorPickerTool;
 use crate::program::Renders;
 use crate::editor::tools::color_gradient::ColorGradientDrawTool;
+use crate::editor::Image;
 
 pub mod pencil;
 pub mod eraser;
@@ -28,6 +29,11 @@ pub mod color_picker;
 pub mod color_gradient;
 pub mod selection;
 pub mod effect;
+
+pub trait EditorWindow {
+    fn get_cursor_pos(&self) -> (f64, f64);
+    fn set_should_close(&mut self, value: bool);
+}
 
 pub trait Tool {
     fn on_active(&mut self, tool: Tools) -> Option<ImageOperation> {
@@ -48,7 +54,7 @@ pub trait Tool {
 
     fn process_gui_event(
         &mut self,
-        window: &mut glfw::Window,
+        window: &mut dyn EditorWindow,
         event: &WindowEvent,
         image_area_transform: &Matrix3<f32>,
         image_area_rectangle: &Rectangle,
@@ -130,7 +136,7 @@ pub fn get_valid_rectangle(start_position: &Position, end_position: &Position) -
     (start_x, start_y, end_x, end_y)
 }
 
-pub fn get_transformed_mouse_position(window: &mut glfw::Window, transform: &Matrix3<f32>) -> Position {
+pub fn get_transformed_mouse_position(window: &mut dyn EditorWindow, transform: &Matrix3<f32>) -> Position {
     let (mouse_x, mouse_y) = window.get_cursor_pos();
     transform.transform_point(cgmath::Point2::new(mouse_x as f32, mouse_y as f32))
 }

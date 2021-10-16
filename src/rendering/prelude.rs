@@ -1,5 +1,6 @@
 pub type Color = cgmath::Point3<u8>;
 pub type Position = cgmath::Point2<f32>;
+pub type Size = cgmath::Point2<f32>;
 
 #[derive(Clone, Debug)]
 pub struct Rectangle {
