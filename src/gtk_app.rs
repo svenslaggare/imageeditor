@@ -7,7 +7,7 @@ use std::iter::FromIterator;
 use std::path::Path;
 
 use gtk::prelude::*;
-use gtk::{Application, ApplicationWindow, Button, GLArea, Box, Orientation, EventBox, gdk, glib, Menu, AccelGroup, MenuBar, MenuItem};
+use gtk::{Application, ApplicationWindow, Button, GLArea, Box, Orientation, EventBox, gdk, glib, Menu, AccelGroup, MenuBar, MenuItem, Image, Label, CheckMenuItem, IconSize, AccelFlags, gio};
 use gtk::gio::ApplicationFlags;
 use gtk::gdk::keys::Key;
 use gtk::gdk::ScrollDirection;
@@ -48,20 +48,6 @@ pub fn main() {
         let layout = Box::new(Orientation::Vertical, 6);
         window.add(&layout);
 
-        let open_file_button = Button::with_label("Open file");
-        layout.add(&open_file_button);
-
-        let gtk_program_clone = gtk_program.clone();
-        open_file_button.connect_clicked(move |_| {
-            if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
-                // let path = Path::new("/home/antjans/Bilder/Memes/vlcsnap-2021-01-06-10h42m03s950.png").to_owned();
-                let path = Path::new("/home/antjans/Bilder/TestImage.JPG").to_owned();
-                let image = image::open(&path).unwrap().into_rgba();
-
-                program.program.command_buffer.push(Command::SwitchImage(image));
-            }
-        });
-
         let gl_area = Rc::new(GLArea::new());
         gl_area.set_width_request(width);
         gl_area.set_height_request(height);
@@ -70,6 +56,7 @@ pub fn main() {
         event_box.add(gl_area.deref());
         layout.add(event_box.deref());
 
+        add_menu(app, &window, gtk_program.clone(), gl_area.clone());
         add_input_support(gtk_program.clone(), gl_area.clone(), event_box.clone());
 
         gl_loader::init_gl();
@@ -155,6 +142,71 @@ impl EditorWindow for GTKEditorWindow {
     fn set_should_close(&mut self, _value: bool) {
 
     }
+}
+
+fn add_menu(app: &Application,
+            window: &ApplicationWindow,
+            gtk_program: Rc<RefCell<Option<GTKProgram>>>,
+            gl_area: Rc<GLArea>) {
+    let menu = gio::Menu::new();
+    let menu_bar = gio::Menu::new();
+
+    app.set_app_menu(Some(&menu));
+    app.set_menubar(Some(&menu_bar));
+
+    // Open
+    menu.append(Some("Open"), Some("app.open_file"));
+    let open_file = gio::SimpleAction::new("open_file", None);
+    let gl_area_clone = gl_area.clone();
+    let gtk_program_clone = gtk_program.clone();
+    open_file.connect_activate(glib::clone!(@weak window => move |_, _| {
+        if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
+            // let path = Path::new("/home/antjans/Bilder/Memes/vlcsnap-2021-01-06-10h42m03s950.png").to_owned();
+            let path = Path::new("/home/antjans/Bilder/TestImage.JPG").to_owned();
+            let image = image::open(&path).unwrap().into_rgba();
+
+            program.program.command_buffer.push(Command::SwitchImage(image));
+            gl_area_clone.queue_render();
+        }
+    }));
+    app.add_action(&open_file);
+
+    // Quit
+    menu.append(Some("Quit"), Some("app.quit"));
+    let quit = gio::SimpleAction::new("quit", None);
+    quit.connect_activate(glib::clone!(@weak window => move |_, _| {
+        window.close();
+    }));
+    app.add_action(&quit);
+
+    let edit_menu = gio::Menu::new();
+    menu_bar.append_submenu(Some("_Edit"), &edit_menu);
+
+    // Undo
+    edit_menu.append(Some("Undo"), Some("app.undo"));
+    let undo = gio::SimpleAction::new("undo", None);
+    let gl_area_clone = gl_area.clone();
+    let gtk_program_clone = gtk_program.clone();
+    undo.connect_activate(glib::clone!(@weak window => move |_, _| {
+        if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
+            program.program.command_buffer.push(Command::UndoImageOp);
+            gl_area_clone.queue_render();
+        }
+    }));
+    app.add_action(&undo);
+
+    // Redo
+    edit_menu.append(Some("Redo"), Some("app.redo"));
+    let redo = gio::SimpleAction::new("redo", None);
+    let gl_area_clone = gl_area.clone();
+    let gtk_program_clone = gtk_program.clone();
+    redo.connect_activate(glib::clone!(@weak window => move |_, _| {
+        if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
+            program.program.command_buffer.push(Command::RedoImageOp);
+            gl_area_clone.queue_render();
+        }
+    }));
+    app.add_action(&redo);
 }
 
 fn add_input_support(gtk_program: Rc<RefCell<Option<GTKProgram>>>,
