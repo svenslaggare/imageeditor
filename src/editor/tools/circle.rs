@@ -122,7 +122,7 @@ impl Tool for CircleDrawTool {
         return true;
     }
 
-    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>) {
+    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>) {
         self.change_border_size_button.change_text(format!("Border size: {}", self.border_half_width * 2 + 1));
         self.change_border_size_button.render(renders, transform);
     }

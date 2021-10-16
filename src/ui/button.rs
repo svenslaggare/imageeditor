@@ -6,6 +6,7 @@ use cgmath::Matrix4;
 use crate::rendering::texture::Texture;
 use crate::rendering::prelude::{Position, Rectangle};
 use crate::rendering::prelude::Color as RenderingColor;
+use crate::rendering::prelude::Color4 as RenderingColor4;
 use crate::rendering::texture_render::TextureRender;
 use crate::rendering::shader::Shader;
 use crate::command_buffer::{CommandBuffer, Command};
@@ -133,7 +134,7 @@ impl<T> SolidColorButton<T> {
             &transform,
             self.rectangle.position,
             self.rectangle.size,
-            RenderingColor::new(self.color[0], self.color[1], self.color[2])
+            RenderingColor4::new(self.color[0], self.color[1], self.color[2], 255)
         );
     }
 

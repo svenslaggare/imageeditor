@@ -64,7 +64,7 @@ pub trait Tool {
 
     fn preview(&mut self, image: &editor::Image, preview_image: &mut editor::Image) -> bool;
 
-    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>) {
+    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>) {
 
     }
 }

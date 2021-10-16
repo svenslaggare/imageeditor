@@ -18,6 +18,7 @@ use crate::rendering::solid_rectangle_render::SolidRectangleRender;
 use crate::rendering::ShaderAndRender;
 use crate::rendering::texture::Texture;
 use crate::rendering::font::Font;
+use crate::rendering::rectangle_render::RectangleRender;
 
 pub struct Program {
     renders: Renders,
@@ -258,7 +259,6 @@ impl Program {
         );
 
         self.ui_manager.render(&self.renders, &transform);
-        self.tools[self.active_tool.index()].render(&self.renders, &transform);
 
         let changed = {
             self.tools[self.active_tool.index()].preview(self.editor.image(), &mut self.preview_image)
@@ -275,6 +275,13 @@ impl Program {
             Position::new(0.0, 0.0),
             self.zoom,
             Some(image_crop_rectangle.clone())
+        );
+
+        let image_area_transform_full = self.image_area_transform_matrix4(false);
+        self.tools[self.active_tool.index()].render(
+            &self.renders,
+            &transform,
+            &image_area_transform_full
         );
     }
 
@@ -325,6 +332,7 @@ impl Program {
 
 pub struct Renders {
     pub texture_render: ShaderAndRender<TextureRender>,
+    pub rectangle_render: ShaderAndRender<RectangleRender>,
     pub solid_rectangle_render: ShaderAndRender<SolidRectangleRender>,
     pub text_render: ShaderAndRender<TextRender>,
     pub ui_font: Rc<RefCell<Font>>,
@@ -336,6 +344,10 @@ impl Renders {
             texture_render: ShaderAndRender::new(
                 Shader::new("content/shaders/texture.vs", "content/shaders/texture.fs", None).unwrap(),
                 TextureRender::new()
+            ),
+            rectangle_render: ShaderAndRender::new(
+                Shader::new("content/shaders/rectangle.vs", "content/shaders/rectangle.fs", None).unwrap(),
+                RectangleRender::new()
             ),
             solid_rectangle_render: ShaderAndRender::new(
                 Shader::new("content/shaders/solid_rectangle.vs", "content/shaders/solid_rectangle.fs", None).unwrap(),

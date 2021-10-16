@@ -1,4 +1,5 @@
 pub type Color = cgmath::Point3<u8>;
+pub type Color4 = cgmath::Vector4<u8>;
 pub type Position = cgmath::Point2<f32>;
 pub type Size = cgmath::Point2<f32>;
 

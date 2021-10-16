@@ -1,13 +1,14 @@
 use glfw::{WindowEvent, Action, Key, Modifiers, Window};
-use cgmath::{Matrix3, Transform, Matrix};
+use cgmath::{Matrix3, Transform, Matrix, Matrix4};
 
-use crate::rendering::prelude::{Position, Rectangle};
+use crate::rendering::prelude::{Position, Rectangle, Size, Color, Color4};
 use crate::editor;
 use crate::command_buffer::{Command, CommandBuffer};
 use crate::editor::tools::{Tool, get_valid_rectangle, SelectionSubTool, Tools, get_transformed_mouse_position, EditorWindow};
 use crate::editor::image_operation::{ImageOperation, ImageSource, add_op_sequential};
 use crate::editor::image_operation_helpers::sub_image;
 use crate::editor::Image;
+use crate::program::Renders;
 
 #[derive(Debug, Clone)]
 pub struct Selection {
@@ -24,6 +25,10 @@ impl Selection {
 
     pub fn end_position(&self) -> Position {
         Position::new(self.end_x as f32, self.end_y as f32)
+    }
+
+    pub fn size(&self) -> Size {
+        Size::new((self.end_x - self.start_x) as f32, (self.end_y - self.start_y) as f32)
     }
 
     pub fn rectangle(&self) -> Rectangle {
@@ -475,18 +480,44 @@ impl Tool for SelectionTool {
 
     fn preview(&mut self, _image: &editor::Image, preview_image: &mut editor::Image) -> bool {
         let mut update_op = preview_image.update_operation();
-        if let Some(selection) = self.selection() {
-            if let Some(move_op) = self.create_move(true) {
-                move_op.apply(&mut update_op, false);
-            }
+        // if let Some(selection) = self.selection() {
+        //     if let Some(move_op) = self.create_move(true) {
+        //         move_op.apply(&mut update_op, false);
+        //     }
+        //
+        //     if let Some(resize_op) = self.create_resize(true) {
+        //         resize_op.apply(&mut update_op, false);
+        //     }
+        //
+        //     self.create_selection_gui(&selection).apply(&mut update_op, false);
+        // }
+        if let Some(move_op) = self.create_move(true) {
+            move_op.apply(&mut update_op, false);
+        }
 
-            if let Some(resize_op) = self.create_resize(true) {
-                resize_op.apply(&mut update_op, false);
-            }
-
-            self.create_selection_gui(&selection).apply(&mut update_op, false);
+        if let Some(resize_op) = self.create_resize(true) {
+            resize_op.apply(&mut update_op, false);
         }
 
         return true;
+    }
+
+    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>) {
+        if let Some(selection) = self.selection() {
+            renders.solid_rectangle_render.render(
+                renders.solid_rectangle_render.shader(),
+                &(transform * image_area_transform),
+                selection.start_position(),
+                selection.size(),
+                Color4::new(0, 148, 255, 64)
+            );
+
+            renders.rectangle_render.render(
+                renders.rectangle_render.shader(),
+                &(transform * image_area_transform),
+                &selection.rectangle(),
+                Color4::new(0, 0, 0, 255)
+            )
+        }
     }
 }
