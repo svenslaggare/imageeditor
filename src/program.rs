@@ -152,8 +152,7 @@ impl Program {
 
         while let Some(command) = self.command_buffer.pop() {
             match command {
-                Command::OpenNew(path) => {
-                    let image = image::open(&path).unwrap().into_rgba();
+                Command::SwitchImage(image) => {
                     self.editor.set_image(editor::Image::new(image));
                     self.preview_image = self.editor.new_image_same();
                 }

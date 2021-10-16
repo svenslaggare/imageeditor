@@ -4,9 +4,10 @@ use std::ops::Deref;
 use std::collections::VecDeque;
 use std::collections::HashMap;
 use std::iter::FromIterator;
+use std::path::Path;
 
 use gtk::prelude::*;
-use gtk::{Application, ApplicationWindow, Button, GLArea, Box, Orientation, EventBox, gdk, glib};
+use gtk::{Application, ApplicationWindow, Button, GLArea, Box, Orientation, EventBox, gdk, glib, Menu, AccelGroup, MenuBar, MenuItem};
 use gtk::gio::ApplicationFlags;
 use gtk::gdk::keys::Key;
 use gtk::gdk::ScrollDirection;
@@ -14,6 +15,7 @@ use gtk::gdk::ScrollDirection;
 use crate::program::Program;
 use crate::editor::tools::EditorWindow;
 use crate::{ui, editor};
+use crate::command_buffer::Command;
 
 pub fn main() {
     let application = Application::builder()
@@ -22,7 +24,6 @@ pub fn main() {
 
     application.set_flags(ApplicationFlags::HANDLES_OPEN);
     application.connect_open(|app, files, file| {
-        // println!("file: {:?}", files[0].path());
         app.activate();
     });
 
@@ -42,10 +43,10 @@ pub fn main() {
             .default_height(height)
             .build();
 
+        let gtk_program = Rc::new(RefCell::new(Option::<GTKProgram>::None));
+
         let layout = Box::new(Orientation::Vertical, 6);
         window.add(&layout);
-
-        let gtk_program = Rc::new(RefCell::new(Option::<GTKProgram>::None));
 
         let open_file_button = Button::with_label("Open file");
         layout.add(&open_file_button);
@@ -53,10 +54,11 @@ pub fn main() {
         let gtk_program_clone = gtk_program.clone();
         open_file_button.connect_clicked(move |_| {
             if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
-                program.program.command_buffer.push(
-                    // Command::OpenNew(Path::new("/home/antjans/Bilder/Memes/vlcsnap-2021-01-06-10h42m03s950.png").to_owned())
-                    Command::OpenNew(Path::new("/home/antjans/Bilder/TestImage.JPG").to_owned())
-                );
+                // let path = Path::new("/home/antjans/Bilder/Memes/vlcsnap-2021-01-06-10h42m03s950.png").to_owned();
+                let path = Path::new("/home/antjans/Bilder/TestImage.JPG").to_owned();
+                let image = image::open(&path).unwrap().into_rgba();
+
+                program.program.command_buffer.push(Command::SwitchImage(image));
             }
         });
 
@@ -68,130 +70,7 @@ pub fn main() {
         event_box.add(gl_area.deref());
         layout.add(event_box.deref());
 
-        event_box.add_events(
-            gdk::EventMask::KEY_PRESS_MASK
-            | gdk::EventMask::KEY_RELEASE_MASK
-            | gdk::EventMask::POINTER_MOTION_MASK
-            | gdk::EventMask::SCROLL_MASK
-        );
-
-        event_box.set_can_focus(true);
-        event_box.grab_focus();
-
-        let gl_area_clone = gl_area.clone();
-        let event_box_clone = event_box.clone();
-        let gtk_program_clone = gtk_program.clone();
-        event_box.connect_button_press_event(move |_, event| {
-            event_box_clone.grab_focus();
-
-            if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
-                program.editor_window.mouse_position = event.coords().unwrap();
-
-                program.event_queue.push_back(glfw::WindowEvent::MouseButton(
-                    get_glfw_mouse_button(event.button()),
-                    glfw::Action::Press,
-                    glfw::Modifiers::empty()
-                ));
-            }
-
-            gl_area_clone.queue_render();
-            Inhibit(true)
-        });
-
-        let gl_area_clone = gl_area.clone();
-        let gtk_program_clone = gtk_program.clone();
-        event_box.connect_button_release_event(move |_, event| {
-            if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
-                program.editor_window.mouse_position = event.coords().unwrap();
-
-                program.event_queue.push_back(glfw::WindowEvent::MouseButton(
-                    get_glfw_mouse_button(event.button()),
-                    glfw::Action::Release,
-                    glfw::Modifiers::empty()
-                ));
-            }
-
-            gl_area_clone.queue_render();
-            Inhibit(true)
-        });
-
-        let gl_area_clone = gl_area.clone();
-        let program_clone = gtk_program.clone();
-        event_box.connect_motion_notify_event(move |_, event| {
-            if let Some(program) = program_clone.borrow_mut().as_mut() {
-                let mouse_position = event.coords().unwrap();
-                program.editor_window.mouse_position = mouse_position;
-
-                program.event_queue.push_back(glfw::WindowEvent::CursorPos(
-                    mouse_position.0,
-                    mouse_position.1
-                ));
-            }
-
-            gl_area_clone.queue_render();
-            Inhibit(true)
-        });
-
-        let gl_area_clone = gl_area.clone();
-        let program_clone = gtk_program.clone();
-        event_box.connect_scroll_event(move |_, event| {
-            if let Some(program) = program_clone.borrow_mut().as_mut() {
-                match event.scroll_direction() {
-                    Some(gdk::ScrollDirection::Down) => {
-                        program.event_queue.push_back(glfw::WindowEvent::Scroll(0.0, -1.0));
-                    }
-                    Some(gdk::ScrollDirection::Up) => {
-                        program.event_queue.push_back(glfw::WindowEvent::Scroll(0.0, 1.0));
-                    }
-                    Some(gdk::ScrollDirection::Right) => {
-                        program.event_queue.push_back(glfw::WindowEvent::Scroll(1.0, 0.0));
-                    }
-                    Some(gdk::ScrollDirection::Left) => {
-                        program.event_queue.push_back(glfw::WindowEvent::Scroll(-1.0, 0.0));
-                    }
-                    _ => {}
-                }
-            }
-
-            gl_area_clone.queue_render();
-            Inhibit(true)
-        });
-
-        let gl_area_clone = gl_area.clone();
-        let program_clone = gtk_program.clone();
-        event_box.connect_key_press_event(move |_, event| {
-            if let Some(program) = program_clone.borrow_mut().as_mut() {
-                if let Some((key, modifier)) = get_glfw_key(event.keyval(), event.state()) {
-                    program.event_queue.push_back(glfw::WindowEvent::Key(
-                        key,
-                        0,
-                        glfw::Action::Press,
-                        modifier
-                    ));
-                }
-            }
-
-            gl_area_clone.queue_render();
-            Inhibit(true)
-        });
-
-        let gl_area_clone = gl_area.clone();
-        let program_clone = gtk_program.clone();
-        event_box.connect_key_release_event(move |_, event| {
-            if let Some(program) = program_clone.borrow_mut().as_mut() {
-                if let Some((key, modifier)) = get_glfw_key(event.keyval(), event.state()) {
-                    program.event_queue.push_back(glfw::WindowEvent::Key(
-                        key,
-                        0,
-                        glfw::Action::Release,
-                        modifier
-                    ));
-                }
-            }
-
-            gl_area_clone.queue_render();
-            Inhibit(true)
-        });
+        add_input_support(gtk_program.clone(), gl_area.clone(), event_box.clone());
 
         gl_loader::init_gl();
         gl::load_with(|symbol| gl_loader::get_proc_address(symbol) as *const _);
@@ -278,6 +157,152 @@ impl EditorWindow for GTKEditorWindow {
     }
 }
 
+fn add_input_support(gtk_program: Rc<RefCell<Option<GTKProgram>>>,
+                     gl_area: Rc<GLArea>,
+                     event_box: Rc<EventBox>) {
+    event_box.add_events(
+        gdk::EventMask::KEY_PRESS_MASK
+            | gdk::EventMask::KEY_RELEASE_MASK
+            | gdk::EventMask::POINTER_MOTION_MASK
+            | gdk::EventMask::SCROLL_MASK
+    );
+
+    event_box.set_can_focus(true);
+    event_box.grab_focus();
+
+    let gl_area_clone = gl_area.clone();
+    let event_box_clone = event_box.clone();
+    let gtk_program_clone = gtk_program.clone();
+    event_box.connect_button_press_event(move |_, event| {
+        event_box_clone.grab_focus();
+
+        if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
+            program.editor_window.mouse_position = event.coords().unwrap();
+
+            program.event_queue.push_back(glfw::WindowEvent::MouseButton(
+                get_glfw_mouse_button(event.button()),
+                glfw::Action::Press,
+                glfw::Modifiers::empty()
+            ));
+        }
+
+        gl_area_clone.queue_render();
+        Inhibit(true)
+    });
+
+    let gl_area_clone = gl_area.clone();
+    let gtk_program_clone = gtk_program.clone();
+    event_box.connect_button_release_event(move |_, event| {
+        if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
+            program.editor_window.mouse_position = event.coords().unwrap();
+
+            program.event_queue.push_back(glfw::WindowEvent::MouseButton(
+                get_glfw_mouse_button(event.button()),
+                glfw::Action::Release,
+                glfw::Modifiers::empty()
+            ));
+        }
+
+        gl_area_clone.queue_render();
+        Inhibit(true)
+    });
+
+    let gl_area_clone = gl_area.clone();
+    let program_clone = gtk_program.clone();
+    event_box.connect_motion_notify_event(move |_, event| {
+        if let Some(program) = program_clone.borrow_mut().as_mut() {
+            let mouse_position = event.coords().unwrap();
+            program.editor_window.mouse_position = mouse_position;
+
+            program.event_queue.push_back(glfw::WindowEvent::CursorPos(
+                mouse_position.0,
+                mouse_position.1
+            ));
+        }
+
+        gl_area_clone.queue_render();
+        Inhibit(true)
+    });
+
+    let gl_area_clone = gl_area.clone();
+    let program_clone = gtk_program.clone();
+    event_box.connect_scroll_event(move |_, event| {
+        if let Some(program) = program_clone.borrow_mut().as_mut() {
+            match event.scroll_direction() {
+                Some(gdk::ScrollDirection::Down) => {
+                    program.event_queue.push_back(glfw::WindowEvent::Scroll(0.0, -1.0));
+                }
+                Some(gdk::ScrollDirection::Up) => {
+                    program.event_queue.push_back(glfw::WindowEvent::Scroll(0.0, 1.0));
+                }
+                Some(gdk::ScrollDirection::Right) => {
+                    program.event_queue.push_back(glfw::WindowEvent::Scroll(1.0, 0.0));
+                }
+                Some(gdk::ScrollDirection::Left) => {
+                    program.event_queue.push_back(glfw::WindowEvent::Scroll(-1.0, 0.0));
+                }
+                _ => {}
+            }
+        }
+
+        gl_area_clone.queue_render();
+        Inhibit(true)
+    });
+
+    let gl_area_clone = gl_area.clone();
+    let program_clone = gtk_program.clone();
+    event_box.connect_key_press_event(move |_, event| {
+        if let Some(program) = program_clone.borrow_mut().as_mut() {
+            if let Some((key, modifier)) = get_glfw_key(event.keyval(), event.state()) {
+                program.event_queue.push_back(glfw::WindowEvent::Key(
+                    key,
+                    0,
+                    glfw::Action::Press,
+                    modifier
+                ));
+            }
+        }
+
+        gl_area_clone.queue_render();
+        Inhibit(true)
+    });
+
+    let gl_area_clone = gl_area.clone();
+    let program_clone = gtk_program.clone();
+    event_box.connect_key_release_event(move |_, event| {
+        if let Some(program) = program_clone.borrow_mut().as_mut() {
+            if let Some((key, modifier)) = get_glfw_key(event.keyval(), event.state()) {
+                program.event_queue.push_back(glfw::WindowEvent::Key(
+                    key,
+                    0,
+                    glfw::Action::Release,
+                    modifier
+                ));
+            }
+        }
+
+        gl_area_clone.queue_render();
+        Inhibit(true)
+    });
+}
+
+fn get_glfw_key(key: gdk::keys::Key, state: gdk::ModifierType) -> Option<(glfw::Key, glfw::Modifiers)> {
+    if let Some(key) = KEYS_MAPPING.get(&key).cloned() {
+        let mut modifiers = glfw::Modifiers::empty();
+        if (state & gdk::ModifierType::SHIFT_MASK) == gdk::ModifierType::SHIFT_MASK {
+            modifiers |= glfw::Modifiers::Shift;
+        }
+
+        if (state & gdk::ModifierType::CONTROL_MASK) == gdk::ModifierType::CONTROL_MASK {
+            modifiers |= glfw::Modifiers::Control;
+        }
+
+        Some((key, modifiers))
+    } else {
+        None
+    }
+}
+
 fn get_glfw_mouse_button(mouse_button: u32) -> glfw::MouseButton {
     match mouse_button {
         1 => glfw::MouseButton::Button1,
@@ -287,10 +312,7 @@ fn get_glfw_mouse_button(mouse_button: u32) -> glfw::MouseButton {
     }
 }
 
-use lazy_static::lazy_static;
-use crate::command_buffer::Command;
-use std::path::{PathBuf, Path};
-lazy_static! {
+lazy_static::lazy_static! {
     static ref KEYS_MAPPING: HashMap<gdk::keys::Key, glfw::Key> = HashMap::from_iter(
         vec![
             (gdk::keys::constants::a, glfw::Key::A), (gdk::keys::constants::A, glfw::Key::A),
@@ -355,21 +377,4 @@ lazy_static! {
             (gdk::keys::constants::Page_Down, glfw::Key::PageDown),
         ].into_iter()
     );
-}
-
-fn get_glfw_key(key: gdk::keys::Key, state: gdk::ModifierType) -> Option<(glfw::Key, glfw::Modifiers)> {
-    if let Some(key) = KEYS_MAPPING.get(&key).cloned() {
-        let mut modifiers = glfw::Modifiers::empty();
-        if (state & gdk::ModifierType::SHIFT_MASK) == gdk::ModifierType::SHIFT_MASK {
-            modifiers |= glfw::Modifiers::Shift;
-        }
-
-        if (state & gdk::ModifierType::CONTROL_MASK) == gdk::ModifierType::CONTROL_MASK {
-            modifiers |= glfw::Modifiers::Control;
-        }
-
-        Some((key, modifiers))
-    } else {
-        None
-    }
 }
