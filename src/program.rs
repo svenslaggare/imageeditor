@@ -29,12 +29,17 @@ pub struct Program {
     background_texture: Texture,
     preview_image: editor::Image,
     zoom: f32,
+    view_width: u32,
+    view_height: u32,
     view_x: f32,
     view_y: f32
 }
 
 impl Program {
-    pub fn new(editor: editor::Editor, ui_manager: ui::Manager) -> Program {
+    pub fn new(view_width: u32,
+               view_height: u32,
+               editor: editor::Editor,
+               ui_manager: ui::Manager) -> Program {
         let preview_image = editor.new_image_same();
         let width = editor.image().width();
         let height = editor.image().height();
@@ -59,6 +64,8 @@ impl Program {
             background_texture,
             preview_image,
             zoom: 1.0,
+            view_width,
+            view_height,
             view_x: 0.0,
             view_y: 0.0
         };
@@ -86,22 +93,22 @@ impl Program {
                     window.set_should_close(true);
                 }
                 glfw::WindowEvent::Key(Key::Left, _, Action::Press | Action::Repeat, _) => {
-                    if self.zoom >= 1.0 {
+                    if self.sees_not_whole() {
                         self.view_x -= 10.0;
                     }
                 }
                 glfw::WindowEvent::Key(Key::Right, _, Action::Press | Action::Repeat, _) => {
-                    if self.zoom >= 1.0 {
+                    if self.sees_not_whole() {
                         self.view_x += 10.0;
                     }
                 }
                 glfw::WindowEvent::Key(Key::Up, _, Action::Press | Action::Repeat, _) => {
-                    if self.zoom >= 1.0 {
+                    if self.sees_not_whole() {
                         self.view_y -= 10.0;
                     }
                 }
                 glfw::WindowEvent::Key(Key::Down, _, Action::Press | Action::Repeat, _) => {
-                    if self.zoom >= 1.0 {
+                    if self.sees_not_whole() {
                         self.view_y += 10.0;
                     }
                 }
@@ -110,8 +117,8 @@ impl Program {
                     self.zoom = (self.zoom + y as f32 * 0.1).max(0.3);
 
                     if self.zoom < 1.0 || prev_zoom < 1.0 {
-                        self.view_x = self.editor.image().width() as f32 * 0.5 - (self.editor.image().width() as f32 / self.zoom) * 0.5;
-                        self.view_y = self.editor.image().height() as f32 * 0.5 - (self.editor.image().height() as f32 / self.zoom) * 0.5;
+                        self.view_x = self.editor.image().width() as f32 * 0.5 - (self.view_width as f32 / self.zoom) * 0.5;
+                        self.view_y = self.editor.image().height() as f32 * 0.5 - (self.view_height as f32 / self.zoom) * 0.5;
                     }
                 }
                 glfw::WindowEvent::Key(Key::Num0, _, Action::Press, Modifiers::Control) => {
@@ -208,6 +215,12 @@ impl Program {
             }
             _ => {}
         }
+    }
+
+    fn sees_not_whole(&self) -> bool {
+        let ratio_x = (self.editor.image().width() as f32 * self.zoom) / self.view_width as f32;
+        let ratio_y = (self.editor.image().height() as f32 * self.zoom) / self.view_height as f32;
+        ratio_x > 1.0 || ratio_y > 1.0
     }
 
     pub fn render(&mut self, transform: &Matrix4<f32>) {

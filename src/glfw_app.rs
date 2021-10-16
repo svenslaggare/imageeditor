@@ -14,21 +14,23 @@ pub fn main() {
         return;
     }
 
-    // let image_to_edit = image::open(&args[1]).unwrap().into_rgba();
-    // let width = image_to_edit.width();
-    // let height = image_to_edit.height();
+    let image_to_edit = image::open(&args[1]).unwrap().into_rgba();
+    let width = image_to_edit.width();
+    let height = image_to_edit.height();
     //
     // let width = 1280;
     // let height = 800;
     // let mut image_to_edit: image::RgbaImage = image::RgbaImage::new(width, height);
 
-    let image_to_edit = image::open("/home/antjans/Bilder/TestImage.JPG").unwrap().into_rgba();
-    let width = 1280;
-    let height = 800;
+    // let image_to_edit = image::open("/home/antjans/Bilder/TestImage.JPG").unwrap().into_rgba();
+    // let width = 1280;
+    // let height = 800;
 
     let (mut glfw, mut window, mut events) = setup_window(width + 70, height + 40);
 
     let mut program = Program::new(
+        width,
+        height,
         editor::Editor::new(editor::Image::new(image_to_edit)),
         ui::create(),
     );

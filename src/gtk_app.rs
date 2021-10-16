@@ -29,8 +29,11 @@ pub fn main() {
     application.connect_activate(|app| {
         let program_args = std::env::args().collect::<Vec<_>>();
         let mut image_to_edit = image::open(&program_args[1]).unwrap().into_rgba();
-        let width = image_to_edit.width() as i32 + 70;
-        let height = image_to_edit.height() as i32 + 40;
+
+        let view_width = image_to_edit.width();
+        let view_height = image_to_edit.height();
+        let width = view_width as i32 + 70;
+        let height = view_height as i32 + 40;
 
         let window = ApplicationWindow::builder()
             .application(app)
@@ -197,7 +200,7 @@ pub fn main() {
         let image_to_edit = Rc::new(RefCell::new(Some(image_to_edit)));
         gl_area.connect_realize(move |area| {
             area.context().unwrap().make_current();
-            *program_clone.borrow_mut() = Some(GTKProgram::new(image_to_edit.borrow_mut().take().unwrap()));
+            *program_clone.borrow_mut() = Some(GTKProgram::new(view_width, view_height, image_to_edit.borrow_mut().take().unwrap()));
         });
 
         gl_area.connect_render(move |area, context| {
@@ -243,8 +246,10 @@ struct GTKProgram {
 }
 
 impl GTKProgram {
-    pub fn new(image_to_edit: image::RgbaImage) -> GTKProgram {
+    pub fn new(view_width: u32, view_height: u32, image_to_edit: image::RgbaImage) -> GTKProgram {
         let mut program = Program::new(
+            view_width,
+            view_height,
             editor::Editor::new(editor::Image::new(image_to_edit)),
             ui::create(),
         );
