@@ -16,19 +16,18 @@ use crate::editor::tools::{Tools, SelectionSubTool};
 use crate::editor::image_operation_helpers::hsv_to_rgb;
 use crate::ui::button::{TextButton, SolidColorButton};
 use crate::rendering::font::{Font};
+use crate::ui::manager::BoxGenericButton;
 
 pub fn create() -> Manager {
-    let mut texture_buttons = Vec::new();
-    let mut solid_color_buttons = Vec::new();
-    let mut text_buttons = Vec::new();
+    let mut buttons = Vec::<BoxGenericButton>::new();
 
-    generate_draw_tools(&mut text_buttons);
-    generate_color_palette(&mut texture_buttons, &mut solid_color_buttons);
+    generate_draw_tools(&mut buttons);
+    generate_color_palette(&mut buttons);
 
-    Manager::new(texture_buttons, solid_color_buttons, text_buttons)
+    Manager::new(buttons)
 }
 
-fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
+fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
     let font = Rc::new(RefCell::new(Font::new("content/fonts/NotoMono-Regular.ttf", 24).unwrap()));
     let line_height = font.borrow_mut().line_height();
 
@@ -39,117 +38,137 @@ fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
         11
     );
 
-    texture_buttons.push(TextButton::new(
-        font.clone(),
-        "P".to_owned(),
-        layout.next().unwrap(),
-        Some(Box::new(|command_buffer| {
-            command_buffer.push(Command::SetTool(Tools::Pencil));
-        })),
-        None,
-        None
-    ));
+    buttons.push(
+        Box::new(TextButton::<CommandBuffer>::new(
+            font.clone(),
+            "P".to_owned(),
+            layout.next().unwrap(),
+            Some(Box::new(|command_buffer| {
+                command_buffer.push(Command::SetTool(Tools::Pencil));
+            })),
+            None,
+            None
+        ))
+    );
 
-    texture_buttons.push(TextButton::new(
-        font.clone(),
-        "E".to_owned(),
-        layout.next().unwrap(),
-        Some(Box::new(|command_buffer| {
-            command_buffer.push(Command::SetTool(Tools::Eraser));
-        })),
-        None,
-        None
-    ));
+    buttons.push(
+        Box::new(TextButton::<CommandBuffer>::new(
+            font.clone(),
+            "E".to_owned(),
+            layout.next().unwrap(),
+            Some(Box::new(|command_buffer| {
+                command_buffer.push(Command::SetTool(Tools::Eraser));
+            })),
+            None,
+            None
+        ))
+    );
 
-    texture_buttons.push(TextButton::new(
-        font.clone(),
-        "L".to_owned(),
-        layout.next().unwrap(),
-        Some(Box::new(|command_buffer| {
-            command_buffer.push(Command::SetTool(Tools::Line));
-        })),
-        None,
-        None
-    ));
+    buttons.push(
+        Box::new(TextButton::<CommandBuffer>::new(
+            font.clone(),
+            "L".to_owned(),
+            layout.next().unwrap(),
+            Some(Box::new(|command_buffer| {
+                command_buffer.push(Command::SetTool(Tools::Line));
+            })),
+            None,
+            None
+        ))
+    );
 
-    texture_buttons.push(TextButton::new(
-        font.clone(),
-        "R".to_owned(),
-        layout.next().unwrap(),
-        Some(Box::new(|command_buffer| {
-            command_buffer.push(Command::SetTool(Tools::Rectangle));
-        })),
-        None,
-        None
-    ));
+    buttons.push(
+        Box::new(TextButton::<CommandBuffer>::new(
+            font.clone(),
+            "R".to_owned(),
+            layout.next().unwrap(),
+            Some(Box::new(|command_buffer| {
+                command_buffer.push(Command::SetTool(Tools::Rectangle));
+            })),
+            None,
+            None
+        ))
+    );
 
-    texture_buttons.push(TextButton::new(
-        font.clone(),
-        "C".to_owned(),
-        layout.next().unwrap(),
-        Some(Box::new(|command_buffer| {
-            command_buffer.push(Command::SetTool(Tools::Circle));
-        })),
-        None,
-        None
-    ));
+    buttons.push(
+        Box::new(TextButton::<CommandBuffer>::new(
+            font.clone(),
+            "C".to_owned(),
+            layout.next().unwrap(),
+            Some(Box::new(|command_buffer| {
+                command_buffer.push(Command::SetTool(Tools::Circle));
+            })),
+            None,
+            None
+        ))
+    );
 
-    texture_buttons.push(TextButton::new(
-        font.clone(),
-        "BF".to_owned(),
-        layout.next().unwrap(),
-        Some(Box::new(|command_buffer| {
-            command_buffer.push(Command::SetTool(Tools::BucketFill));
-        })),
-        None,
-        None
-    ));
+    buttons.push(
+        Box::new(TextButton::<CommandBuffer>::new(
+            font.clone(),
+            "BF".to_owned(),
+            layout.next().unwrap(),
+            Some(Box::new(|command_buffer| {
+                command_buffer.push(Command::SetTool(Tools::BucketFill));
+            })),
+            None,
+            None
+        ))
+    );
 
-    texture_buttons.push(TextButton::new(
-        font.clone(),
-        "CP".to_owned(),
-        layout.next().unwrap(),
-        Some(Box::new(|command_buffer| {
-            command_buffer.push(Command::SetTool(Tools::ColorPicker));
-        })),
-        None,
-        None
-    ));
+    buttons.push(
+        Box::new(TextButton::<CommandBuffer>::new(
+            font.clone(),
+            "CP".to_owned(),
+            layout.next().unwrap(),
+            Some(Box::new(|command_buffer| {
+                command_buffer.push(Command::SetTool(Tools::ColorPicker));
+            })),
+            None,
+            None
+        ))
+    );
 
-    texture_buttons.push(TextButton::new(
-        font.clone(),
-        "CG".to_owned(),
-        layout.next().unwrap(),
-        Some(Box::new(|command_buffer| {
-            command_buffer.push(Command::SetTool(Tools::ColorGradient));
-        })),
-        None,
-        None
-    ));
+    buttons.push(
+        Box::new(TextButton::<CommandBuffer>::new(
+            font.clone(),
+            "CG".to_owned(),
+            layout.next().unwrap(),
+            Some(Box::new(|command_buffer| {
+                command_buffer.push(Command::SetTool(Tools::ColorGradient));
+            })),
+            None,
+            None
+        ))
+    );
 
-    texture_buttons.push(TextButton::new(
-        font.clone(),
-        "S".to_owned(),
-        layout.next().unwrap(),
-        Some(Box::new(|command_buffer| {
-            command_buffer.push(Command::SetTool(Tools::Selection(SelectionSubTool::Select)));
-        })),
-        None,
-        None
-    ));
+    buttons.push(
+        Box::new(TextButton::<CommandBuffer>::new(
+            font.clone(),
+            "S".to_owned(),
+            layout.next().unwrap(),
+            Some(Box::new(|command_buffer| {
+                command_buffer.push(Command::SetTool(Tools::Selection(SelectionSubTool::Select)));
+            })),
+            None,
+            None
+        ))
+    );
 
-    texture_buttons.push(TextButton::new(
-        font.clone(),
-        "M".to_owned(),
-        layout.next().unwrap(),
-        Some(Box::new(|command_buffer| {
-            command_buffer.push(Command::SetTool(Tools::Selection(SelectionSubTool::MovePixels)));
-        })),
-        None,
-        None
-    ));
+    buttons.push(
+        Box::new(TextButton::<CommandBuffer>::new(
+            font.clone(),
+            "M".to_owned(),
+            layout.next().unwrap(),
+            Some(Box::new(|command_buffer| {
+                command_buffer.push(Command::SetTool(Tools::Selection(SelectionSubTool::MovePixels)));
+            })),
+            None,
+            None
+        ))
+    );
 
-    texture_buttons.push(TextButton::new(
+    buttons.push(Box::new(TextButton::<CommandBuffer>::new(
         font.clone(),
         "RS".to_owned(),
         layout.next().unwrap(),
@@ -158,11 +177,10 @@ fn generate_draw_tools(texture_buttons: &mut Vec<TextButton>) {
         })),
         None,
         None
-    ));
+    )));
 }
 
-fn generate_color_palette(buttons: &mut Vec<TextureButton>,
-                          solid_color_buttons: &mut Vec<SolidColorButton>) {
+fn generate_color_palette(buttons: &mut Vec<BoxGenericButton>) {
     let mut colors = Vec::new();
     colors.push(image::Rgba([255, 255, 255, 255]));
     colors.push(image::Rgba([0, 0, 0, 255]));
@@ -186,34 +204,38 @@ fn generate_color_palette(buttons: &mut Vec<TextureButton>,
     let selected_color_width = 32.0;
     let selected_color_height = 32.0;
 
-    solid_color_buttons.push(SolidColorButton::new(
-        image::Rgba([255, 0, 0, 255]),
-        Rectangle::new(start_x, start_y, selected_color_width, selected_color_height),
-        None,
-        None,
-        Some(Box::new(move |button, command| {
-            if let Command::SetColor(color) = command {
-                button.set_color(*color);
-            }
-        }))
-    ));
+    buttons.push(
+        Box::new(SolidColorButton::new(
+            image::Rgba([255, 0, 0, 255]),
+            Rectangle::new(start_x, start_y, selected_color_width, selected_color_height),
+            None,
+            None,
+            Some(Box::new(move |button, command| {
+                if let Command::SetColor(color) = command {
+                    button.set_color(*color);
+                }
+            }))
+        ))
+    );
 
-    solid_color_buttons.push(SolidColorButton::new(
-        image::Rgba([0, 0, 0, 255]),
-        Rectangle::new(
-            start_x + selected_color_width / 2.0,
-            start_y + selected_color_height / 2.0,
-            selected_color_width,
-            selected_color_height
-        ),
-        None,
-        None,
-        Some(Box::new(move |button, command| {
-            if let Command::SetAlternativeColor(color) = command {
-                button.set_color(*color);
-            }
-        }))
-    ));
+    buttons.push(
+        Box::new(SolidColorButton::new(
+            image::Rgba([0, 0, 0, 255]),
+            Rectangle::new(
+                start_x + selected_color_width / 2.0,
+                start_y + selected_color_height / 2.0,
+                selected_color_width,
+                selected_color_height
+            ),
+            None,
+            None,
+            Some(Box::new(move |button, command| {
+                if let Command::SetAlternativeColor(color) = command {
+                    button.set_color(*color);
+                }
+            }))
+        ))
+    );
 
     let cell_size = (16, 16);
 
@@ -232,16 +254,18 @@ fn generate_color_palette(buttons: &mut Vec<TextureButton>,
             *pixel = color;
         }
 
-        buttons.push(TextureButton::new(
-            &image,
-            position,
-            Some(Box::new(move |command_buffer| {
-                command_buffer.push(Command::SetColor(color));
-            })),
-            Some(Box::new(move |command_buffer| {
-                command_buffer.push(Command::SetAlternativeColor(color));
-            })),
-            None
-        ));
+        buttons.push(
+            Box::new(TextureButton::<CommandBuffer>::new(
+                &image,
+                position,
+                Some(Box::new(move |command_buffer| {
+                    command_buffer.push(Command::SetColor(color));
+                })),
+                Some(Box::new(move |command_buffer| {
+                    command_buffer.push(Command::SetAlternativeColor(color));
+                })),
+                None
+            ))
+        );
     }
 }

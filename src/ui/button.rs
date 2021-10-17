@@ -24,6 +24,7 @@ pub type CommandAction<T> = Box<dyn Fn(&mut T, &Command)>;
 pub trait GenericButton<T> {
     fn process_gui_event(&mut self, window: &mut dyn EditorWindow, event: &glfw::WindowEvent, argument: &mut T);
     fn process_command(&mut self, command: &Command);
+    fn render(&self, renders: &Renders, transform: &Matrix4<f32>);
 }
 
 pub struct TextureButton<T=CommandBuffer> {
@@ -47,15 +48,6 @@ impl<T> TextureButton<T> {
             right_click_action,
             command_action
         }
-    }
-
-    pub fn render(&self, renders: &Renders, transform: &Matrix4<f32>) {
-        renders.texture_render.render(
-            renders.texture_render.shader(),
-            &transform,
-            &self.texture,
-            self.position
-        );
     }
 }
 
@@ -103,6 +95,15 @@ impl<T> GenericButton<T> for TextureButton<T> {
         }
         self.command_action = command_action;
     }
+
+    fn render(&self, renders: &Renders, transform: &Matrix4<f32>) {
+        renders.texture_render.render(
+            renders.texture_render.shader(),
+            &transform,
+            &self.texture,
+            self.position
+        );
+    }
 }
 
 pub struct SolidColorButton<T=CommandBuffer> {
@@ -126,16 +127,6 @@ impl<T> SolidColorButton<T> {
             right_click_action,
             command_action
         }
-    }
-
-    pub fn render(&self, renders: &Renders, transform: &Matrix4<f32>) {
-        renders.solid_rectangle_render.render(
-            renders.solid_rectangle_render.shader(),
-            &transform,
-            self.rectangle.position,
-            self.rectangle.size,
-            RenderingColor4::new(self.color[0], self.color[1], self.color[2], 255)
-        );
     }
 
     pub fn set_color(&mut self, color: Color) {
@@ -173,6 +164,16 @@ impl<T> GenericButton<T> for SolidColorButton<T> {
         }
         self.command_action = command_action;
     }
+
+    fn render(&self, renders: &Renders, transform: &Matrix4<f32>) {
+        renders.solid_rectangle_render.render(
+            renders.solid_rectangle_render.shader(),
+            &transform,
+            self.rectangle.position,
+            self.rectangle.size,
+            RenderingColor4::new(self.color[0], self.color[1], self.color[2], 255)
+        );
+    }
 }
 
 pub struct TextButton<T=CommandBuffer> {
@@ -205,32 +206,12 @@ impl<T> TextButton<T> {
         self.text = text;
     }
 
-    pub fn render(&self, renders: &Renders, transform: &Matrix4<f32>) {
-        // let bounding_rectangle = self.bounding_rectangle();
-        // renders.solid_rectangle_render.render(
-        //     renders.solid_rectangle_render.shader(),
-        //     transform,
-        //     bounding_rectangle.position,
-        //     bounding_rectangle.size,
-        //     RenderingColor::new(255, 0, 0)
-        // );
-
-        renders.text_render.draw_line(
-            renders.text_render.shader(),
-            transform,
-            self.font.borrow_mut().deref_mut(),
-            self.text.chars().map(|c| (c, RenderingColor::new(0, 0, 0))),
-            self.position,
-            TextAlignment::Top
-        );
-    }
-
     fn bounding_rectangle(&self) -> Rectangle {
         let mut font = self.font.borrow_mut();
         let width = font.line_width(&self.text);
         let height = font.line_height();
 
-         Rectangle::new(
+        Rectangle::new(
             self.position.x,
             self.position.y,
             width,
@@ -268,5 +249,25 @@ impl<T> GenericButton<T> for TextButton<T> {
             (command_action)(self, command);
         }
         self.command_action = command_action;
+    }
+
+    fn render(&self, renders: &Renders, transform: &Matrix4<f32>) {
+        // let bounding_rectangle = self.bounding_rectangle();
+        // renders.solid_rectangle_render.render(
+        //     renders.solid_rectangle_render.shader(),
+        //     transform,
+        //     bounding_rectangle.position,
+        //     bounding_rectangle.size,
+        //     RenderingColor::new(255, 0, 0)
+        // );
+
+        renders.text_render.draw_line(
+            renders.text_render.shader(),
+            transform,
+            self.font.borrow_mut().deref_mut(),
+            self.text.chars().map(|c| (c, RenderingColor::new(0, 0, 0))),
+            self.position,
+            TextAlignment::Top
+        );
     }
 }
