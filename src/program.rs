@@ -11,7 +11,7 @@ use crate::{editor, ui};
 use crate::rendering::shader::Shader;
 use crate::rendering::prelude::{Position, Rectangle};
 use crate::rendering::texture_render::TextureRender;
-use crate::editor::image_operation::{ImageSource};
+use crate::editor::image_operation::{ImageSource, ImageOperation};
 use crate::editor::tools::{Tool, create_tools, Tools, EditorWindow};
 use crate::rendering::text_render::TextRender;
 use crate::rendering::solid_rectangle_render::SolidRectangleRender;
@@ -27,6 +27,7 @@ pub struct Program {
     ui_manager: ui::Manager,
     tools: Vec<Box<dyn Tool>>,
     active_tool: Tools,
+    background_transparent_image: image::RgbaImage,
     background_transparent_texture: Texture,
     preview_image: editor::Image,
     zoom: f32,
@@ -45,8 +46,9 @@ impl Program {
         let width = editor.image().width();
         let height = editor.image().height();
 
-        let background_texture = Texture::from_image(&image::open("content/ui/checkerboard.png").unwrap().into_rgba());
-        background_texture.bind();
+        let background_transparent_image = image::open("content/ui/checkerboard.png").unwrap().into_rgba();
+        let background_transparent_texture = Texture::from_image(&background_transparent_image);
+        background_transparent_texture.bind();
         unsafe {
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
@@ -62,7 +64,8 @@ impl Program {
             ui_manager,
             tools,
             active_tool: Tools::Pencil,
-            background_transparent_texture: background_texture,
+            background_transparent_image,
+            background_transparent_texture,
             preview_image,
             zoom: 1.0,
             view_width,
@@ -218,7 +221,6 @@ impl Program {
     }
 
     fn sees_not_whole(&self) -> bool {
-        return true;
         let ratio_x = (self.editor.image().width() as f32 * self.zoom) / self.view_width as f32;
         let ratio_y = (self.editor.image().height() as f32 * self.zoom) / self.view_height as f32;
         ratio_x > 1.0 || ratio_y > 1.0
@@ -227,12 +229,7 @@ impl Program {
     pub fn render(&mut self, transform: &Matrix4<f32>) {
         let image_area_transform = self.image_area_transform_matrix4(true);
 
-        let background_transparent_start = Position::new((-self.view_x * self.zoom).max(0.0), (-self.view_y * self.zoom).max(0.0));
-        let background_transparent_width = (self.editor.image().width() as f32 - self.view_x.max(0.0)) * self.zoom;
-        let background_transparent_height = (self.editor.image().height() as f32 - self.view_y.max(0.0)) * self.zoom;
-        let background_transparent_width = background_transparent_width.min((self.view_width as f32 + self.view_x));
-        let background_transparent_height = background_transparent_height.min((self.view_height as f32 + self.view_y));
-
+        let (background_transparent_start, background_transparent_width, background_transparent_height) = self.calculate_background_transparent_rectangle();
         if background_transparent_width > 0.0 && background_transparent_height > 0.0 {
             self.renders.texture_render.render_sized(
                 self.renders.texture_render.shader(),
@@ -286,6 +283,34 @@ impl Program {
             &transform,
             &image_area_transform_full
         );
+    }
+
+    fn calculate_background_transparent_rectangle(&self) -> (Position, f32, f32) {
+        let mut background_transparent_start = Position::new(
+            -self.view_x * self.zoom,
+            -self.view_y * self.zoom
+        );
+
+        let mut background_transparent_end = Position::new(
+            background_transparent_start.x + self.editor.image().width() as f32 * self.zoom,
+            background_transparent_start.y + self.editor.image().height() as f32 * self.zoom
+        );
+
+        if background_transparent_start.x < 0.0 {
+            background_transparent_start.x = 0.0;
+        }
+
+        if background_transparent_start.y < 0.0 {
+            background_transparent_start.y = 0.0;
+        }
+
+        background_transparent_end.x = background_transparent_end.x.min(self.view_width as f32);
+        background_transparent_end.y = background_transparent_end.y.min(self.view_height as f32);
+
+        let background_transparent_width = background_transparent_end.x - background_transparent_start.x;
+        let background_transparent_height = background_transparent_end.y - background_transparent_start.y;
+
+        (background_transparent_start, background_transparent_width, background_transparent_height)
     }
 
     fn image_area_transform(&self, only_origin: bool) -> Matrix3<f32> {
