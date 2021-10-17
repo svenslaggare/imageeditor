@@ -27,7 +27,7 @@ pub struct Program {
     ui_manager: ui::Manager,
     tools: Vec<Box<dyn Tool>>,
     active_tool: Tools,
-    background_texture: Texture,
+    background_transparent_texture: Texture,
     preview_image: editor::Image,
     zoom: f32,
     view_width: u32,
@@ -62,7 +62,7 @@ impl Program {
             ui_manager,
             tools,
             active_tool: Tools::Pencil,
-            background_texture,
+            background_transparent_texture: background_texture,
             preview_image,
             zoom: 1.0,
             view_width,
@@ -218,6 +218,7 @@ impl Program {
     }
 
     fn sees_not_whole(&self) -> bool {
+        return true;
         let ratio_x = (self.editor.image().width() as f32 * self.zoom) / self.view_width as f32;
         let ratio_y = (self.editor.image().height() as f32 * self.zoom) / self.view_height as f32;
         ratio_x > 1.0 || ratio_y > 1.0
@@ -226,20 +227,23 @@ impl Program {
     pub fn render(&mut self, transform: &Matrix4<f32>) {
         let image_area_transform = self.image_area_transform_matrix4(true);
 
-        self.renders.texture_render.render_sized(
-            self.renders.texture_render.shader(),
-            &(transform * image_area_transform),
-            &self.background_texture,
-            Position::new((-self.view_x * self.zoom).max(0.0), (-self.view_y * self.zoom).max(0.0)),
-            (self.editor.image().width() as f32 - self.view_x.max(0.0)) * self.zoom,
-            (self.editor.image().height() as f32 - self.view_y.max(0.0)) * self.zoom,
-            Rectangle::new(
-                0.0,
-                0.0,
-                (self.editor.image().width() as f32 - self.view_x.max(0.0)) * self.zoom,
-                (self.editor.image().height() as f32 - self.view_y.max(0.0)) * self.zoom
-            )
-        );
+        let background_transparent_start = Position::new((-self.view_x * self.zoom).max(0.0), (-self.view_y * self.zoom).max(0.0));
+        let background_transparent_width = (self.editor.image().width() as f32 - self.view_x.max(0.0)) * self.zoom;
+        let background_transparent_height = (self.editor.image().height() as f32 - self.view_y.max(0.0)) * self.zoom;
+        let background_transparent_width = background_transparent_width.min((self.view_width as f32 + self.view_x));
+        let background_transparent_height = background_transparent_height.min((self.view_height as f32 + self.view_y));
+
+        if background_transparent_width > 0.0 && background_transparent_height > 0.0 {
+            self.renders.texture_render.render_sized(
+                self.renders.texture_render.shader(),
+                &(transform * image_area_transform),
+                &self.background_transparent_texture,
+                background_transparent_start,
+                background_transparent_width,
+                background_transparent_height,
+                Rectangle::new(0.0, 0.0, background_transparent_width, background_transparent_height)
+            );
+        }
 
         let image_crop_rectangle = Rectangle::new(
             self.view_x,

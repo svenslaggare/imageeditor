@@ -654,7 +654,7 @@ pub fn hsv_to_rgb(hue: f64, saturation: f64, value: f64) -> Option<Color> {
     )
 }
 
-pub fn rgb_to_hsb(color: Color) -> (f64, f64, f64) {
+pub fn rgb_to_hsv(color: Color) -> (f64, f64, f64) {
     let r = color[0] as f64 / 255.0;
     let g = color[1] as f64 / 255.0;
     let b = color[2] as f64 / 255.0;

@@ -10,7 +10,7 @@ use crate::rendering::prelude::Color4 as RenderingColor4;
 use crate::ui::button::{ButtonAction, GenericButton, CommandAction};
 use crate::editor::tools::EditorWindow;
 use crate::program::Renders;
-use crate::editor::image_operation_helpers::{hsv_to_rgb, rgb_to_hsb};
+use crate::editor::image_operation_helpers::{hsv_to_rgb, rgb_to_hsv};
 
 pub struct ColorWheel {
     hue_wheel_texture: Texture,
@@ -86,7 +86,7 @@ impl GenericButton<CommandBuffer> for ColorWheel {
                 }
 
                 if let Some(color) = select_hue() {
-                    let (hue, _, _) = rgb_to_hsb(color);
+                    let (hue, _, _) = rgb_to_hsv(color);
                     self.saturation_value_image = create_saturation_value_selector(SATURATION_VALUE_IMAGE_WIDTH, SATURATION_VALUE_IMAGE_HEIGHT, hue);
                     self.saturation_value_texture.upload(&self.saturation_value_image.as_ref());
                 }
