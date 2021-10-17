@@ -17,7 +17,10 @@ pub struct ColorWheel {
     hue_wheel_image: image::RgbaImage,
     saturation_value_texture: Texture,
     saturation_value_image: image::RgbaImage,
-    position: Position
+    position: Position,
+    started_selecting_hue: bool,
+    started_selecting_color: bool,
+    started_selecting_alternative_color: bool
 }
 
 const SATURATION_VALUE_IMAGE_WIDTH: u32 = 100;
@@ -33,7 +36,10 @@ impl ColorWheel {
             hue_wheel_image,
             saturation_value_texture: Texture::from_image(&saturation_value_image),
             saturation_value_image,
-            position
+            position,
+            started_selecting_hue: false,
+            started_selecting_color: false,
+            started_selecting_alternative_color: false
         }
     }
 }
@@ -80,20 +86,54 @@ impl GenericButton<CommandBuffer> for ColorWheel {
         };
 
         match event {
-            glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press | Action::Repeat, _) => {
+            glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
+                let mut started_selecting_color = false;
                 if let Some(color) = select_color() {
                     command_buffer.push(Command::SetColor(color));
+                    started_selecting_color = true;
                 }
 
                 if let Some(color) = select_hue() {
-                    let (hue, _, _) = rgb_to_hsv(color);
-                    self.saturation_value_image = create_saturation_value_selector(SATURATION_VALUE_IMAGE_WIDTH, SATURATION_VALUE_IMAGE_HEIGHT, hue);
+                    self.saturation_value_image = create_saturation_value_selector(SATURATION_VALUE_IMAGE_WIDTH, SATURATION_VALUE_IMAGE_HEIGHT, rgb_to_hsv(color).0);
                     self.saturation_value_texture.upload(&self.saturation_value_image.as_ref());
+                    self.started_selecting_hue = true;
+                }
+
+                if started_selecting_color {
+                    self.started_selecting_color = started_selecting_color;
                 }
             }
-            glfw::WindowEvent::MouseButton(glfw::MouseButton::Button2, Action::Press | Action::Repeat, _) => {
+            glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Release, _) => {
+                self.started_selecting_hue = false;
+                self.started_selecting_color = false;
+            }
+            glfw::WindowEvent::MouseButton(glfw::MouseButton::Button2, Action::Release, _) => {
+                self.started_selecting_alternative_color = false;
+            }
+            glfw::WindowEvent::CursorPos(_, _) => {
+                if self.started_selecting_color {
+                    if let Some(color) = select_color() {
+                        command_buffer.push(Command::SetColor(color));
+                    }
+                }
+
+                if self.started_selecting_alternative_color {
+                    if let Some(color) = select_color() {
+                        command_buffer.push(Command::SetAlternativeColor(color));
+                    }
+                }
+
+                if self.started_selecting_hue {
+                    if let Some(color) = select_hue() {
+                        self.saturation_value_image = create_saturation_value_selector(SATURATION_VALUE_IMAGE_WIDTH, SATURATION_VALUE_IMAGE_HEIGHT, rgb_to_hsv(color).0);
+                        self.saturation_value_texture.upload(&self.saturation_value_image.as_ref());
+                    }
+                }
+            }
+            glfw::WindowEvent::MouseButton(glfw::MouseButton::Button2, Action::Press, _) => {
                 if let Some(color) = select_color() {
                     command_buffer.push(Command::SetAlternativeColor(color));
+                    self.started_selecting_alternative_color = true;
                 }
             }
             _ => {}
