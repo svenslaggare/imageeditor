@@ -5,6 +5,7 @@ use itertools::Itertools;
 
 pub mod manager;
 pub mod button;
+pub mod color_wheel;
 pub mod layout;
 
 pub use manager::Manager;
@@ -17,6 +18,7 @@ use crate::editor::image_operation_helpers::hsv_to_rgb;
 use crate::ui::button::{TextButton, SolidColorButton};
 use crate::rendering::font::{Font};
 use crate::ui::manager::BoxGenericButton;
+use crate::ui::color_wheel::ColorWheel;
 
 pub fn create() -> Manager {
     let mut buttons = Vec::<BoxGenericButton>::new();
@@ -35,7 +37,7 @@ fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
         Position::new(5.0, 5.0),
         (35.0, line_height + 5.0),
         70.0,
-        11
+        12
     );
 
     buttons.push(
@@ -132,6 +134,19 @@ fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
     buttons.push(
         Box::new(TextButton::<CommandBuffer>::new(
             font.clone(),
+            "CW".to_owned(),
+            layout.next().unwrap(),
+            Some(Box::new(|command_buffer| {
+                command_buffer.push(Command::SetTool(Tools::ColorWheel));
+            })),
+            None,
+            None
+        ))
+    );
+
+    buttons.push(
+        Box::new(TextButton::<CommandBuffer>::new(
+            font.clone(),
             "CG".to_owned(),
             layout.next().unwrap(),
             Some(Box::new(|command_buffer| {
@@ -206,20 +221,6 @@ fn generate_color_palette(buttons: &mut Vec<BoxGenericButton>) {
 
     buttons.push(
         Box::new(SolidColorButton::new(
-            image::Rgba([255, 0, 0, 255]),
-            Rectangle::new(start_x, start_y, selected_color_width, selected_color_height),
-            None,
-            None,
-            Some(Box::new(move |button, command| {
-                if let Command::SetColor(color) = command {
-                    button.set_color(*color);
-                }
-            }))
-        ))
-    );
-
-    buttons.push(
-        Box::new(SolidColorButton::new(
             image::Rgba([0, 0, 0, 255]),
             Rectangle::new(
                 start_x + selected_color_width / 2.0,
@@ -231,6 +232,20 @@ fn generate_color_palette(buttons: &mut Vec<BoxGenericButton>) {
             None,
             Some(Box::new(move |button, command| {
                 if let Command::SetAlternativeColor(color) = command {
+                    button.set_color(*color);
+                }
+            }))
+        ))
+    );
+
+    buttons.push(
+        Box::new(SolidColorButton::new(
+            image::Rgba([255, 0, 0, 255]),
+            Rectangle::new(start_x, start_y, selected_color_width, selected_color_height),
+            None,
+            None,
+            Some(Box::new(move |button, command| {
+                if let Command::SetColor(color) = command {
                     button.set_color(*color);
                 }
             }))

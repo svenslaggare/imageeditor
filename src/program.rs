@@ -53,7 +53,7 @@ impl Program {
         }
 
         let renders = Renders::new();
-        let tools = create_tools(&renders);
+        let tools = create_tools((view_width, view_height), &renders);
 
         let mut program = Program {
             renders,

@@ -60,7 +60,7 @@ pub enum ImageOperation {
     SetImage { start_x: i32, start_y: i32, image: image::RgbaImage, blend: bool },
     SetImageSparse { image: SparseImage },
     SetOptionalImage { image: OptionalImage },
-    ResizeImage { image: image::RgbaImage, start_x: i32, start_y: i32, scale_x: f32, scale_y: f32 },
+    SetScaledImage { image: image::RgbaImage, start_x: i32, start_y: i32, scale_x: f32, scale_y: f32 },
     SetPseudoTransparent { pattern: image::RgbaImage, start_x: i32, start_y: i32, end_x: i32, end_y: i32 },
     SetPixel { x: i32, y: i32, color: Color },
     Block { x: i32, y: i32, color: Color, side_half_width: i32 },
@@ -164,7 +164,7 @@ impl ImageOperation {
 
                 None
             }
-            ImageOperation::ResizeImage { image, start_x, start_y, scale_x, scale_y } => {
+            ImageOperation::SetScaledImage { image, start_x, start_y, scale_x, scale_y } => {
                 let new_width = (image.width() as f32 * scale_x).round() as u32;
                 let new_height = (image.height() as f32 * scale_y).round() as u32;
 

@@ -18,6 +18,7 @@ use crate::editor::tools::color_picker::ColorPickerTool;
 use crate::program::Renders;
 use crate::editor::tools::color_gradient::ColorGradientDrawTool;
 use crate::editor::Image;
+use crate::editor::tools::color_wheel::ColorWheelTool;
 
 pub mod pencil;
 pub mod eraser;
@@ -27,6 +28,7 @@ pub mod circle;
 pub mod bucket_fill;
 pub mod color_picker;
 pub mod color_gradient;
+pub mod color_wheel;
 pub mod selection;
 pub mod effect;
 
@@ -79,7 +81,8 @@ pub enum Tools {
     Selection(SelectionSubTool),
     BucketFill,
     ColorPicker,
-    ColorGradient
+    ColorGradient,
+    ColorWheel
 }
 
 impl Tools {
@@ -93,7 +96,8 @@ impl Tools {
             Tools::Selection(_) => 5,
             Tools::BucketFill => 6,
             Tools::ColorPicker => 7,
-            Tools::ColorGradient => 8
+            Tools::ColorGradient => 8,
+            Tools::ColorWheel => 9
         }
     }
 }
@@ -105,7 +109,7 @@ pub enum SelectionSubTool {
     ResizePixels
 }
 
-pub fn create_tools(renders: &Renders) -> Vec<Box<dyn Tool>> {
+pub fn create_tools(view_size: (u32, u32), renders: &Renders) -> Vec<Box<dyn Tool>> {
     vec![
         Box::new(PencilDrawTool::new(renders)),
         Box::new(EraserDrawTool::new(renders)),
@@ -115,7 +119,8 @@ pub fn create_tools(renders: &Renders) -> Vec<Box<dyn Tool>> {
         Box::new(SelectionTool::new()),
         Box::new(BucketFillDrawTool::new(renders)),
         Box::new(ColorPickerTool::new()),
-        Box::new(ColorGradientDrawTool::new(renders))
+        Box::new(ColorGradientDrawTool::new(renders)),
+        Box::new(ColorWheelTool::new(view_size))
     ]
 }
 

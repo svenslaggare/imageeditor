@@ -604,37 +604,37 @@ pub fn sub_image<T: ImageSource>(image: &T, min_x: i32, min_y: i32, max_x: i32, 
     sub_image
 }
 
-pub fn hsv_to_rgb(h: f64, s: f64, v: f64) -> Option<Color> {
-    if h > 360.0 || h < 0.0 || s > 100.0 || s < 0.0 || v > 100.0 || v < 0.0 {
+pub fn hsv_to_rgb(hue: f64, saturation: f64, value: f64) -> Option<Color> {
+    if hue > 360.0 || hue < 0.0 || saturation > 100.0 || saturation < 0.0 || value > 100.0 || value < 0.0 {
         return None;
     }
 
-    let s_scaled = s / 100.0;
-    let v_scaled = v / 100.0;
+    let s_scaled = saturation / 100.0;
+    let v_scaled = value / 100.0;
     let c = s_scaled * v_scaled;
-    let x = c * (1.0 - (fmod(h / 60.0, 2.0) - 1.0).abs());
+    let x = c * (1.0 - (fmod(hue / 60.0, 2.0) - 1.0).abs());
     let m = v_scaled - c;
 
     let r;
     let g;
     let b;
-    if h >= 0.0 && h < 60.0 {
+    if hue >= 0.0 && hue < 60.0 {
         r = c;
         g = x;
         b = 0.0;
-    } else if h >= 60.0 && h < 120.0 {
+    } else if hue >= 60.0 && hue < 120.0 {
         r = x;
         g = c;
         b = 0.0;
-    } else if h >= 120.0 && h < 180.0 {
+    } else if hue >= 120.0 && hue < 180.0 {
         r = 0.0;
         g = c;
         b = x;
-    } else if h >= 180.0 && h < 240.0 {
+    } else if hue >= 180.0 && hue < 240.0 {
         r = 0.0;
         g = x;
         b = c;
-    } else if h >= 240.0 && h < 300.0 {
+    } else if hue >= 240.0 && hue < 300.0 {
         r = x;
         g = 0.0;
         b = c;
@@ -652,6 +652,48 @@ pub fn hsv_to_rgb(h: f64, s: f64, v: f64) -> Option<Color> {
             255
         ])
     )
+}
+
+pub fn rgb_to_hsb(color: Color) -> (f64, f64, f64) {
+    let r = color[0] as f64 / 255.0;
+    let g = color[1] as f64 / 255.0;
+    let b = color[2] as f64 / 255.0;
+
+    let max_rgb = r.max(g).max(b);
+    let min_rgb = r.min(g).min(b);
+    let rgb_delta = max_rgb - min_rgb;
+
+    let mut hue = 0.0;
+    let mut saturation = 0.0;
+    let mut value = 0.0;
+
+    if rgb_delta > 0.0 {
+        if max_rgb == r {
+            hue = 60.0 * (fmod(((g - b) / rgb_delta), 6.0));
+        } else if max_rgb == g {
+            hue = 60.0 * (((b - r) / rgb_delta) + 2.0);
+        } else if max_rgb == b {
+            hue = 60.0 * (((r - g) / rgb_delta) + 4.0);
+        }
+
+        if max_rgb > 0.0 {
+            saturation = rgb_delta / max_rgb;
+        } else {
+            saturation = 0.0;
+        }
+
+        value = max_rgb;
+    } else {
+        hue = 0.0;
+        saturation = 0.0;
+        value = max_rgb;
+    }
+
+    if hue < 0.0 {
+        hue = 360.0 + hue;
+    }
+
+    (hue, saturation * 100.0, value * 100.0)
 }
 
 fn alpha_blend(a: Color, b: Color) -> Color {

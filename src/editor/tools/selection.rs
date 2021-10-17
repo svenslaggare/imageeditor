@@ -359,7 +359,7 @@ impl SelectionTool {
                 return Some(
                     ImageOperation::Sequential(vec![
                         self.create_erased_area(&original_selection, preview),
-                        ImageOperation::ResizeImage {
+                        ImageOperation::SetScaledImage {
                             image: resize_pixels_image.clone(),
                             start_x: selection.start_x,
                             start_y: selection.start_y,

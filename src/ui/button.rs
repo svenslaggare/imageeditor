@@ -53,16 +53,16 @@ impl<T> TextureButton<T> {
 
 impl<T> GenericButton<T> for TextureButton<T> {
     fn process_gui_event(&mut self, window: &mut dyn EditorWindow, event: &glfw::WindowEvent, argument: &mut T) {
+        let bounding_rectangle = Rectangle::new(
+            self.position.x,
+            self.position.y,
+            self.texture.width() as f32,
+            self.texture.height() as f32
+        );
+
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Release, _) => {
                 if let Some(left_click_action) = self.left_click_action.as_ref() {
-                    let bounding_rectangle = Rectangle::new(
-                        self.position.x,
-                        self.position.y,
-                        self.texture.width() as f32,
-                        self.texture.height() as f32
-                    );
-
                     let mouse_position = window.get_cursor_pos();
                     if bounding_rectangle.contains(&Position::new(mouse_position.0 as f32, mouse_position.1 as f32)) {
                         (left_click_action)(argument);
@@ -71,13 +71,6 @@ impl<T> GenericButton<T> for TextureButton<T> {
             }
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button2, Action::Release, _) => {
                 if let Some(right_click_action) = self.right_click_action.as_ref() {
-                    let bounding_rectangle = Rectangle::new(
-                        self.position.x,
-                        self.position.y,
-                        self.texture.width() as f32,
-                        self.texture.height() as f32
-                    );
-
                     let mouse_position = window.get_cursor_pos();
                     if bounding_rectangle.contains(&Position::new(mouse_position.0 as f32, mouse_position.1 as f32)) {
                         (right_click_action)(argument);
