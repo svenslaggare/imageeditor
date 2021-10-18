@@ -419,7 +419,7 @@ impl SelectionTool {
 }
 
 impl Tool for SelectionTool {
-    fn on_active(&mut self, tool: Tools) -> Option<ImageOperation> {
+    fn on_active(&mut self, _window: &mut dyn EditorWindow, tool: Tools) -> Option<ImageOperation> {
         if let Tools::Selection(sub_tool) = tool {
             self.tool = sub_tool;
         }

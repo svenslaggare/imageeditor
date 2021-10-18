@@ -13,7 +13,7 @@ pub use button::TextureButton;
 
 use crate::command_buffer::{Command, CommandBuffer};
 use crate::rendering::prelude::{Position, Rectangle};
-use crate::editor::tools::{Tools, SelectionSubTool};
+use crate::editor::tools::{Tools, SelectionSubTool, ColorWheelMode};
 use crate::editor::image_operation_helpers::hsv_to_rgb;
 use crate::ui::button::{TextButton, SolidColorButton};
 use crate::rendering::font::{Font};
@@ -38,7 +38,7 @@ fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
         Position::new(5.0, 5.0),
         (35.0, line_height + 5.0),
         SIDE_PANEL_WIDTH as f32,
-        12
+        11
     );
 
     buttons.push(
@@ -135,19 +135,6 @@ fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
     buttons.push(
         Box::new(TextButton::<CommandBuffer>::new(
             font.clone(),
-            "CW".to_owned(),
-            layout.next().unwrap(),
-            Some(Box::new(|command_buffer| {
-                command_buffer.push(Command::SetTool(Tools::ColorWheel));
-            })),
-            None,
-            None
-        ))
-    );
-
-    buttons.push(
-        Box::new(TextButton::<CommandBuffer>::new(
-            font.clone(),
             "CG".to_owned(),
             layout.next().unwrap(),
             Some(Box::new(|command_buffer| {
@@ -221,7 +208,7 @@ fn generate_color_palette(buttons: &mut Vec<BoxGenericButton>) {
     let selected_color_height = 32.0;
 
     buttons.push(
-        Box::new(SolidColorButton::new(
+        Box::new(SolidColorButton::<CommandBuffer>::new(
             image::Rgba([0, 0, 0, 255]),
             Rectangle::new(
                 start_x + selected_color_width / 2.0,
@@ -229,7 +216,9 @@ fn generate_color_palette(buttons: &mut Vec<BoxGenericButton>) {
                 selected_color_width,
                 selected_color_height
             ),
-            None,
+            Some(Box::new(move |command_buffer| {
+                command_buffer.push(Command::SetTool(Tools::ColorWheel(ColorWheelMode::SelectAlternativeColor)));
+            })),
             None,
             Some(Box::new(move |button, command| {
                 if let Command::SetAlternativeColor(color) = command {
@@ -240,10 +229,12 @@ fn generate_color_palette(buttons: &mut Vec<BoxGenericButton>) {
     );
 
     buttons.push(
-        Box::new(SolidColorButton::new(
+        Box::new(SolidColorButton::<CommandBuffer>::new(
             image::Rgba([255, 0, 0, 255]),
             Rectangle::new(start_x, start_y, selected_color_width, selected_color_height),
-            None,
+            Some(Box::new(move |command_buffer| {
+                command_buffer.push(Command::SetTool(Tools::ColorWheel(ColorWheelMode::SelectColor)));
+            })),
             None,
             Some(Box::new(move |button, command| {
                 if let Command::SetColor(color) = command {

@@ -8,7 +8,7 @@ use crate::rendering::texture::Texture;
 use crate::rendering::prelude::{Position, Rectangle, Size};
 use crate::rendering::prelude::Color4 as RenderingColor4;
 use crate::ui::button::{ButtonAction, GenericButton, CommandAction};
-use crate::editor::tools::EditorWindow;
+use crate::editor::tools::{EditorWindow, ColorWheelMode};
 use crate::program::Renders;
 use crate::editor::image_operation_helpers::{hsv_to_rgb, rgb_to_hsv};
 
@@ -19,8 +19,8 @@ pub struct ColorWheel {
     saturation_value_image: image::RgbaImage,
     position: Position,
     started_selecting_hue: bool,
-    started_selecting_color: bool,
-    started_selecting_alternative_color: bool
+    mode: ColorWheelMode,
+    started_selecting_color: bool
 }
 
 const SATURATION_VALUE_IMAGE_WIDTH: u32 = 100;
@@ -38,18 +38,26 @@ impl ColorWheel {
             saturation_value_image,
             position: Position::new(0.0, 0.0),
             started_selecting_hue: false,
+            mode: ColorWheelMode::SelectColor,
             started_selecting_color: false,
-            started_selecting_alternative_color: false
         }
+    }
+
+    pub fn set_mode(&mut self, mode: ColorWheelMode) {
+        self.mode = mode;
+    }
+
+    pub fn update_position(&mut self, window: &mut dyn EditorWindow) {
+        self.position = Position::new(
+            0.5 * window.width() as f32 - 0.5 * self.hue_wheel_image.width() as f32,
+            0.5 * window.height() as f32 - 0.5 * self.hue_wheel_image.height() as f32
+        );
     }
 }
 
 impl GenericButton<CommandBuffer> for ColorWheel {
     fn process_gui_event(&mut self, window: &mut dyn EditorWindow, event: &glfw::WindowEvent, command_buffer: &mut CommandBuffer) {
-        self.position = Position::new(
-            0.5 * window.width() as f32 - 0.5 * self.hue_wheel_image.width() as f32,
-            0.5 * window.height() as f32 - 0.5 * self.hue_wheel_image.height() as f32
-        );
+        self.update_position(window);
 
         let bounding_rectangle = Rectangle::new(
             self.position.x,
@@ -94,7 +102,15 @@ impl GenericButton<CommandBuffer> for ColorWheel {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
                 let mut started_selecting_color = false;
                 if let Some(color) = select_color() {
-                    command_buffer.push(Command::SetColor(color));
+                    match self.mode {
+                        ColorWheelMode::SelectColor => {
+                            command_buffer.push(Command::SetColor(color));
+                        }
+                        ColorWheelMode::SelectAlternativeColor => {
+                            command_buffer.push(Command::SetAlternativeColor(color));
+                        }
+                    }
+
                     started_selecting_color = true;
                 }
 
@@ -112,19 +128,17 @@ impl GenericButton<CommandBuffer> for ColorWheel {
                 self.started_selecting_hue = false;
                 self.started_selecting_color = false;
             }
-            glfw::WindowEvent::MouseButton(glfw::MouseButton::Button2, Action::Release, _) => {
-                self.started_selecting_alternative_color = false;
-            }
             glfw::WindowEvent::CursorPos(_, _) => {
                 if self.started_selecting_color {
                     if let Some(color) = select_color() {
-                        command_buffer.push(Command::SetColor(color));
-                    }
-                }
-
-                if self.started_selecting_alternative_color {
-                    if let Some(color) = select_color() {
-                        command_buffer.push(Command::SetAlternativeColor(color));
+                        match self.mode {
+                            ColorWheelMode::SelectColor => {
+                                command_buffer.push(Command::SetColor(color));
+                            }
+                            ColorWheelMode::SelectAlternativeColor => {
+                                command_buffer.push(Command::SetAlternativeColor(color));
+                            }
+                        }
                     }
                 }
 
@@ -133,12 +147,6 @@ impl GenericButton<CommandBuffer> for ColorWheel {
                         self.saturation_value_image = create_saturation_value_selector(SATURATION_VALUE_IMAGE_WIDTH, SATURATION_VALUE_IMAGE_HEIGHT, rgb_to_hsv(color).0);
                         self.saturation_value_texture.upload(&self.saturation_value_image.as_ref());
                     }
-                }
-            }
-            glfw::WindowEvent::MouseButton(glfw::MouseButton::Button2, Action::Press, _) => {
-                if let Some(color) = select_color() {
-                    command_buffer.push(Command::SetAlternativeColor(color));
-                    self.started_selecting_alternative_color = true;
                 }
             }
             _ => {}

@@ -4,7 +4,7 @@ use cgmath::{Matrix3, Transform, Matrix4, Matrix};
 use crate::rendering::prelude::{Position, Rectangle};
 use crate::editor;
 use crate::command_buffer::{Command, CommandBuffer};
-use crate::editor::tools::{Tool, get_transformed_mouse_position, EditorWindow};
+use crate::editor::tools::{Tool, get_transformed_mouse_position, EditorWindow, Tools};
 use crate::editor::image_operation::{ImageOperation, ColorGradientType};
 use crate::ui::button::{TextButton, GenericButton};
 use crate::program::Renders;
@@ -25,8 +25,13 @@ impl ColorWheelTool {
 }
 
 impl Tool for ColorWheelTool {
-    fn handle_command(&mut self, command: &Command) {
+    fn on_active(&mut self, window: &mut dyn EditorWindow, tool: Tools) -> Option<ImageOperation> {
+        self.color_wheel.update_position(window);
+        if let Tools::ColorWheel(mode) = tool {
+            self.color_wheel.set_mode(mode);
+        }
 
+        None
     }
 
     fn process_gui_event(&mut self,

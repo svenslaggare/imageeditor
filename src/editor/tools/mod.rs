@@ -40,7 +40,7 @@ pub trait EditorWindow {
 }
 
 pub trait Tool {
-    fn on_active(&mut self, tool: Tools) -> Option<ImageOperation> {
+    fn on_active(&mut self, window: &mut dyn EditorWindow, tool: Tools) -> Option<ImageOperation> {
         None
     }
 
@@ -84,7 +84,7 @@ pub enum Tools {
     BucketFill,
     ColorPicker,
     ColorGradient,
-    ColorWheel
+    ColorWheel(ColorWheelMode)
 }
 
 impl Tools {
@@ -99,7 +99,7 @@ impl Tools {
             Tools::BucketFill => 6,
             Tools::ColorPicker => 7,
             Tools::ColorGradient => 8,
-            Tools::ColorWheel => 9
+            Tools::ColorWheel(_) => 9
         }
     }
 }
@@ -109,6 +109,12 @@ pub enum SelectionSubTool {
     Select,
     MovePixels,
     ResizePixels
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ColorWheelMode {
+    SelectColor,
+    SelectAlternativeColor
 }
 
 pub fn create_tools(renders: &Renders) -> Vec<Box<dyn Tool>> {

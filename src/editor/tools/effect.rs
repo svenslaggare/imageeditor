@@ -92,7 +92,7 @@ impl EffectDrawTool {
 }
 
 impl Tool for EffectDrawTool {
-    fn on_active(&mut self, tool: Tools) -> Option<ImageOperation> {
+    fn on_active(&mut self, _window: &mut dyn EditorWindow, _tool: Tools) -> Option<ImageOperation> {
         self.changed = true;
         None
     }

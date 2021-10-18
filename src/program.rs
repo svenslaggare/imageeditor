@@ -178,7 +178,7 @@ impl Program {
                     }
 
                     self.active_tool = tool;
-                    if let Some(op) = self.tools[self.active_tool.index()].on_active(tool) {
+                    if let Some(op) = self.tools[self.active_tool.index()].on_active(window, tool) {
                         self.command_buffer.push(Command::ApplyImageOp(op));
                     }
 
