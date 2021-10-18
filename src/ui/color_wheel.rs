@@ -27,7 +27,7 @@ const SATURATION_VALUE_IMAGE_WIDTH: u32 = 100;
 const SATURATION_VALUE_IMAGE_HEIGHT: u32 = 100;
 
 impl ColorWheel {
-    pub fn new(position: Position) -> ColorWheel {
+    pub fn new() -> ColorWheel {
         let hue_wheel_image = create_hue_selector(100, 2);
         let saturation_value_image = create_saturation_value_selector(SATURATION_VALUE_IMAGE_WIDTH, SATURATION_VALUE_IMAGE_HEIGHT, 0.0);
 
@@ -36,7 +36,7 @@ impl ColorWheel {
             hue_wheel_image,
             saturation_value_texture: Texture::from_image(&saturation_value_image),
             saturation_value_image,
-            position,
+            position: Position::new(0.0, 0.0),
             started_selecting_hue: false,
             started_selecting_color: false,
             started_selecting_alternative_color: false
@@ -46,6 +46,11 @@ impl ColorWheel {
 
 impl GenericButton<CommandBuffer> for ColorWheel {
     fn process_gui_event(&mut self, window: &mut dyn EditorWindow, event: &glfw::WindowEvent, command_buffer: &mut CommandBuffer) {
+        self.position = Position::new(
+            0.5 * window.width() as f32 - 0.5 * self.hue_wheel_image.width() as f32,
+            0.5 * window.height() as f32 - 0.5 * self.hue_wheel_image.height() as f32
+        );
+
         let bounding_rectangle = Rectangle::new(
             self.position.x,
             self.position.y,

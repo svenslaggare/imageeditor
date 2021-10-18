@@ -19,6 +19,7 @@ use crate::ui::button::{TextButton, SolidColorButton};
 use crate::rendering::font::{Font};
 use crate::ui::manager::BoxGenericButton;
 use crate::ui::color_wheel::ColorWheel;
+use crate::program::SIDE_PANEL_WIDTH;
 
 pub fn create() -> Manager {
     let mut buttons = Vec::<BoxGenericButton>::new();
@@ -36,7 +37,7 @@ fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
     let mut layout = layout::adaptive_rows(
         Position::new(5.0, 5.0),
         (35.0, line_height + 5.0),
-        70.0,
+        SIDE_PANEL_WIDTH as f32,
         12
     );
 

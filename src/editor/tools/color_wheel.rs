@@ -16,9 +16,9 @@ pub struct ColorWheelTool {
 }
 
 impl ColorWheelTool {
-    pub fn new(view_size: (u32, u32)) -> ColorWheelTool {
+    pub fn new() -> ColorWheelTool {
         ColorWheelTool {
-            color_wheel: ColorWheel::new(Position::new(0.5 * view_size.0 as f32, 0.5 * view_size.1 as f32))
+            color_wheel: ColorWheel::new()
         }
     }
 

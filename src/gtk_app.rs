@@ -12,7 +12,7 @@ use gtk::gio::ApplicationFlags;
 use gtk::gdk::keys::Key;
 use gtk::gdk::ScrollDirection;
 
-use crate::program::Program;
+use crate::program::{Program, SIDE_PANEL_WIDTH, TOP_PANEL_HEIGHT};
 use crate::editor::tools::EditorWindow;
 use crate::{ui, editor};
 use crate::command_buffer::Command;
@@ -31,10 +31,8 @@ pub fn main() {
         let program_args = std::env::args().collect::<Vec<_>>();
         let mut image_to_edit = image::open(&program_args[1]).unwrap().into_rgba();
 
-        let view_width = image_to_edit.width();
-        let view_height = image_to_edit.height();
-        let width = view_width as i32 + 70;
-        let height = view_height as i32 + 40;
+        let width = (image_to_edit.width() + SIDE_PANEL_WIDTH) as i32;
+        let height = (image_to_edit.height() + TOP_PANEL_HEIGHT) as i32;
 
         let window = ApplicationWindow::builder()
             .application(app)
@@ -49,12 +47,16 @@ pub fn main() {
         window.add(&layout);
 
         let gl_area = Rc::new(GLArea::new());
-        gl_area.set_width_request(width);
-        gl_area.set_height_request(height);
+        let gtk_program_clone = gtk_program.clone();
+        gl_area.connect_resize(move |gl_area, width, height| {
+            if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
+                program.change_size(width as u32, height as u32);
+            }
+        });
 
         let event_box = Rc::new(EventBox::new());
         event_box.add(gl_area.deref());
-        layout.add(event_box.deref());
+        layout.pack_start(event_box.deref(), true, true, 0);
 
         add_menu(app, &window, gtk_program.clone(), gl_area.clone());
         add_input_support(gtk_program.clone(), gl_area.clone(), event_box.clone());
@@ -66,7 +68,7 @@ pub fn main() {
         let image_to_edit = Rc::new(RefCell::new(Some(image_to_edit)));
         gl_area.connect_realize(move |area| {
             area.context().unwrap().make_current();
-            *program_clone.borrow_mut() = Some(GTKProgram::new(view_width, view_height, image_to_edit.borrow_mut().take().unwrap()));
+            *program_clone.borrow_mut() = Some(GTKProgram::new(width as u32, height as u32, image_to_edit.borrow_mut().take().unwrap()));
         });
 
         gl_area.connect_render(move |area, context| {
@@ -123,20 +125,38 @@ impl GTKProgram {
         GTKProgram {
             program,
             editor_window: GTKEditorWindow {
-                mouse_position: (0.0, 0.0)
+                mouse_position: (0.0, 0.0),
+                width: view_width,
+                height: view_height
             },
             event_queue: VecDeque::new()
         }
     }
+
+    pub fn change_size(&mut self, width: u32, height: u32) {
+        self.event_queue.push_back(glfw::WindowEvent::FramebufferSize(width as i32, height as i32));
+        self.editor_window.width = width;
+        self.editor_window.height = height;
+    }
 }
 
 struct GTKEditorWindow {
-    mouse_position: (f64, f64)
+    mouse_position: (f64, f64),
+    width: u32,
+    height: u32
 }
 
 impl EditorWindow for GTKEditorWindow {
     fn get_cursor_pos(&self) -> (f64, f64) {
         self.mouse_position
+    }
+
+    fn width(&self) -> u32 {
+        self.width
+    }
+
+    fn height(&self) -> u32 {
+        self.height
     }
 
     fn set_should_close(&mut self, _value: bool) {
@@ -161,7 +181,6 @@ fn add_menu(app: &Application,
     let gtk_program_clone = gtk_program.clone();
     open_file.connect_activate(glib::clone!(@weak window => move |_, _| {
         if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
-            // let path = Path::new("/home/antjans/Bilder/Memes/vlcsnap-2021-01-06-10h42m03s950.png").to_owned();
             let path = Path::new("/home/antjans/Bilder/TestImage.JPG").to_owned();
             let image = image::open(&path).unwrap().into_rgba();
 

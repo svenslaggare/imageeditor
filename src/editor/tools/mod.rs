@@ -34,6 +34,8 @@ pub mod effect;
 
 pub trait EditorWindow {
     fn get_cursor_pos(&self) -> (f64, f64);
+    fn width(&self) -> u32;
+    fn height(&self) -> u32;
     fn set_should_close(&mut self, value: bool);
 }
 
@@ -109,7 +111,7 @@ pub enum SelectionSubTool {
     ResizePixels
 }
 
-pub fn create_tools(view_size: (u32, u32), renders: &Renders) -> Vec<Box<dyn Tool>> {
+pub fn create_tools(renders: &Renders) -> Vec<Box<dyn Tool>> {
     vec![
         Box::new(PencilDrawTool::new(renders)),
         Box::new(EraserDrawTool::new(renders)),
@@ -120,7 +122,7 @@ pub fn create_tools(view_size: (u32, u32), renders: &Renders) -> Vec<Box<dyn Too
         Box::new(BucketFillDrawTool::new(renders)),
         Box::new(ColorPickerTool::new()),
         Box::new(ColorGradientDrawTool::new(renders)),
-        Box::new(ColorWheelTool::new(view_size))
+        Box::new(ColorWheelTool::new())
     ]
 }
 

@@ -20,6 +20,9 @@ use crate::rendering::texture::Texture;
 use crate::rendering::font::Font;
 use crate::rendering::rectangle_render::RectangleRender;
 
+pub const SIDE_PANEL_WIDTH: u32 = 70;
+pub const TOP_PANEL_HEIGHT: u32 = 40;
+
 pub struct Program {
     renders: Renders,
     pub command_buffer: CommandBuffer,
@@ -31,6 +34,8 @@ pub struct Program {
     background_transparent_texture: Texture,
     preview_image: editor::Image,
     zoom: f32,
+    window_width: u32,
+    window_height: u32,
     view_width: u32,
     view_height: u32,
     view_x: f32,
@@ -55,7 +60,7 @@ impl Program {
         }
 
         let renders = Renders::new();
-        let tools = create_tools((view_width, view_height), &renders);
+        let tools = create_tools(&renders);
 
         let mut program = Program {
             renders,
@@ -68,8 +73,10 @@ impl Program {
             background_transparent_texture,
             preview_image,
             zoom: 1.0,
-            view_width,
-            view_height,
+            window_width: view_width,
+            window_height: view_height,
+            view_width: view_width - SIDE_PANEL_WIDTH,
+            view_height: view_height - TOP_PANEL_HEIGHT,
             view_x: 0.0,
             view_y: 0.0
         };
@@ -91,6 +98,9 @@ impl Program {
                 glfw::WindowEvent::FramebufferSize(width, height) => {
                     unsafe {
                         gl::Viewport(0, 0, width, height);
+                        self.window_width = width as u32;
+                        self.window_height = height as u32;
+                        self.update_view_size();
                     }
                 }
                 glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
@@ -158,6 +168,7 @@ impl Program {
                 Command::SwitchImage(image) => {
                     self.editor.set_image(editor::Image::new(image));
                     self.preview_image = self.editor.new_image_same();
+                    self.update_view_size();
                 }
                 Command::SetTool(tool) => {
                     if tool.index() != self.active_tool.index() {
@@ -313,10 +324,15 @@ impl Program {
         (background_transparent_start, background_transparent_width, background_transparent_height)
     }
 
+    fn update_view_size(&mut self) {
+        self.view_width = (self.window_width - SIDE_PANEL_WIDTH).min(self.editor.image().width());
+        self.view_height = (self.window_height - TOP_PANEL_HEIGHT).min(self.editor.image().height());
+    }
+
     fn image_area_transform(&self, only_origin: bool) -> Matrix3<f32> {
         let origin_transform = cgmath::Matrix3::from_cols(
-            cgmath::Vector3::new(1.0, 0.0, 70.0),
-            cgmath::Vector3::new(0.0, 1.0, 40.0),
+            cgmath::Vector3::new(1.0, 0.0, SIDE_PANEL_WIDTH as f32),
+            cgmath::Vector3::new(0.0, 1.0, TOP_PANEL_HEIGHT as f32),
             cgmath::Vector3::new(0.0, 0.0, 1.0),
         ).transpose();
 

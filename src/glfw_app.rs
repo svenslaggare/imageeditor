@@ -3,7 +3,7 @@ use std::sync::mpsc::Receiver;
 use glfw::{Context, Key, Action, Glfw, Window, WindowEvent, Modifiers};
 use gl::types::*;
 
-use crate::program::Program;
+use crate::program::{Program, SIDE_PANEL_WIDTH, TOP_PANEL_HEIGHT};
 use crate::{editor, ui};
 use crate::editor::tools::EditorWindow;
 
@@ -26,7 +26,9 @@ pub fn main() {
     // let width = 1280;
     // let height = 800;
 
-    let (mut glfw, mut window, mut events) = setup_window(width + 70, height + 40);
+    let width = width + SIDE_PANEL_WIDTH;
+    let height = height + TOP_PANEL_HEIGHT;
+    let (mut glfw, mut window, mut events) = setup_window(width, height);
 
     let mut program = Program::new(
         width,
@@ -74,6 +76,14 @@ pub fn main() {
 impl EditorWindow for glfw::Window {
     fn get_cursor_pos(&self) -> (f64, f64) {
         self.get_cursor_pos()
+    }
+
+    fn width(&self) -> u32 {
+        self.get_size().0 as u32
+    }
+
+    fn height(&self) -> u32 {
+        self.get_size().1 as u32
     }
 
     fn set_should_close(&mut self, value: bool) {
