@@ -140,6 +140,9 @@ impl Program {
                     self.view_y = 0.0;
                     self.zoom = 1.0;
                 }
+                glfw::WindowEvent::Key(Key::Tab, _, Action::Press, _) => {
+                    self.editor.next_layer();
+                }
                 event => {
                     self.process_internal_events(&event);
 
@@ -153,7 +156,7 @@ impl Program {
                         &image_area_transform,
                         &image_area_rectangle,
                         &mut self.command_buffer,
-                        self.editor.image()
+                        self.editor.active_image()
                     );
 
                     if let Some(op) = op {
@@ -218,8 +221,13 @@ impl Program {
                     Ok(file) => {
                         let writer = std::io::BufWriter::new(file);
                         let encoder = image::png::PNGEncoder::new(writer);
-                        let image = self.editor.image();
-                        encoder.encode(image.get_image().as_ref(), image.width(), image.height(), image::ColorType::RGBA(8)).unwrap();
+                        let image = self.editor.active_image();
+                        encoder.encode(
+                            image.get_image().as_ref(),
+                            image.width(),
+                            image.height(),
+                            image::ColorType::RGBA(8)
+                        ).unwrap();
                         println!("Saved image.");
                     }
                     Err(error) => {
@@ -260,19 +268,21 @@ impl Program {
             self.editor.image().height() as f32 / self.zoom
         );
 
-        self.renders.texture_render.render_sub(
-            self.renders.texture_render.shader(),
-            &(transform * image_area_transform),
-            self.editor.image().get_texture(),
-            Position::new(0.0, 0.0),
-            self.zoom,
-            Some(image_crop_rectangle.clone())
-        );
+        for image in self.editor.image().layers() {
+            self.renders.texture_render.render_sub(
+                self.renders.texture_render.shader(),
+                &(transform * image_area_transform),
+                image.get_texture(),
+                Position::new(0.0, 0.0),
+                self.zoom,
+                Some(image_crop_rectangle.clone())
+            );
+        }
 
         self.ui_manager.render(&self.renders, &transform);
 
         let changed = {
-            self.tools[self.active_tool.index()].preview(self.editor.image(), &mut self.preview_image)
+            self.tools[self.active_tool.index()].preview(self.editor.active_image(), &mut self.preview_image)
         };
 
         if changed {
