@@ -106,7 +106,7 @@ impl Tool for LineDrawTool {
         return true;
     }
 
-    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>) {
+    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
         self.change_size_button.change_text(format!("Line width: {}", self.side_half_width * 2 + 1));
         self.change_size_button.render(renders, transform);
     }

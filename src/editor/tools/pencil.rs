@@ -133,7 +133,7 @@ impl Tool for PencilDrawTool {
         false
     }
 
-    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>) {
+    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
         self.change_size_button.change_text(format!("Pencil size: {}", self.side_half_width * 2 + 1));
         self.change_size_button.render(renders, transform);
     }

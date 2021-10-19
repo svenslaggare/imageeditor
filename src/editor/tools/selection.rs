@@ -502,8 +502,13 @@ impl Tool for SelectionTool {
         return true;
     }
 
-    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>) {
-        if let Some(selection) = self.selection() {
+    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>, image: &editor::Image) {
+        if let Some(mut selection) = self.selection() {
+            selection.start_x = selection.start_x.max(0);
+            selection.start_y = selection.start_y.max(0);
+            selection.end_x = selection.end_x.min(image.width() as i32);
+            selection.end_y = selection.end_y.min(image.height() as i32);
+
             renders.solid_rectangle_render.render(
                 renders.solid_rectangle_render.shader(),
                 &(transform * image_area_transform),

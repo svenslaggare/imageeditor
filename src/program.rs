@@ -302,7 +302,8 @@ impl Program {
         self.tools[self.active_tool.index()].render(
             &self.renders,
             &transform,
-            &image_area_transform_full
+            &image_area_transform_full,
+            self.editor.active_image()
         );
     }
 

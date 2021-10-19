@@ -96,7 +96,7 @@ impl Tool for BucketFillDrawTool {
         return false;
     }
 
-    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>) {
+    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
         self.change_tolerance_button.change_text(format!("Tolerance: {:.0} %", self.tolerance * 100.0));
         self.change_tolerance_button.render(renders, transform);
     }

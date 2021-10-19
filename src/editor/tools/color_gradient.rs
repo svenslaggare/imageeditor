@@ -121,7 +121,7 @@ impl Tool for ColorGradientDrawTool {
         return true;
     }
 
-    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>) {
+    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
         self.set_linear_button.render(renders, transform);
         self.set_radial_button.render(renders, transform);
     }

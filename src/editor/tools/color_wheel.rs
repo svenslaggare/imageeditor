@@ -54,7 +54,7 @@ impl Tool for ColorWheelTool {
         return false;
     }
 
-    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, _image_area_transform: &Matrix4<f32>) {
+    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, _image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
         self.color_wheel.render(renders, transform);
     }
 }
