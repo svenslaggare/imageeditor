@@ -1,8 +1,17 @@
 use crate::editor::image_operation::{ImageOperation, ImageOperationMarker, ImageSource, ImageOperationSource};
 use crate::editor::Image;
 
+#[derive(PartialEq)]
+pub enum LayerState {
+    Visible,
+    Hidden,
+    Deleted
+}
+
 pub struct LayeredImage {
-    layers: Vec<Image>
+    width: u32,
+    height: u32,
+    layers: Vec<(LayerState, Image)>
 }
 
 impl LayeredImage {
@@ -19,32 +28,38 @@ impl LayeredImage {
         }
 
         LayeredImage {
-            layers: vec![image, blank_image]
+            width: image.width(),
+            height: image.height(),
+            layers: vec![(LayerState::Visible, image), (LayerState::Visible, blank_image)]
         }
     }
 
     pub fn width(&self) -> u32 {
-        self.layers[0].width()
+        self.width
     }
 
     pub fn height(&self) -> u32 {
-        self.layers[0].height()
+        self.height
     }
 
-    pub fn layers(&self) -> &Vec<Image> {
+    pub fn layers(&self) -> &Vec<(LayerState, Image)> {
         &self.layers
     }
 
+    pub fn layers_mut(&mut self) -> &mut Vec<(LayerState, Image)> {
+        &mut self.layers
+    }
+
     pub fn get_layer(&self, layer: usize) -> Option<&Image> {
-        self.layers.get(layer)
+        self.layers.get(layer).map(|(_, layer)| layer)
     }
 
     pub fn get_layer_mut(&mut self, layer: usize) -> Option<&mut Image> {
-        self.layers.get_mut(layer)
+        self.layers.get_mut(layer).map(|(_, layer)| layer)
     }
 
     pub fn add_layer(&mut self) {
-        self.layers.push(Image::new(image::RgbaImage::new(self.width(), self.height())));
+        self.layers.push((LayerState::Visible, Image::new(image::RgbaImage::new(self.width(), self.height()))));
     }
 }
 
@@ -52,7 +67,7 @@ pub type LayeredImageOperation = (usize, ImageOperation);
 
 pub struct Editor {
     image: LayeredImage,
-    active_layer: usize,
+    active_layer_index: usize,
     undo_stack: Vec<(LayeredImageOperation, LayeredImageOperation)>,
     redo_stack: Vec<LayeredImageOperation>,
 }
@@ -61,7 +76,7 @@ impl Editor {
     pub fn new(image: Image) -> Editor {
         Editor {
             image: LayeredImage::new(image),
-            active_layer: 0,
+            active_layer_index: 0,
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
         }
@@ -86,7 +101,7 @@ impl Editor {
     }
 
     pub fn apply_op(&mut self, op: ImageOperation) {
-        self.internal_apply_op((self.active_layer, op));
+        self.internal_apply_op((self.active_layer_index, op));
         self.redo_stack.clear();
     }
 
@@ -105,24 +120,15 @@ impl Editor {
     }
 
     pub fn active_layer(&self) -> &Image {
-        self.image.get_layer(self.active_layer).unwrap()
+        self.image.get_layer(self.active_layer_index).unwrap()
     }
 
-    pub fn next_layer(&mut self) {
-        self.active_layer = (self.active_layer + 1) % self.image.layers.len();
+    pub fn active_layer_index(&self) -> usize {
+        self.active_layer_index
     }
 
-    pub fn prev_layer(&mut self) {
-        if self.active_layer == 0 {
-            self.active_layer = self.image.layers.len() - 1;
-            return;
-        }
-
-        self.active_layer = (self.active_layer - 1) % self.image.layers.len();
-    }
-
-    pub fn is_active_layer(&self, layer: usize) -> bool {
-        self.active_layer == layer
+    pub fn set_active_layer(&mut self, layer_index: usize) {
+        self.active_layer_index = layer_index;
     }
 
     fn merge_draw_operations(&mut self) {

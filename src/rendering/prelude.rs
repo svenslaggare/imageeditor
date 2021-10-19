@@ -1,3 +1,5 @@
+use image::Pixel;
+
 pub type Color = cgmath::Point3<u8>;
 pub type Color4 = cgmath::Vector4<u8>;
 pub type Position = cgmath::Point2<f32>;
@@ -45,4 +47,11 @@ impl Rectangle {
     pub fn contains(&self, position: &Position) -> bool {
         return position.x >= self.left() && position.x <= self.right() && position.y >= self.top() && position.y <= self.bottom();
     }
+}
+
+pub fn blend(a: &Color4, b: &Color4) -> Color4 {
+    let mut a = image::Rgba([a.x, a.y, a.z, a.w]);
+    let b = image::Rgba([b.x, b.y, b.z, b.w]);
+    a.blend(&b);
+    Color4::new(a[0], a[1], a[2], a[3])
 }
