@@ -42,6 +42,10 @@ impl LayeredImage {
     pub fn get_layer_mut(&mut self, layer: usize) -> Option<&mut Image> {
         self.layers.get_mut(layer)
     }
+
+    pub fn add_layer(&mut self) {
+        self.layers.push(Image::new(image::RgbaImage::new(self.width(), self.height())));
+    }
 }
 
 pub type LayeredImageOperation = (usize, ImageOperation);
@@ -67,8 +71,8 @@ impl Editor {
         &self.image
     }
 
-    pub fn active_image(&self) -> &Image {
-        self.image.get_layer(self.active_layer).unwrap()
+    pub fn image_mut(&mut self) -> &mut LayeredImage {
+        &mut self.image
     }
 
     pub fn new_image_same(&self) -> Image {
@@ -100,8 +104,25 @@ impl Editor {
         }
     }
 
+    pub fn active_layer(&self) -> &Image {
+        self.image.get_layer(self.active_layer).unwrap()
+    }
+
     pub fn next_layer(&mut self) {
         self.active_layer = (self.active_layer + 1) % self.image.layers.len();
+    }
+
+    pub fn prev_layer(&mut self) {
+        if self.active_layer == 0 {
+            self.active_layer = self.image.layers.len() - 1;
+            return;
+        }
+
+        self.active_layer = (self.active_layer - 1) % self.image.layers.len();
+    }
+
+    pub fn is_active_layer(&self, layer: usize) -> bool {
+        self.active_layer == layer
     }
 
     fn merge_draw_operations(&mut self) {

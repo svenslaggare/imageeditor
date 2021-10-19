@@ -119,7 +119,7 @@ impl TextureRender {
                         position: cgmath::Point2<f32>,
                         width: f32,
                         height: f32,
-                        source_rectangle: Rectangle) {
+                        source_rectangle: Option<Rectangle>) {
         unsafe {
             shader.activate();
             shader.set_matrix4(c_str!("transform"), &transform);
@@ -129,6 +129,15 @@ impl TextureRender {
 
             gl::BindVertexArray(self.vertex_array);
             gl::BindBuffer(gl::ARRAY_BUFFER, self.vertex_buffer);
+
+            let source_rectangle = source_rectangle.unwrap_or(
+                Rectangle::new(
+                    0.0,
+                    0.0,
+                    texture.width() as f32,
+                    texture.height() as f32
+                )
+            );
 
             let top_left_x = source_rectangle.left() / texture.width() as f32;
             let top_left_y = source_rectangle.top() / texture.height() as f32;

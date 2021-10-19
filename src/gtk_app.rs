@@ -12,7 +12,7 @@ use gtk::gio::ApplicationFlags;
 use gtk::gdk::keys::Key;
 use gtk::gdk::ScrollDirection;
 
-use crate::program::{Program, SIDE_PANEL_WIDTH, TOP_PANEL_HEIGHT};
+use crate::program::{Program, LEFT_SIDE_PANEL_WIDTH, TOP_PANEL_HEIGHT, SIDE_PANELS_WIDTH};
 use crate::editor::tools::EditorWindow;
 use crate::{ui, editor};
 use crate::command_buffer::Command;
@@ -31,7 +31,7 @@ pub fn main() {
         let program_args = std::env::args().collect::<Vec<_>>();
         let mut image_to_edit = image::open(&program_args[1]).unwrap().into_rgba();
 
-        let width = (image_to_edit.width() + SIDE_PANEL_WIDTH) as i32;
+        let width = (image_to_edit.width() + SIDE_PANELS_WIDTH) as i32;
         let height = (image_to_edit.height() + TOP_PANEL_HEIGHT) as i32;
 
         let window = ApplicationWindow::builder()

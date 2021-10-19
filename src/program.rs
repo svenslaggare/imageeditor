@@ -9,7 +9,7 @@ use glfw::{Key, Action, Modifiers};
 use crate::command_buffer::{CommandBuffer, Command};
 use crate::{editor, ui};
 use crate::rendering::shader::Shader;
-use crate::rendering::prelude::{Position, Rectangle};
+use crate::rendering::prelude::{Position, Rectangle, Color4, Size};
 use crate::rendering::texture_render::TextureRender;
 use crate::editor::image_operation::{ImageSource, ImageOperation};
 use crate::editor::tools::{Tool, create_tools, Tools, EditorWindow};
@@ -20,7 +20,9 @@ use crate::rendering::texture::Texture;
 use crate::rendering::font::Font;
 use crate::rendering::rectangle_render::RectangleRender;
 
-pub const SIDE_PANEL_WIDTH: u32 = 70;
+pub const LEFT_SIDE_PANEL_WIDTH: u32 = 70;
+pub const RIGHT_SIDE_PANEL_WIDTH: u32 = 150;
+pub const SIDE_PANELS_WIDTH: u32 = LEFT_SIDE_PANEL_WIDTH + RIGHT_SIDE_PANEL_WIDTH;
 pub const TOP_PANEL_HEIGHT: u32 = 40;
 
 pub struct Program {
@@ -75,7 +77,7 @@ impl Program {
             zoom: 1.0,
             window_width: view_width,
             window_height: view_height,
-            view_width: view_width - SIDE_PANEL_WIDTH,
+            view_width: view_width - SIDE_PANELS_WIDTH,
             view_height: view_height - TOP_PANEL_HEIGHT,
             view_x: 0.0,
             view_y: 0.0
@@ -140,8 +142,15 @@ impl Program {
                     self.view_y = 0.0;
                     self.zoom = 1.0;
                 }
-                glfw::WindowEvent::Key(Key::Tab, _, Action::Press, _) => {
-                    self.editor.next_layer();
+                glfw::WindowEvent::Key(Key::Tab, _, Action::Press, modifier) => {
+                    if modifier == Modifiers::Control {
+                        self.editor.prev_layer();
+                    } else {
+                        self.editor.next_layer();
+                    }
+                }
+                glfw::WindowEvent::Key(Key::N, _, Action::Press, Modifiers::Control) => {
+                    self.editor.image_mut().add_layer();
                 }
                 event => {
                     self.process_internal_events(&event);
@@ -156,7 +165,7 @@ impl Program {
                         &image_area_transform,
                         &image_area_rectangle,
                         &mut self.command_buffer,
-                        self.editor.active_image()
+                        self.editor.active_layer()
                     );
 
                     if let Some(op) = op {
@@ -221,7 +230,7 @@ impl Program {
                     Ok(file) => {
                         let writer = std::io::BufWriter::new(file);
                         let encoder = image::png::PNGEncoder::new(writer);
-                        let image = self.editor.active_image();
+                        let image = self.editor.active_layer();
                         encoder.encode(
                             image.get_image().as_ref(),
                             image.width(),
@@ -257,7 +266,7 @@ impl Program {
                 background_transparent_start,
                 background_transparent_width,
                 background_transparent_height,
-                Rectangle::new(0.0, 0.0, background_transparent_width, background_transparent_height)
+                Some(Rectangle::new(0.0, 0.0, background_transparent_width, background_transparent_height))
             );
         }
 
@@ -279,10 +288,55 @@ impl Program {
             );
         }
 
+        let layer_buffer = 5.0;
+        let mut layer_offset = layer_buffer;
+        let layer_width = RIGHT_SIDE_PANEL_WIDTH as f32 - layer_buffer;
+        for (layer_index, image) in self.editor.image().layers().iter().enumerate() {
+            let position = Position::new(self.view_width as f32 + layer_buffer, layer_offset);
+            let layer_height = layer_width * (image.height() as f32 / image.width() as f32);
+
+            if self.editor.is_active_layer(layer_index) {
+                self.renders.solid_rectangle_render.render(
+                    self.renders.solid_rectangle_render.shader(),
+                    &(transform * image_area_transform),
+                    Position::new(position.x - layer_buffer, position.y - layer_buffer),
+                    Size::new(layer_width + layer_buffer, layer_height + layer_buffer * 2.0),
+                    Color4::new(0, 148, 255, 64)
+                );
+            }
+
+            self.renders.texture_render.render_sized(
+                self.renders.texture_render.shader(),
+                &(transform * image_area_transform),
+                &self.background_transparent_texture,
+                position,
+                layer_width,
+                layer_height,
+                Some(Rectangle::new(
+                    0.0,
+                    0.0,
+                    layer_width,
+                    layer_height
+                ))
+            );
+
+            self.renders.texture_render.render_sized(
+                self.renders.texture_render.shader(),
+                &(transform * image_area_transform),
+                image.get_texture(),
+                position,
+                layer_width,
+                layer_height,
+                None
+            );
+
+            layer_offset += layer_height + 10.0;
+        }
+
         self.ui_manager.render(&self.renders, &transform);
 
         let changed = {
-            self.tools[self.active_tool.index()].preview(self.editor.active_image(), &mut self.preview_image)
+            self.tools[self.active_tool.index()].preview(self.editor.active_layer(), &mut self.preview_image)
         };
 
         if changed {
@@ -303,7 +357,7 @@ impl Program {
             &self.renders,
             &transform,
             &image_area_transform_full,
-            self.editor.active_image()
+            self.editor.active_layer()
         );
     }
 
@@ -336,13 +390,13 @@ impl Program {
     }
 
     fn update_view_size(&mut self) {
-        self.view_width = (self.window_width - SIDE_PANEL_WIDTH).min(self.editor.image().width());
+        self.view_width = (self.window_width - SIDE_PANELS_WIDTH).min(self.editor.image().width());
         self.view_height = (self.window_height - TOP_PANEL_HEIGHT).min(self.editor.image().height());
     }
 
     fn image_area_transform(&self, only_origin: bool) -> Matrix3<f32> {
         let origin_transform = cgmath::Matrix3::from_cols(
-            cgmath::Vector3::new(1.0, 0.0, SIDE_PANEL_WIDTH as f32),
+            cgmath::Vector3::new(1.0, 0.0, LEFT_SIDE_PANEL_WIDTH as f32),
             cgmath::Vector3::new(0.0, 1.0, TOP_PANEL_HEIGHT as f32),
             cgmath::Vector3::new(0.0, 0.0, 1.0),
         ).transpose();

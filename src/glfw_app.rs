@@ -3,7 +3,7 @@ use std::sync::mpsc::Receiver;
 use glfw::{Context, Key, Action, Glfw, Window, WindowEvent, Modifiers};
 use gl::types::*;
 
-use crate::program::{Program, SIDE_PANEL_WIDTH, TOP_PANEL_HEIGHT};
+use crate::program::{Program, LEFT_SIDE_PANEL_WIDTH, TOP_PANEL_HEIGHT, SIDE_PANELS_WIDTH};
 use crate::{editor, ui};
 use crate::editor::tools::EditorWindow;
 
@@ -26,7 +26,7 @@ pub fn main() {
     // let width = 1280;
     // let height = 800;
 
-    let width = width + SIDE_PANEL_WIDTH;
+    let width = width + SIDE_PANELS_WIDTH;
     let height = height + TOP_PANEL_HEIGHT;
     let (mut glfw, mut window, mut events) = setup_window(width, height);
 
