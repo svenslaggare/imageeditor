@@ -67,8 +67,8 @@ impl Tool for PencilDrawTool {
                          event: &WindowEvent,
                          image_area_transform: &Matrix3<f32>,
                          image_area_rectangle: &Rectangle,
-                         command_buffer: &mut CommandBuffer,
-                         image: &editor::Image) -> Option<ImageOperation> {
+                         _command_buffer: &mut CommandBuffer,
+                         _image: &editor::Image) -> Option<ImageOperation> {
         let create_begin_draw = |this: &Self, mouse_position: Position, color: editor::Color| {
             Some(
                 ImageOperation::Sequential(
@@ -88,12 +88,18 @@ impl Tool for PencilDrawTool {
         let mut op = None;
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
-                self.is_drawing = Some(self.color);
-                op = create_begin_draw(self, get_transformed_mouse_position(window, image_area_transform), self.color);
+                let (mouse_x, mouse_y) = window.get_cursor_pos();
+                if image_area_rectangle.contains(&Position::new(mouse_x as f32, mouse_y as f32)) {
+                    self.is_drawing = Some(self.color);
+                    op = create_begin_draw(self, get_transformed_mouse_position(window, image_area_transform), self.color);
+                }
             }
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button2, Action::Press, _) => {
-                self.is_drawing = Some(self.alternative_color);
-                op = create_begin_draw(self, get_transformed_mouse_position(window, image_area_transform), self.alternative_color);
+                let (mouse_x, mouse_y) = window.get_cursor_pos();
+                if image_area_rectangle.contains(&Position::new(mouse_x as f32, mouse_y as f32)) {
+                    self.is_drawing = Some(self.alternative_color);
+                    op = create_begin_draw(self, get_transformed_mouse_position(window, image_area_transform), self.alternative_color);
+                }
             }
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1 | glfw::MouseButton::Button2, Action::Release, _) => {
                 self.is_drawing = None;

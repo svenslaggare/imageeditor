@@ -19,7 +19,7 @@ use crate::rendering::ShaderAndRender;
 use crate::rendering::texture::Texture;
 use crate::rendering::font::Font;
 use crate::rendering::rectangle_render::RectangleRender;
-use crate::editor::editor::LayerState;
+use crate::editor::editor::{LayerState, LayeredImageOperation};
 use image::Pixel;
 
 pub const LEFT_SIDE_PANEL_WIDTH: u32 = 70;
@@ -250,7 +250,8 @@ impl Program {
                 let mut layer_offset = LAYER_BUFFER;
                 let layer_width = RIGHT_SIDE_PANEL_WIDTH as f32 - LAYER_BUFFER;
 
-                let mut active_layer_index = self.editor.active_layer_index();
+                let mut active_layer_index = None;
+                let mut layer_ops = Vec::new();
                 for (layer_index, (state, image)) in self.editor.image_mut().layers_mut().iter_mut().enumerate() {
                     let position = Position::new(self.view_width as f32 + LAYER_BUFFER, layer_offset);
                     let position = image_area_transform.transform_point(position);
@@ -260,13 +261,13 @@ impl Program {
                     if bounding_rectangle.contains(&mouse_position) {
                         match button {
                             MouseButton::Button1 => {
-                                active_layer_index = layer_index;
+                                active_layer_index = Some(layer_index);
                             }
                             MouseButton::Button2 => {
                                 if state == &LayerState::Visible {
-                                    *state = LayerState::Hidden;
+                                    layer_ops.push(LayeredImageOperation::SetLayerState(layer_index, LayerState::Hidden));
                                 } else if state == &LayerState::Hidden {
-                                    *state = LayerState::Visible;
+                                    layer_ops.push(LayeredImageOperation::SetLayerState(layer_index, LayerState::Visible));
                                 }
                             }
                             _ => {}
@@ -276,7 +277,14 @@ impl Program {
                     layer_offset += layer_height + LAYER_SPACING;
                 }
 
-                self.editor.set_active_layer(active_layer_index);
+                if let Some(active_layer_index) = active_layer_index {
+                    layer_ops.push(LayeredImageOperation::SetActiveLayer(active_layer_index));
+                }
+
+                for layer_op in layer_ops {
+                    self.editor.apply_layer_op(layer_op);
+                }
+
             }
             _ => {}
         }
