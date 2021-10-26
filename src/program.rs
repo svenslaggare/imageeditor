@@ -500,7 +500,8 @@ impl Program {
         let origin_transform = self.image_area_transform(true);
         let x = origin_transform.z.x;
         let y = origin_transform.z.y;
-        Rectangle::new(x, y, self.editor.image().width() as f32 + x, self.editor.image().height() as f32 + y)
+        // Rectangle::new(x, y, self.editor.image().width() as f32 + x, self.editor.image().height() as f32 + y)
+        Rectangle::new(x, y, self.view_width as f32, self.view_height as f32)
     }
 }
 

@@ -89,22 +89,26 @@ impl Tool for PencilDrawTool {
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
                 let (mouse_x, mouse_y) = window.get_cursor_pos();
-                if image_area_rectangle.contains(&Position::new(mouse_x as f32, mouse_y as f32)) {
+                let mouse_position = Position::new(mouse_x as f32, mouse_y as f32);
+                if image_area_rectangle.contains(&mouse_position) {
                     self.is_drawing = Some(self.color);
                     op = create_begin_draw(self, get_transformed_mouse_position(window, image_area_transform), self.color);
                 }
             }
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button2, Action::Press, _) => {
                 let (mouse_x, mouse_y) = window.get_cursor_pos();
-                if image_area_rectangle.contains(&Position::new(mouse_x as f32, mouse_y as f32)) {
+                let mouse_position = Position::new(mouse_x as f32, mouse_y as f32);
+                if image_area_rectangle.contains(&mouse_position) {
                     self.is_drawing = Some(self.alternative_color);
                     op = create_begin_draw(self, get_transformed_mouse_position(window, image_area_transform), self.alternative_color);
                 }
             }
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1 | glfw::MouseButton::Button2, Action::Release, _) => {
-                self.is_drawing = None;
-                self.prev_mouse_position = None;
-                op = Some(ImageOperation::Marker(ImageOperationMarker::EndDraw));
+                if self.is_drawing.is_some() {
+                    self.is_drawing = None;
+                    self.prev_mouse_position = None;
+                    op = Some(ImageOperation::Marker(ImageOperationMarker::EndDraw));
+                }
             }
             glfw::WindowEvent::CursorPos(raw_mouse_x, raw_mouse_y) => {
                 if let Some(color) = self.is_drawing {

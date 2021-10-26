@@ -45,7 +45,7 @@ impl Rectangle {
     }
 
     pub fn contains(&self, position: &Position) -> bool {
-        return position.x >= self.left() && position.x <= self.right() && position.y >= self.top() && position.y <= self.bottom();
+        return position.x >= self.left() && position.x < self.right() && position.y >= self.top() && position.y < self.bottom();
     }
 }
 

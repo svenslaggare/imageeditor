@@ -169,9 +169,10 @@ impl Editor {
                 LayeredImageOperation::ImageOp(op_layer, op) => {
                     let op_layer = *op_layer;
                     if op.is_marker(ImageOperationMarker::BeginDraw) {
-                        let max_index = self.undo_stack[i..]
+                        let max_index = self.undo_stack
                             .iter()
-                            .find_position(|(op, _)| !op.is_image_op())
+                            .enumerate()
+                            .find(|(index, (op, _))| *index >= i && !op.is_image_op())
                             .map(|(index, op)| index)
                             .unwrap_or(self.undo_stack.len());
 
