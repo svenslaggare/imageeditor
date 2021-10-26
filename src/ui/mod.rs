@@ -5,8 +5,9 @@ use itertools::Itertools;
 
 pub mod manager;
 pub mod button;
-pub mod color_wheel;
 pub mod layout;
+pub mod color_wheel;
+pub mod layers;
 
 pub use manager::Manager;
 pub use button::TextureButton;

@@ -20,21 +20,22 @@ use crate::rendering::texture::Texture;
 use crate::rendering::font::Font;
 use crate::rendering::rectangle_render::RectangleRender;
 use crate::editor::editor::{LayerState, LayeredImageOperation};
-use image::Pixel;
+use crate::ui::layers::LayersManager;
 
 pub const LEFT_SIDE_PANEL_WIDTH: u32 = 70;
 pub const RIGHT_SIDE_PANEL_WIDTH: u32 = 150;
 pub const SIDE_PANELS_WIDTH: u32 = LEFT_SIDE_PANEL_WIDTH + RIGHT_SIDE_PANEL_WIDTH;
 pub const TOP_PANEL_HEIGHT: u32 = 40;
 
-const LAYER_BUFFER: f32 = 5.0;
-const LAYER_SPACING: f32 = 10.0;
+pub const LAYER_BUFFER: f32 = 5.0;
+pub const LAYER_SPACING: f32 = 10.0;
 
 pub struct Program {
     renders: Renders,
     pub command_buffer: CommandBuffer,
     editor: editor::Editor,
     ui_manager: ui::Manager,
+    layers_manager: LayersManager,
     tools: Vec<Box<dyn Tool>>,
     active_tool: Tools,
     background_transparent_image: image::RgbaImage,
@@ -74,6 +75,7 @@ impl Program {
             command_buffer: CommandBuffer::new(),
             editor,
             ui_manager,
+            layers_manager: LayersManager::new(),
             tools,
             active_tool: Tools::Pencil,
             background_transparent_image,
@@ -117,6 +119,13 @@ impl Program {
                     self.process_internal_events(window, &event);
 
                     self.ui_manager.process_gui_event(window, &event, &mut self.command_buffer);
+                    self.layers_manager.process_gui_event(
+                        window,
+                        &self.image_area_transform(true),
+                        self.view_width,
+                        &event,
+                        &mut self.editor
+                    );
 
                     let image_area_transform = self.image_area_transform(false).invert().unwrap();
                     let image_area_rectangle = self.image_area_rectangle();
@@ -239,69 +248,6 @@ impl Program {
                 self.view_y = 0.0;
                 self.zoom = 1.0;
             }
-            glfw::WindowEvent::Key(Key::N, _, Action::Press, modifier) => {
-                if modifier == &(Modifiers::Shift | Modifiers::Control) {
-                    self.editor.image_mut().add_layer();
-                }
-            }
-            glfw::WindowEvent::Key(Key::Delete, _, Action::Press, modifier) => {
-                if modifier == &(Modifiers::Shift | Modifiers::Control) {
-                    if self.editor.num_alive_layers() > 1 {
-                        self.editor.apply_layer_op(
-                            LayeredImageOperation::SetLayerState(
-                                self.editor.active_layer_index(),
-                                LayerState::Deleted
-                            )
-                        );
-                    }
-                }
-            }
-            glfw::WindowEvent::MouseButton(button, Action::Release, _) => {
-                let mouse_position = window.get_cursor_pos();
-                let mouse_position = Position::new(mouse_position.0 as f32, mouse_position.1 as f32);
-                let image_area_transform = self.image_area_transform(true);
-
-                let mut layer_offset = LAYER_BUFFER;
-                let layer_width = RIGHT_SIDE_PANEL_WIDTH as f32 - LAYER_BUFFER;
-
-                let mut active_layer_index = None;
-                let mut layer_ops = Vec::new();
-                for (layer_index, (state, image)) in self.editor.image_mut().layers_mut().iter_mut().enumerate() {
-                    if state != &LayerState::Deleted {
-                        let position = Position::new(self.view_width as f32 + LAYER_BUFFER, layer_offset);
-                        let position = image_area_transform.transform_point(position);
-                        let layer_height = layer_width * (image.height() as f32 / image.width() as f32);
-
-                        let bounding_rectangle = Rectangle::new(position.x, position.y, layer_width, layer_height);
-                        if bounding_rectangle.contains(&mouse_position) {
-                            match button {
-                                MouseButton::Button1 => {
-                                    active_layer_index = Some(layer_index);
-                                }
-                                MouseButton::Button2 => {
-                                    if state == &LayerState::Visible {
-                                        layer_ops.push(LayeredImageOperation::SetLayerState(layer_index, LayerState::Hidden));
-                                    } else if state == &LayerState::Hidden {
-                                        layer_ops.push(LayeredImageOperation::SetLayerState(layer_index, LayerState::Visible));
-                                    }
-                                }
-                                _ => {}
-                            }
-                        }
-
-                        layer_offset += layer_height + LAYER_SPACING;
-                    }
-                }
-
-                if let Some(active_layer_index) = active_layer_index {
-                    layer_ops.push(LayeredImageOperation::SetActiveLayer(active_layer_index));
-                }
-
-                for layer_op in layer_ops {
-                    self.editor.apply_layer_op(layer_op);
-                }
-
-            }
             _ => {}
         }
     }
@@ -348,7 +294,14 @@ impl Program {
             }
         }
 
-        self.render_layers_menu(&transform, &image_area_transform);
+        self.layers_manager.render(
+            transform,
+            &self.renders,
+            &self.editor,
+            self.view_width,
+            &self.background_transparent_texture,
+            &image_area_transform,
+        );
 
         self.ui_manager.render(&self.renders, &transform);
 
@@ -376,72 +329,6 @@ impl Program {
             &image_area_transform_full,
             self.editor.active_layer()
         );
-    }
-
-    fn render_layers_menu(&self, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>) {
-        let mut layer_offset = LAYER_BUFFER;
-        let layer_width = RIGHT_SIDE_PANEL_WIDTH as f32 - LAYER_BUFFER;
-
-        let active_layer_index = self.editor.active_layer_index();
-        for (layer_index, (state, image)) in self.editor.image().layers().iter().enumerate() {
-            if state != &LayerState::Deleted {
-                let position = Position::new(self.view_width as f32 + LAYER_BUFFER, layer_offset);
-                let layer_height = layer_width * (image.height() as f32 / image.width() as f32);
-
-                let mut layer_color = None;
-                if active_layer_index == layer_index {
-                    layer_color = Some(Color4::new(0, 148, 255, 64));
-                }
-
-                if state == &LayerState::Hidden {
-                    match layer_color {
-                        Some(current_layer_color) => {
-                            layer_color = Some(blend(&current_layer_color, &Color4::new(255, 0, 0, 64)));
-                        }
-                        None => {
-                            layer_color = Some(Color4::new(255, 0, 0, 64));
-                        }
-                    }
-                }
-
-                if let Some(layer_color) = layer_color {
-                    self.renders.solid_rectangle_render.render(
-                        self.renders.solid_rectangle_render.shader(),
-                        &(transform * image_area_transform),
-                        Position::new(position.x - LAYER_BUFFER, position.y - LAYER_BUFFER),
-                        Size::new(layer_width + LAYER_BUFFER, layer_height + LAYER_BUFFER * 2.0),
-                        layer_color
-                    );
-                }
-
-                self.renders.texture_render.render_sized(
-                    self.renders.texture_render.shader(),
-                    &(transform * image_area_transform),
-                    &self.background_transparent_texture,
-                    position,
-                    layer_width,
-                    layer_height,
-                    Some(Rectangle::new(
-                        0.0,
-                        0.0,
-                        layer_width,
-                        layer_height
-                    ))
-                );
-
-                self.renders.texture_render.render_sized(
-                    self.renders.texture_render.shader(),
-                    &(transform * image_area_transform),
-                    image.get_texture(),
-                    position,
-                    layer_width,
-                    layer_height,
-                    None
-                );
-
-                layer_offset += layer_height + LAYER_SPACING;
-            }
-        }
     }
 
     fn calculate_background_transparent_rectangle(&self) -> (Position, f32, f32) {
