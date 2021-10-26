@@ -67,6 +67,7 @@ impl LayeredImage {
 
 #[derive(Debug)]
 pub enum LayeredImageOperation {
+    Sequential(Vec<LayeredImageOperation>),
     SetLayerState(usize, LayerState),
     SetActiveLayer(usize),
     ImageOp(usize, ImageOperation)
@@ -163,6 +164,10 @@ impl Editor {
         self.active_layer_index
     }
 
+    pub fn num_alive_layers(&self) -> usize {
+        self.image.layers.iter().map(|(state, _)| state != &LayerState::Deleted).count()
+    }
+
     fn merge_draw_operations(&mut self) {
         for i in (0..self.undo_stack.len()).rev() {
             match &self.undo_stack[i].0 {
@@ -214,14 +219,39 @@ impl Editor {
 
     fn internal_apply_other_op(&mut self, op: LayeredImageOperation, push_undo: bool) {
         match op {
+            LayeredImageOperation::Sequential(ops) => {
+                for op in ops {
+                    self.internal_apply_other_op(op, push_undo);
+                }
+            }
             LayeredImageOperation::SetLayerState(index, state) => {
                 let current_state = self.image.layers_mut()[index].0.clone();
                 self.image.layers_mut()[index].0 = state.clone();
 
+                let change_active_layer_index = if state == LayerState::Deleted && self.active_layer_index == index {
+                    if let Some((new_active_layer_index, _)) = self.image.layers().iter().enumerate().find(|(_, (state, _))| state != &LayerState::Deleted) {
+                        let current_active_layer_index = self.active_layer_index;
+                        self.active_layer_index = new_active_layer_index;
+                        Some((current_active_layer_index, new_active_layer_index))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+
                 if push_undo {
+                    let mut ops = vec![LayeredImageOperation::SetLayerState(index, state)];
+                    let mut undo_ops = vec![LayeredImageOperation::SetLayerState(index, current_state)];
+
+                    if let Some((old_active_layer_index, new_active_layer_index)) = change_active_layer_index {
+                        ops.push(LayeredImageOperation::SetActiveLayer(new_active_layer_index));
+                        undo_ops.push(LayeredImageOperation::SetActiveLayer(old_active_layer_index));
+                    }
+
                     self.undo_stack.push((
-                        LayeredImageOperation::SetLayerState(index, state),
-                        LayeredImageOperation::SetLayerState(index, current_state)
+                        LayeredImageOperation::Sequential(ops),
+                        LayeredImageOperation::Sequential(undo_ops)
                     ));
                 }
             }

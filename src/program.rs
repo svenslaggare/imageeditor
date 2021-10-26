@@ -239,8 +239,22 @@ impl Program {
                 self.view_y = 0.0;
                 self.zoom = 1.0;
             }
-            glfw::WindowEvent::Key(Key::N, _, Action::Press, Modifiers::Control) => {
-                self.editor.image_mut().add_layer();
+            glfw::WindowEvent::Key(Key::N, _, Action::Press, modifier) => {
+                if modifier == &(Modifiers::Shift | Modifiers::Control) {
+                    self.editor.image_mut().add_layer();
+                }
+            }
+            glfw::WindowEvent::Key(Key::Delete, _, Action::Press, modifier) => {
+                if modifier == &(Modifiers::Shift | Modifiers::Control) {
+                    if self.editor.num_alive_layers() > 1 {
+                        self.editor.apply_layer_op(
+                            LayeredImageOperation::SetLayerState(
+                                self.editor.active_layer_index(),
+                                LayerState::Deleted
+                            )
+                        );
+                    }
+                }
             }
             glfw::WindowEvent::MouseButton(button, Action::Release, _) => {
                 let mouse_position = window.get_cursor_pos();
@@ -253,28 +267,30 @@ impl Program {
                 let mut active_layer_index = None;
                 let mut layer_ops = Vec::new();
                 for (layer_index, (state, image)) in self.editor.image_mut().layers_mut().iter_mut().enumerate() {
-                    let position = Position::new(self.view_width as f32 + LAYER_BUFFER, layer_offset);
-                    let position = image_area_transform.transform_point(position);
-                    let layer_height = layer_width * (image.height() as f32 / image.width() as f32);
+                    if state != &LayerState::Deleted {
+                        let position = Position::new(self.view_width as f32 + LAYER_BUFFER, layer_offset);
+                        let position = image_area_transform.transform_point(position);
+                        let layer_height = layer_width * (image.height() as f32 / image.width() as f32);
 
-                    let bounding_rectangle = Rectangle::new(position.x, position.y, layer_width, layer_height);
-                    if bounding_rectangle.contains(&mouse_position) {
-                        match button {
-                            MouseButton::Button1 => {
-                                active_layer_index = Some(layer_index);
-                            }
-                            MouseButton::Button2 => {
-                                if state == &LayerState::Visible {
-                                    layer_ops.push(LayeredImageOperation::SetLayerState(layer_index, LayerState::Hidden));
-                                } else if state == &LayerState::Hidden {
-                                    layer_ops.push(LayeredImageOperation::SetLayerState(layer_index, LayerState::Visible));
+                        let bounding_rectangle = Rectangle::new(position.x, position.y, layer_width, layer_height);
+                        if bounding_rectangle.contains(&mouse_position) {
+                            match button {
+                                MouseButton::Button1 => {
+                                    active_layer_index = Some(layer_index);
                                 }
+                                MouseButton::Button2 => {
+                                    if state == &LayerState::Visible {
+                                        layer_ops.push(LayeredImageOperation::SetLayerState(layer_index, LayerState::Hidden));
+                                    } else if state == &LayerState::Hidden {
+                                        layer_ops.push(LayeredImageOperation::SetLayerState(layer_index, LayerState::Visible));
+                                    }
+                                }
+                                _ => {}
                             }
-                            _ => {}
                         }
-                    }
 
-                    layer_offset += layer_height + LAYER_SPACING;
+                        layer_offset += layer_height + LAYER_SPACING;
+                    }
                 }
 
                 if let Some(active_layer_index) = active_layer_index {
@@ -368,61 +384,63 @@ impl Program {
 
         let active_layer_index = self.editor.active_layer_index();
         for (layer_index, (state, image)) in self.editor.image().layers().iter().enumerate() {
-            let position = Position::new(self.view_width as f32 + LAYER_BUFFER, layer_offset);
-            let layer_height = layer_width * (image.height() as f32 / image.width() as f32);
+            if state != &LayerState::Deleted {
+                let position = Position::new(self.view_width as f32 + LAYER_BUFFER, layer_offset);
+                let layer_height = layer_width * (image.height() as f32 / image.width() as f32);
 
-            let mut layer_color = None;
-            if active_layer_index == layer_index {
-                layer_color = Some(Color4::new(0, 148, 255, 64));
-            }
+                let mut layer_color = None;
+                if active_layer_index == layer_index {
+                    layer_color = Some(Color4::new(0, 148, 255, 64));
+                }
 
-            if state == &LayerState::Hidden {
-                match layer_color {
-                    Some(current_layer_color) => {
-                        layer_color = Some(blend(&current_layer_color, &Color4::new(255, 0, 0, 64)));
-                    }
-                    None => {
-                        layer_color = Some(Color4::new(255, 0, 0, 64));
+                if state == &LayerState::Hidden {
+                    match layer_color {
+                        Some(current_layer_color) => {
+                            layer_color = Some(blend(&current_layer_color, &Color4::new(255, 0, 0, 64)));
+                        }
+                        None => {
+                            layer_color = Some(Color4::new(255, 0, 0, 64));
+                        }
                     }
                 }
-            }
 
-            if let Some(layer_color) = layer_color {
-                self.renders.solid_rectangle_render.render(
-                    self.renders.solid_rectangle_render.shader(),
+                if let Some(layer_color) = layer_color {
+                    self.renders.solid_rectangle_render.render(
+                        self.renders.solid_rectangle_render.shader(),
+                        &(transform * image_area_transform),
+                        Position::new(position.x - LAYER_BUFFER, position.y - LAYER_BUFFER),
+                        Size::new(layer_width + LAYER_BUFFER, layer_height + LAYER_BUFFER * 2.0),
+                        layer_color
+                    );
+                }
+
+                self.renders.texture_render.render_sized(
+                    self.renders.texture_render.shader(),
                     &(transform * image_area_transform),
-                    Position::new(position.x - LAYER_BUFFER, position.y - LAYER_BUFFER),
-                    Size::new(layer_width + LAYER_BUFFER, layer_height + LAYER_BUFFER * 2.0),
-                    layer_color
-                );
-            }
-
-            self.renders.texture_render.render_sized(
-                self.renders.texture_render.shader(),
-                &(transform * image_area_transform),
-                &self.background_transparent_texture,
-                position,
-                layer_width,
-                layer_height,
-                Some(Rectangle::new(
-                    0.0,
-                    0.0,
+                    &self.background_transparent_texture,
+                    position,
                     layer_width,
-                    layer_height
-                ))
-            );
+                    layer_height,
+                    Some(Rectangle::new(
+                        0.0,
+                        0.0,
+                        layer_width,
+                        layer_height
+                    ))
+                );
 
-            self.renders.texture_render.render_sized(
-                self.renders.texture_render.shader(),
-                &(transform * image_area_transform),
-                image.get_texture(),
-                position,
-                layer_width,
-                layer_height,
-                None
-            );
+                self.renders.texture_render.render_sized(
+                    self.renders.texture_render.shader(),
+                    &(transform * image_area_transform),
+                    image.get_texture(),
+                    position,
+                    layer_width,
+                    layer_height,
+                    None
+                );
 
-            layer_offset += layer_height + LAYER_SPACING;
+                layer_offset += layer_height + LAYER_SPACING;
+            }
         }
     }
 
