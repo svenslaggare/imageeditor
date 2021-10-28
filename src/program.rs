@@ -1,6 +1,7 @@
 use std::sync::mpsc::Receiver;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::path::Path;
 
 use cgmath::{Matrix3, Matrix4, Transform, Matrix, SquareMatrix};
 
@@ -33,7 +34,7 @@ pub const LAYER_SPACING: f32 = 10.0;
 pub struct Program {
     renders: Renders,
     pub command_buffer: CommandBuffer,
-    editor: editor::Editor,
+    pub editor: editor::Editor,
     ui_manager: ui::Manager,
     layers_manager: LayersManager,
     tools: Vec<Box<dyn Tool>>,
@@ -196,21 +197,12 @@ impl Program {
                 self.command_buffer.push(Command::RedoImageOp);
             }
             glfw::WindowEvent::Key(Key::S, _, Action::Press, Modifiers::Control) => {
-                match std::fs::File::create("output.png") {
-                    Ok(file) => {
-                        let writer = std::io::BufWriter::new(file);
-                        let encoder = image::png::PNGEncoder::new(writer);
-                        let image = self.editor.active_layer();
-                        encoder.encode(
-                            image.get_image().as_ref(),
-                            image.width(),
-                            image.height(),
-                            image::ColorType::RGBA(8)
-                        ).unwrap();
+                match self.editor.image().save(Path::new("output.png")) {
+                    Ok(()) => {
                         println!("Saved image.");
                     }
-                    Err(error) => {
-                        println!("Failed to save due to: {}.", error);
+                    Err(err) => {
+                        println!("Failed to save due to: {}.", err);
                     }
                 }
             }

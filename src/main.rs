@@ -8,6 +8,6 @@ mod glfw_app;
 mod gtk_app;
 
 fn main() {
-    glfw_app::main();
-    // gtk_app::main();
+    // glfw_app::main();
+    gtk_app::main();
 }

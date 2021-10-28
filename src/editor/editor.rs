@@ -2,6 +2,8 @@ use itertools::Itertools;
 
 use crate::editor::image_operation::{ImageOperation, ImageOperationMarker, ImageSource, ImageOperationSource};
 use crate::editor::Image;
+use std::path::Path;
+use image::GenericImage;
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum LayerState {
@@ -62,6 +64,32 @@ impl LayeredImage {
 
     pub fn add_layer(&mut self) {
         self.layers.push((LayerState::Visible, Image::new(image::RgbaImage::new(self.width(), self.height()))));
+    }
+
+    pub fn save(&self, path: &Path) -> std::io::Result<()> {
+        let file = std::fs::File::create(path)?;
+
+        let writer = std::io::BufWriter::new(file);
+        let encoder = image::png::PNGEncoder::new(writer);
+        let mut image: image::RgbaImage = image::RgbaImage::new(self.width(), self.height());
+        for (_, layer) in &self.layers {
+            let layer = layer.get_image();
+
+            for y in 0..image.height() {
+                for x in 0..image.width() {
+                    image.blend_pixel(x, y, *layer.get_pixel(x, y));
+                }
+            }
+        }
+
+        encoder.encode(
+            &image,
+            image.width(),
+            image.height(),
+            image::ColorType::RGBA(8)
+        )?;
+
+        Ok(())
     }
 }
 

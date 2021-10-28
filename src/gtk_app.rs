@@ -7,7 +7,7 @@ use std::iter::FromIterator;
 use std::path::Path;
 
 use gtk::prelude::*;
-use gtk::{Application, ApplicationWindow, Button, GLArea, Box, Orientation, EventBox, gdk, glib, Menu, AccelGroup, MenuBar, MenuItem, Image, Label, CheckMenuItem, IconSize, AccelFlags, gio};
+use gtk::{Application, ApplicationWindow, Button, GLArea, Box, Orientation, EventBox, gdk, glib, Menu, AccelGroup, MenuBar, MenuItem, Image, Label, CheckMenuItem, IconSize, AccelFlags, gio, FileChooserAction, ResponseType};
 use gtk::gio::ApplicationFlags;
 use gtk::gdk::keys::Key;
 use gtk::gdk::ScrollDirection;
@@ -189,6 +189,50 @@ fn add_menu(app: &Application,
         }
     }));
     app.add_action(&open_file);
+
+    // Save as
+    menu.append(Some("Save as"), Some("app.save_file_as"));
+    let save_file_as = gio::SimpleAction::new("save_file_as", None);
+
+    let save_file_as_dialog = gtk::FileChooserDialogBuilder::new()
+        .transient_for(window)
+        .modal(true)
+        .action(FileChooserAction::Save)
+        .build();
+
+    save_file_as_dialog.add_buttons(&[
+        ("Save", gtk::ResponseType::Ok),
+        ("Cancel", gtk::ResponseType::Cancel),
+    ]);
+
+    let save_file_as_dialog = Rc::new(save_file_as_dialog);
+    let save_file_as_dialog_clone = save_file_as_dialog.clone();
+    save_file_as.connect_activate(glib::clone!(@weak window => move |_, _| {
+        save_file_as_dialog_clone.show();
+    }));
+    app.add_action(&save_file_as);
+
+    let save_file_as_dialog_clone = save_file_as_dialog.clone();
+    let gtk_program_clone = gtk_program.clone();
+    save_file_as_dialog.connect_response(move |dialog, response| {
+        match response {
+            ResponseType::Ok => {
+                if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
+                    if let Some(filename) = save_file_as_dialog_clone.filename() {
+                        if let Err(err) = program.program.editor.image().save(&filename) {
+                            println!("Failed to save file due to: {:?}.", err);
+                        }
+                    }
+                }
+
+                dialog.hide();
+            }
+            ResponseType::Cancel => {
+                dialog.hide();
+            }
+            _ => { panic!("Unexpected response."); }
+        }
+    });
 
     // Quit
     menu.append(Some("Quit"), Some("app.quit"));
