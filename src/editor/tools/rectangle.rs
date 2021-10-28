@@ -6,7 +6,7 @@ use crate::editor;
 use crate::command_buffer::{Command, CommandBuffer};
 use crate::editor::tools::{Tool, get_valid_rectangle, get_transformed_mouse_position, EditorWindow};
 use crate::editor::image_operation::{ImageOperation};
-use crate::ui::button::{TextButton, GenericButton};
+use crate::ui::button::{TextButton, GenericButton, Checkbox};
 use crate::program::Renders;
 use crate::editor::Image;
 
@@ -16,7 +16,8 @@ pub struct RectangleDrawTool {
     border_color: editor::Color,
     fill_color: editor::Color,
     border_half_width: i32,
-    change_border_size_button: TextButton<i32>
+    change_border_size_button: TextButton<i32>,
+    border_checkbox: Checkbox<()>
 }
 
 impl RectangleDrawTool {
@@ -38,6 +39,15 @@ impl RectangleDrawTool {
                     *border_half_width = (*border_half_width - 1).max(0);
                 })),
                 None,
+            ),
+            border_checkbox: Checkbox::new(
+                &image::open("content/ui/checkbox_unchecked.png").unwrap().into_rgba(),
+                &image::open("content/ui/checkbox_checked.png").unwrap().into_rgba(),
+                renders.ui_font.clone(),
+                "Border".to_owned(),
+                true,
+                Position::new(235.0, 16.0),
+                None
             )
         }
     }
@@ -45,7 +55,7 @@ impl RectangleDrawTool {
     fn create_op(&self, start_position: &Position, end_position: &Position) -> ImageOperation {
         let (start_x, start_y, end_x, end_y) = get_valid_rectangle(start_position, end_position);
 
-        ImageOperation::Sequential(vec![
+        let mut ops = vec![
             ImageOperation::FillRectangle {
                 start_x,
                 start_y,
@@ -53,16 +63,24 @@ impl RectangleDrawTool {
                 end_y,
                 color: self.fill_color,
                 blend: false
-            },
-            ImageOperation::Rectangle {
-                start_x,
-                start_y,
-                end_x,
-                end_y,
-                color: self.border_color,
-                border_half_width: self.border_half_width
             }
-        ])
+        ];
+
+
+        if self.border_checkbox.checked {
+            ops.push(
+                ImageOperation::Rectangle {
+                    start_x,
+                    start_y,
+                    end_x,
+                    end_y,
+                    color: self.border_color,
+                    border_half_width: self.border_half_width
+                }
+            );
+        }
+
+        ImageOperation::Sequential(ops)
     }
 }
 
@@ -83,9 +101,9 @@ impl Tool for RectangleDrawTool {
                          window: &mut dyn EditorWindow,
                          event: &WindowEvent,
                          image_area_transform: &Matrix3<f32>,
-                         image_area_rectangle: &Rectangle,
-                         command_buffer: &mut CommandBuffer,
-                         image: &editor::Image) -> Option<ImageOperation> {
+                         _image_area_rectangle: &Rectangle,
+                         _command_buffer: &mut CommandBuffer,
+                         _image: &editor::Image) -> Option<ImageOperation> {
         let mut op = None;
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
@@ -108,6 +126,7 @@ impl Tool for RectangleDrawTool {
         }
 
         self.change_border_size_button.process_gui_event(window, event, &mut self.border_half_width);
+        self.border_checkbox.process_gui_event(window, event, &mut ());
 
         return op;
     }
@@ -124,5 +143,7 @@ impl Tool for RectangleDrawTool {
     fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
         self.change_border_size_button.change_text(format!("Border size: {}", self.border_half_width * 2 + 1));
         self.change_border_size_button.render(renders, transform);
+
+        self.border_checkbox.render(renders, transform);
     }
 }

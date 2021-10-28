@@ -17,7 +17,8 @@ pub struct CircleDrawTool {
     fill_color: editor::Color,
     border_half_width: i32,
     change_border_size_button: TextButton<i32>,
-    anti_aliasing_checkbox: Checkbox<()>
+    anti_aliasing_checkbox: Checkbox<()>,
+    border_checkbox: Checkbox<()>
 }
 
 impl CircleDrawTool {
@@ -48,6 +49,15 @@ impl CircleDrawTool {
                 true,
                 Position::new(235.0, 16.0),
                 None
+            ),
+            border_checkbox: Checkbox::new(
+                &image::open("content/ui/checkbox_unchecked.png").unwrap().into_rgba(),
+                &image::open("content/ui/checkbox_checked.png").unwrap().into_rgba(),
+                renders.ui_font.clone(),
+                "Border".to_owned(),
+                true,
+                Position::new(400.0, 16.0),
+                None
             )
         }
     }
@@ -59,22 +69,29 @@ impl CircleDrawTool {
         let end_y = end_position.y as i32;
         let radius = (((end_x - start_x).pow(2) + (end_y - start_y).pow(2)) as f64).sqrt() as i32;
 
-        ImageOperation::Sequential(vec![
+        let mut ops = vec![
             ImageOperation::FillCircle {
                 center_x: start_x,
                 center_y: start_y,
                 radius,
                 color: self.fill_color,
-            },
-            ImageOperation::Circle {
-                center_x: start_x,
-                center_y: start_y,
-                radius,
-                border_half_width: self.border_half_width,
-                color: self.border_color,
-                anti_aliased: Some(self.anti_aliasing_checkbox.checked)
-            },
-        ])
+            }
+        ];
+
+        if self.border_checkbox.checked {
+            ops.push(
+                ImageOperation::Circle {
+                    center_x: start_x,
+                    center_y: start_y,
+                    radius,
+                    border_half_width: self.border_half_width,
+                    color: self.border_color,
+                    anti_aliased: Some(self.anti_aliasing_checkbox.checked)
+                }
+            );
+        }
+
+        ImageOperation::Sequential(ops)
     }
 }
 
@@ -121,6 +138,7 @@ impl Tool for CircleDrawTool {
 
         self.change_border_size_button.process_gui_event(window, event, &mut self.border_half_width);
         self.anti_aliasing_checkbox.process_gui_event(window, event, &mut ());
+        self.border_checkbox.process_gui_event(window, event, &mut ());
 
         return op;
     }
@@ -139,5 +157,6 @@ impl Tool for CircleDrawTool {
         self.change_border_size_button.render(renders, transform);
 
         self.anti_aliasing_checkbox.render(renders, transform);
+        self.border_checkbox.render(renders, transform);
     }
 }
