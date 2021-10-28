@@ -264,3 +264,89 @@ impl<T> GenericButton<T> for TextButton<T> {
         );
     }
 }
+
+pub struct Checkbox<T=CommandBuffer> {
+    unchecked_texture: Texture,
+    checked_texture: Texture,
+    font: FontRef,
+    text: String,
+    pub checked: bool,
+    position: Position,
+    command_action: Option<CommandAction<Self>>
+}
+
+impl<T> Checkbox<T> {
+    pub fn new(unchecked_image: &image::RgbaImage,
+               checked_image: &image::RgbaImage,
+               font: FontRef,
+               text: String,
+               checked: bool,
+               position: Position,
+               command_action: Option<CommandAction<Self>>) -> Checkbox<T> {
+        Checkbox {
+            unchecked_texture: Texture::from_image(unchecked_image),
+            checked_texture: Texture::from_image(checked_image),
+            font,
+            text,
+            checked,
+            position,
+            command_action
+        }
+    }
+}
+
+impl<T> GenericButton<T> for Checkbox<T> {
+    fn process_gui_event(&mut self, window: &mut dyn EditorWindow, event: &glfw::WindowEvent, _argument: &mut T) {
+        let bounding_rectangle = Rectangle::new(
+            self.position.x,
+            self.position.y,
+            self.checked_texture.width() as f32,
+            self.checked_texture.height() as f32
+        );
+
+        match event {
+            glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Release, _) => {
+                let mouse_position = window.get_cursor_pos();
+                if bounding_rectangle.contains(&Position::new(mouse_position.0 as f32, mouse_position.1 as f32)) {
+                    self.checked = !self.checked;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn process_command(&mut self, command: &Command) {
+        let command_action = self.command_action.take();
+        if let Some(command_action) = command_action.as_ref() {
+            (command_action)(self, command);
+        }
+        self.command_action = command_action;
+    }
+
+    fn render(&self, renders: &Renders, transform: &Matrix4<f32>) {
+        if self.checked {
+            renders.texture_render.render(
+                renders.texture_render.shader(),
+                &transform,
+                &self.checked_texture,
+                self.position
+            );
+        } else {
+            renders.texture_render.render(
+                renders.texture_render.shader(),
+                &transform,
+                &self.unchecked_texture,
+                self.position
+            );
+        }
+
+        renders.text_render.draw_line(
+            renders.text_render.shader(),
+            transform,
+            self.font.borrow_mut().deref_mut(),
+            self.text.chars().map(|c| (c, RenderingColor::new(0, 0, 0))),
+            Position::new(self.position.x + 6.0 + self.unchecked_texture.width() as f32, self.position.y - 0.5 * self.unchecked_texture.height() as f32),
+            TextAlignment::Top
+        );
+    }
+}

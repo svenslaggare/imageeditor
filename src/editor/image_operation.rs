@@ -67,7 +67,7 @@ pub enum ImageOperation {
     Line { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, anti_aliased: Option<bool>, side_half_width: i32 },
     Rectangle { start_x: i32, start_y: i32, end_x: i32, end_y: i32, border_half_width: i32, color: Color },
     FillRectangle { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, blend: bool },
-    Circle { center_x: i32, center_y: i32, radius: i32, border_half_width: i32, color: Color },
+    Circle { center_x: i32, center_y: i32, radius: i32, border_half_width: i32, color: Color, anti_aliased: Option<bool> },
     FillCircle { center_x: i32, center_y: i32, radius: i32, color: Color },
     BucketFill { start_x: i32, start_y: i32, fill_color: Color, tolerance: f32 },
     ColorGradient { start_x: i32, start_y: i32, end_x: i32, end_y: i32, first_color: Color, second_color: Color, gradient_type: ColorGradientType }
@@ -359,29 +359,31 @@ impl ImageOperation {
                     None
                 }
             }
-            ImageOperation::Circle { center_x, center_y, radius, border_half_width: border_side_half_width, color } => {
+            ImageOperation::Circle { center_x, center_y, radius, border_half_width, color, anti_aliased} => {
                 let mut undo_image = SparseImage::new();
 
-                // draw_circle(
-                //     *center_x,
-                //     *center_y,
-                //     *radius,
-                //     false,
-                //     |center_x: i32, center_y: i32| {
-                //         draw_block(update_op, center_x, center_y, *border_side_half_width, *color, undo, &mut undo_image);
-                //     }
-                // );
-
-                draw_circle_anti_aliased_thick(
-                    update_op,
-                    *center_x,
-                    *center_y,
-                    *radius,
-                    *border_side_half_width,
-                    *color,
-                    undo,
-                    &mut undo_image
-                );
+                if anti_aliased.unwrap_or(true) {
+                    draw_circle_anti_aliased_thick(
+                        update_op,
+                        *center_x,
+                        *center_y,
+                        *radius,
+                        *border_half_width,
+                        *color,
+                        undo,
+                        &mut undo_image
+                    );
+                } else {
+                    draw_circle(
+                        *center_x,
+                        *center_y,
+                        *radius,
+                        false,
+                        |center_x: i32, center_y: i32| {
+                            draw_block(update_op, center_x, center_y, *border_half_width, *color, undo, &mut undo_image);
+                        }
+                    );
+                }
 
                 if undo {
                     Some(ImageOperation::SetImageSparse { image: undo_image })

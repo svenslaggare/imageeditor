@@ -6,7 +6,7 @@ use crate::editor;
 use crate::command_buffer::{Command, CommandBuffer};
 use crate::editor::tools::{Tool, get_transformed_mouse_position, EditorWindow};
 use crate::editor::image_operation::{ImageOperation};
-use crate::ui::button::{TextButton, GenericButton};
+use crate::ui::button::{TextButton, GenericButton, Checkbox};
 use crate::program::Renders;
 use crate::editor::Image;
 
@@ -16,7 +16,8 @@ pub struct CircleDrawTool {
     border_color: editor::Color,
     fill_color: editor::Color,
     border_half_width: i32,
-    change_border_size_button: TextButton<i32>
+    change_border_size_button: TextButton<i32>,
+    anti_aliasing_checkbox: Checkbox<()>
 }
 
 impl CircleDrawTool {
@@ -38,6 +39,15 @@ impl CircleDrawTool {
                     *border_half_width = (*border_half_width - 1).max(0);
                 })),
                 None,
+            ),
+            anti_aliasing_checkbox: Checkbox::new(
+                &image::open("content/ui/checkbox_unchecked.png").unwrap().into_rgba(),
+                &image::open("content/ui/checkbox_checked.png").unwrap().into_rgba(),
+                renders.ui_font.clone(),
+                "Anti-aliasing".to_owned(),
+                true,
+                Position::new(235.0, 16.0),
+                None
             )
         }
     }
@@ -62,6 +72,7 @@ impl CircleDrawTool {
                 radius,
                 border_half_width: self.border_half_width,
                 color: self.border_color,
+                anti_aliased: Some(self.anti_aliasing_checkbox.checked)
             },
         ])
     }
@@ -84,9 +95,9 @@ impl Tool for CircleDrawTool {
                          window: &mut dyn EditorWindow,
                          event: &WindowEvent,
                          image_area_transform: &Matrix3<f32>,
-                         image_area_rectangle: &Rectangle,
-                         command_buffer: &mut CommandBuffer,
-                         image: &editor::Image) -> Option<ImageOperation> {
+                         _image_area_rectangle: &Rectangle,
+                         _command_buffer: &mut CommandBuffer,
+                         _image: &editor::Image) -> Option<ImageOperation> {
         let mut op = None;
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
@@ -109,6 +120,7 @@ impl Tool for CircleDrawTool {
         }
 
         self.change_border_size_button.process_gui_event(window, event, &mut self.border_half_width);
+        self.anti_aliasing_checkbox.process_gui_event(window, event, &mut ());
 
         return op;
     }
@@ -122,8 +134,10 @@ impl Tool for CircleDrawTool {
         return true;
     }
 
-    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
+    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, _image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
         self.change_border_size_button.change_text(format!("Border size: {}", self.border_half_width * 2 + 1));
         self.change_border_size_button.render(renders, transform);
+
+        self.anti_aliasing_checkbox.render(renders, transform);
     }
 }

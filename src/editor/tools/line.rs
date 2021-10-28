@@ -6,7 +6,7 @@ use crate::editor;
 use crate::command_buffer::{Command, CommandBuffer};
 use crate::editor::tools::{Tool, get_transformed_mouse_position, EditorWindow};
 use crate::editor::image_operation::{ImageOperation};
-use crate::ui::button::{TextButton, GenericButton};
+use crate::ui::button::{TextButton, GenericButton, Checkbox};
 use crate::program::Renders;
 use crate::editor::Image;
 
@@ -15,7 +15,8 @@ pub struct LineDrawTool {
     end_position: Option<Position>,
     color: editor::Color,
     side_half_width: i32,
-    change_size_button: TextButton<i32>
+    change_size_button: TextButton<i32>,
+    anti_aliasing_checkbox: Checkbox<()>
 }
 
 impl LineDrawTool {
@@ -36,6 +37,15 @@ impl LineDrawTool {
                     *side_half_width = (*side_half_width - 1).max(0);
                 })),
                 None,
+            ),
+            anti_aliasing_checkbox: Checkbox::new(
+                &image::open("content/ui/checkbox_unchecked.png").unwrap().into_rgba(),
+                &image::open("content/ui/checkbox_checked.png").unwrap().into_rgba(),
+                renders.ui_font.clone(),
+                "Anti-aliasing".to_owned(),
+                true,
+                Position::new(235.0, 16.0),
+                None
             )
         }
     }
@@ -47,7 +57,7 @@ impl LineDrawTool {
             end_x: end_position.x as i32,
             end_y: end_position.y as i32,
             color: self.color,
-            anti_aliased: None,
+            anti_aliased: Some(self.anti_aliasing_checkbox.checked),
             side_half_width: self.side_half_width
         }
     }
@@ -67,9 +77,9 @@ impl Tool for LineDrawTool {
                          window: &mut dyn EditorWindow,
                          event: &WindowEvent,
                          image_area_transform: &Matrix3<f32>,
-                         image_area_rectangle: &Rectangle,
-                         command_buffer: &mut CommandBuffer,
-                         image: &editor::Image) -> Option<ImageOperation> {
+                         _image_area_rectangle: &Rectangle,
+                         _command_buffer: &mut CommandBuffer,
+                         _image: &editor::Image) -> Option<ImageOperation> {
         let mut op = None;
 
         match event {
@@ -93,6 +103,7 @@ impl Tool for LineDrawTool {
         }
 
         self.change_size_button.process_gui_event(window, event, &mut self.side_half_width);
+        self.anti_aliasing_checkbox.process_gui_event(window, event, &mut ());
 
         return op;
     }
@@ -106,8 +117,10 @@ impl Tool for LineDrawTool {
         return true;
     }
 
-    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
+    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, _image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
         self.change_size_button.change_text(format!("Line width: {}", self.side_half_width * 2 + 1));
         self.change_size_button.render(renders, transform);
+
+        self.anti_aliasing_checkbox.render(renders, transform);
     }
 }

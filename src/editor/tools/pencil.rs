@@ -12,7 +12,7 @@ use crate::editor::tools::{Tool, get_transformed_mouse_position, EditorWindow};
 use crate::editor::image_operation::{ImageOperation, ImageOperationMarker};
 use crate::program::Renders;
 use crate::rendering::text_render::TextAlignment;
-use crate::ui::button::{TextButton, GenericButton};
+use crate::ui::button::{TextButton, GenericButton, Checkbox};
 use crate::rendering::font::Font;
 use crate::editor::Image;
 
@@ -22,7 +22,8 @@ pub struct PencilDrawTool {
     color: editor::Color,
     alternative_color: editor::Color,
     side_half_width: i32,
-    change_size_button: TextButton<i32>
+    change_size_button: TextButton<i32>,
+    anti_aliasing_checkbox: Checkbox<()>
 }
 
 impl PencilDrawTool {
@@ -38,12 +39,21 @@ impl PencilDrawTool {
                 "".to_owned(),
                 Position::new(70.0, 10.0),
                 Some(Box::new(|side_half_width| {
-                    *side_half_width += 1;
+                    *side_half_width = (*side_half_width + 1).min(100);
                 })),
                 Some(Box::new(|side_half_width| {
                     *side_half_width = (*side_half_width - 1).max(0);
                 })),
                 None,
+            ),
+            anti_aliasing_checkbox: Checkbox::new(
+                &image::open("content/ui/checkbox_unchecked.png").unwrap().into_rgba(),
+                &image::open("content/ui/checkbox_checked.png").unwrap().into_rgba(),
+                renders.ui_font.clone(),
+                "Anti-aliasing".to_owned(),
+                true,
+                Position::new(235.0, 16.0),
+                None
             )
         }
     }
@@ -122,7 +132,7 @@ impl Tool for PencilDrawTool {
                                 end_x: mouse_position.x as i32,
                                 end_y: mouse_position.y as i32,
                                 color,
-                                anti_aliased: None,
+                                anti_aliased: Some(self.anti_aliasing_checkbox.checked),
                                 side_half_width: self.side_half_width
                             }
                         );
@@ -135,6 +145,7 @@ impl Tool for PencilDrawTool {
         }
 
         self.change_size_button.process_gui_event(window, event, &mut self.side_half_width);
+        self.anti_aliasing_checkbox.process_gui_event(window, event, &mut ());
 
         return op;
     }
@@ -143,8 +154,10 @@ impl Tool for PencilDrawTool {
         false
     }
 
-    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
+    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, _image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
         self.change_size_button.change_text(format!("Pencil size: {}", self.side_half_width * 2 + 1));
         self.change_size_button.render(renders, transform);
+
+        self.anti_aliasing_checkbox.render(renders, transform);
     }
 }
