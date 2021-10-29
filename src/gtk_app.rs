@@ -177,18 +177,52 @@ fn add_menu(app: &Application,
     // Open
     menu.append(Some("Open"), Some("app.open_file"));
     let open_file = gio::SimpleAction::new("open_file", None);
-    let gl_area_clone = gl_area.clone();
-    let gtk_program_clone = gtk_program.clone();
-    open_file.connect_activate(glib::clone!(@weak window => move |_, _| {
-        if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
-            let path = Path::new("/home/antjans/Bilder/TestImage.JPG").to_owned();
-            let image = image::open(&path).unwrap().into_rgba();
 
-            program.program.command_buffer.push(Command::SwitchImage(image));
-            gl_area_clone.queue_render();
-        }
+    let open_file_dialog = gtk::FileChooserDialogBuilder::new()
+        .transient_for(window)
+        .modal(true)
+        .action(FileChooserAction::Open)
+        .build();
+
+    open_file_dialog.add_buttons(&[
+        ("Open", gtk::ResponseType::Ok),
+        ("Cancel", gtk::ResponseType::Cancel),
+    ]);
+
+    let open_file_dialog = Rc::new(open_file_dialog);
+    let open_file_dialog_clone = open_file_dialog.clone();
+    open_file.connect_activate(glib::clone!(@weak window => move |_, _| {
+        open_file_dialog_clone.show();
     }));
     app.add_action(&open_file);
+
+    let open_file_dialog_clone = open_file_dialog.clone();
+    let gtk_program_clone = gtk_program.clone();
+    let gl_area_clone = gl_area.clone();
+    open_file_dialog.connect_response(move |dialog, response| {
+        match response {
+            ResponseType::Ok => {
+                if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
+                    if let Some(filename) = open_file_dialog_clone.filename() {
+                        match image::open(&filename) {
+                            Ok(image) => {
+                                program.program.command_buffer.push(Command::SwitchImage(image.into_rgba()));
+                                gl_area_clone.queue_render();
+                            }
+                            Err(err) => {
+                                println!("Failed to open file due to: {:?}.", err);
+                            }
+                        }
+                    }
+                }
+
+                dialog.hide();
+            }
+            _ => {
+                dialog.hide();
+            }
+        }
+    });
 
     // Save as
     menu.append(Some("Save as"), Some("app.save_file_as"));
@@ -227,10 +261,9 @@ fn add_menu(app: &Application,
 
                 dialog.hide();
             }
-            ResponseType::Cancel => {
+            _ => {
                 dialog.hide();
             }
-            _ => { panic!("Unexpected response."); }
         }
     });
 
