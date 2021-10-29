@@ -4,7 +4,7 @@ use std::ops::Deref;
 use std::collections::VecDeque;
 use std::collections::HashMap;
 use std::iter::FromIterator;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use gtk::prelude::*;
 use gtk::{Application, ApplicationWindow, Button, GLArea, Box, Orientation, EventBox, gdk, glib, Menu, AccelGroup, MenuBar, MenuItem, Image, Label, CheckMenuItem, IconSize, AccelFlags, gio, FileChooserAction, ResponseType};
@@ -178,94 +178,50 @@ fn add_menu(app: &Application,
     menu.append(Some("Open"), Some("app.open_file"));
     let open_file = gio::SimpleAction::new("open_file", None);
 
-    let open_file_dialog = gtk::FileChooserDialogBuilder::new()
-        .transient_for(window)
-        .modal(true)
-        .action(FileChooserAction::Open)
-        .build();
+    let gl_area_clone = gl_area.clone();
+    let open_file_dialog = create_file_dialog(
+        window,
+        gtk_program.clone(),
+        FileChooserAction::Open,
+        move |program, filename| {
+            match image::open(&filename) {
+                Ok(image) => {
+                    program.program.command_buffer.push(Command::SwitchImage(image.into_rgba()));
+                    gl_area_clone.queue_render();
+                }
+                Err(err) => {
+                    println!("Failed to open file due to: {:?}.", err);
+                }
+            }
+        }
+    );
 
-    open_file_dialog.add_buttons(&[
-        ("Open", gtk::ResponseType::Ok),
-        ("Cancel", gtk::ResponseType::Cancel),
-    ]);
-
-    let open_file_dialog = Rc::new(open_file_dialog);
     let open_file_dialog_clone = open_file_dialog.clone();
     open_file.connect_activate(glib::clone!(@weak window => move |_, _| {
         open_file_dialog_clone.show();
     }));
     app.add_action(&open_file);
 
-    let open_file_dialog_clone = open_file_dialog.clone();
-    let gtk_program_clone = gtk_program.clone();
-    let gl_area_clone = gl_area.clone();
-    open_file_dialog.connect_response(move |dialog, response| {
-        match response {
-            ResponseType::Ok => {
-                if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
-                    if let Some(filename) = open_file_dialog_clone.filename() {
-                        match image::open(&filename) {
-                            Ok(image) => {
-                                program.program.command_buffer.push(Command::SwitchImage(image.into_rgba()));
-                                gl_area_clone.queue_render();
-                            }
-                            Err(err) => {
-                                println!("Failed to open file due to: {:?}.", err);
-                            }
-                        }
-                    }
-                }
-
-                dialog.hide();
-            }
-            _ => {
-                dialog.hide();
-            }
-        }
-    });
-
     // Save as
     menu.append(Some("Save as"), Some("app.save_file_as"));
     let save_file_as = gio::SimpleAction::new("save_file_as", None);
 
-    let save_file_as_dialog = gtk::FileChooserDialogBuilder::new()
-        .transient_for(window)
-        .modal(true)
-        .action(FileChooserAction::Save)
-        .build();
+    let save_file_as_dialog = create_file_dialog(
+        window,
+        gtk_program.clone(),
+        FileChooserAction::Save,
+        |program, filename| {
+            if let Err(err) = program.program.editor.image().save(&filename) {
+                println!("Failed to save file due to: {:?}.", err);
+            }
+        }
+    );
 
-    save_file_as_dialog.add_buttons(&[
-        ("Save", gtk::ResponseType::Ok),
-        ("Cancel", gtk::ResponseType::Cancel),
-    ]);
-
-    let save_file_as_dialog = Rc::new(save_file_as_dialog);
     let save_file_as_dialog_clone = save_file_as_dialog.clone();
     save_file_as.connect_activate(glib::clone!(@weak window => move |_, _| {
         save_file_as_dialog_clone.show();
     }));
     app.add_action(&save_file_as);
-
-    let save_file_as_dialog_clone = save_file_as_dialog.clone();
-    let gtk_program_clone = gtk_program.clone();
-    save_file_as_dialog.connect_response(move |dialog, response| {
-        match response {
-            ResponseType::Ok => {
-                if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
-                    if let Some(filename) = save_file_as_dialog_clone.filename() {
-                        if let Err(err) = program.program.editor.image().save(&filename) {
-                            println!("Failed to save file due to: {:?}.", err);
-                        }
-                    }
-                }
-
-                dialog.hide();
-            }
-            _ => {
-                dialog.hide();
-            }
-        }
-    });
 
     // Quit
     menu.append(Some("Quit"), Some("app.quit"));
@@ -303,6 +259,53 @@ fn add_menu(app: &Application,
         }
     }));
     app.add_action(&redo);
+}
+
+fn create_file_dialog<F: Fn(&mut GTKProgram, PathBuf) + 'static>(window: &ApplicationWindow,
+                                                                 gtk_program: Rc<RefCell<Option<GTKProgram>>>,
+                                                                 action: FileChooserAction,
+                                                                 on_file: F) -> Rc<gtk::FileChooserDialog> {
+    let file_dialog = gtk::FileChooserDialogBuilder::new()
+        .transient_for(window)
+        .modal(true)
+        .action(action)
+        .build();
+
+    let action_name = match action {
+        FileChooserAction::Open => "Open",
+        FileChooserAction::Save => "Save",
+        FileChooserAction::SelectFolder => "Select",
+        FileChooserAction::CreateFolder => "Create",
+        _ => "Unknown"
+    };
+
+    file_dialog.add_buttons(&[
+        (action_name, gtk::ResponseType::Ok),
+        ("Cancel", gtk::ResponseType::Cancel),
+    ]);
+
+    let file_dialog = Rc::new(file_dialog);
+
+    let file_dialog_clone = file_dialog.clone();
+    let gtk_program_clone = gtk_program.clone();
+    file_dialog.connect_response(move |dialog, response| {
+        match response {
+            ResponseType::Ok => {
+                if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
+                    if let Some(filename) = file_dialog_clone.filename() {
+                        on_file(program, filename);
+                    }
+                }
+
+                dialog.hide();
+            }
+            _ => {
+                dialog.hide();
+            }
+        }
+    });
+
+    file_dialog
 }
 
 fn add_input_support(gtk_program: Rc<RefCell<Option<GTKProgram>>>,
