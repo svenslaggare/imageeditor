@@ -15,6 +15,7 @@ pub fn main() {
     }
 
     let image_to_edit = image::open(&args[1]).unwrap().into_rgba();
+    // let image_to_edit = image::open("/home/antjans/Bilder/TestImage.JPG").unwrap().into_rgba();
     let width = image_to_edit.width();
     let height = image_to_edit.height();
 

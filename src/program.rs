@@ -269,8 +269,8 @@ impl Program {
         let image_crop_rectangle = Rectangle::new(
             self.view_x,
             self.view_y,
-            self.editor.image().width() as f32 / self.zoom,
-            self.editor.image().height() as f32 / self.zoom
+            self.view_width as f32 / self.zoom,
+            self.view_height as f32 / self.zoom
         );
 
         for (state, image) in self.editor.image().layers() {
@@ -320,6 +320,15 @@ impl Program {
             &transform,
             &image_area_transform_full,
             self.editor.active_layer()
+        );
+
+        let image_area_rectangle = self.image_area_rectangle();
+        self.renders.solid_rectangle_render.render(
+            self.renders.solid_rectangle_render.shader(),
+            &transform,
+            image_area_rectangle.position,
+            image_area_rectangle.size,
+            Color4::new(255, 0, 0, 128)
         );
     }
 
