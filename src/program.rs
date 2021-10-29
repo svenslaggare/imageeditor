@@ -320,14 +320,14 @@ impl Program {
             self.editor.active_layer()
         );
 
-        let image_area_rectangle = self.image_area_rectangle();
-        self.renders.solid_rectangle_render.render(
-            self.renders.solid_rectangle_render.shader(),
-            &transform,
-            image_area_rectangle.position,
-            image_area_rectangle.size,
-            Color4::new(255, 0, 0, 128)
-        );
+        // let image_area_rectangle = self.image_area_rectangle();
+        // self.renders.solid_rectangle_render.render(
+        //     self.renders.solid_rectangle_render.shader(),
+        //     &transform,
+        //     image_area_rectangle.position,
+        //     image_area_rectangle.size,
+        //     Color4::new(255, 0, 0, 128)
+        // );
     }
 
     fn calculate_background_transparent_rectangle(&self) -> (Position, f32, f32) {
@@ -364,16 +364,25 @@ impl Program {
     }
 
     fn image_area_transform(&self, only_origin: bool) -> Matrix3<f32> {
+        let mut origin_x = LEFT_SIDE_PANEL_WIDTH as f32;
+        let mut origin_y = TOP_PANEL_HEIGHT as f32;
+
+        let center_origin_x = self.window_width as f32 / 2.0 - self.view_width as f32 / 2.0;
+        let center_origin_y = self.window_height as f32 / 2.0 - self.view_height as f32 / 2.0;
+
+        if (origin_x + self.view_width as f32) < self.window_width as f32 - SIDE_PANELS_WIDTH as f32 {
+            origin_x = center_origin_x;
+        }
+
+        if center_origin_y > origin_y {
+            origin_y = center_origin_y;
+        }
+
         let origin_transform = cgmath::Matrix3::from_cols(
-            cgmath::Vector3::new(1.0, 0.0, LEFT_SIDE_PANEL_WIDTH as f32),
-            cgmath::Vector3::new(0.0, 1.0, TOP_PANEL_HEIGHT as f32),
+            cgmath::Vector3::new(1.0, 0.0, origin_x),
+            cgmath::Vector3::new(0.0, 1.0, origin_y),
             cgmath::Vector3::new(0.0, 0.0, 1.0),
         ).transpose();
-        // let origin_transform = cgmath::Matrix3::from_cols(
-        //     cgmath::Vector3::new(1.0, 0.0, self.window_width as f32 / 2.0 - self.view_width as f32 / 2.0),
-        //     cgmath::Vector3::new(0.0, 1.0, self.window_height as f32 / 2.0 - self.view_height as f32 / 2.0),
-        //     cgmath::Vector3::new(0.0, 0.0, 1.0),
-        // ).transpose();
 
         if only_origin {
             origin_transform
