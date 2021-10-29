@@ -3,7 +3,7 @@ use glfw::{Action, Key, Modifiers, MouseButton};
 use cgmath::{Matrix3, Transform, Matrix4};
 
 use crate::editor::editor::{LayeredImageOperation, LayerState};
-use crate::program::{RIGHT_SIDE_PANEL_WIDTH, LAYER_BUFFER, LAYER_SPACING, Renders};
+use crate::program::{RIGHT_SIDE_PANEL_WIDTH, LAYER_BUFFER, LAYER_SPACING, Renders, LEFT_SIDE_PANEL_WIDTH, TOP_PANEL_HEIGHT};
 use crate::rendering::prelude::{Position, Rectangle, Color4, blend, Size};
 use crate::editor::Editor;
 use crate::editor::tools::EditorWindow;
@@ -23,7 +23,6 @@ impl LayersManager {
 
     pub fn process_gui_event(&mut self,
                              window: &mut dyn EditorWindow,
-                             image_area_transform: &Matrix3<f32>,
                              view_width: u32,
                              event: &glfw::WindowEvent,
                              editor: &mut Editor) {
@@ -56,8 +55,7 @@ impl LayersManager {
                 let mut layer_ops = Vec::new();
                 for (layer_index, (state, image)) in editor.image_mut().layers_mut().iter_mut().enumerate() {
                     if state != &LayerState::Deleted {
-                        let position = Position::new(view_width as f32 + LAYER_BUFFER, layer_offset);
-                        let position = image_area_transform.transform_point(position);
+                        let position = Position::new(view_width as f32 + LAYER_BUFFER + LEFT_SIDE_PANEL_WIDTH as f32, layer_offset + TOP_PANEL_HEIGHT as f32);
                         let layer_height = layer_width * (image.height() as f32 / image.width() as f32);
 
                         let bounding_rectangle = Rectangle::new(position.x, position.y, layer_width, layer_height);
@@ -99,15 +97,14 @@ impl LayersManager {
                   renders: &Renders,
                   editor: &Editor,
                   view_width: u32,
-                  background_transparent_texture: &Texture,
-                  image_area_transform: &Matrix4<f32>) {
+                  background_transparent_texture: &Texture) {
         let mut layer_offset = LAYER_BUFFER;
         let layer_width = RIGHT_SIDE_PANEL_WIDTH as f32 - LAYER_BUFFER;
 
         let active_layer_index = editor.active_layer_index();
         for (layer_index, (state, image)) in editor.image().layers().iter().enumerate() {
             if state != &LayerState::Deleted {
-                let position = Position::new(view_width as f32 + LAYER_BUFFER, layer_offset);
+                let position = Position::new(view_width as f32 + LAYER_BUFFER + LEFT_SIDE_PANEL_WIDTH as f32, layer_offset + TOP_PANEL_HEIGHT as f32);
                 let layer_height = layer_width * (image.height() as f32 / image.width() as f32);
 
                 let mut layer_color = None;
@@ -129,7 +126,7 @@ impl LayersManager {
                 if let Some(layer_color) = layer_color {
                     renders.solid_rectangle_render.render(
                         renders.solid_rectangle_render.shader(),
-                        &(transform * image_area_transform),
+                        transform,
                         Position::new(position.x - LAYER_BUFFER, position.y - LAYER_BUFFER),
                         Size::new(layer_width + LAYER_BUFFER, layer_height + LAYER_BUFFER * 2.0),
                         layer_color
@@ -138,22 +135,24 @@ impl LayersManager {
 
                 renders.texture_render.render_sized(
                     renders.texture_render.shader(),
-                    &(transform * image_area_transform),
+                    transform,
                     background_transparent_texture,
                     position,
                     layer_width,
                     layer_height,
-                    Some(Rectangle::new(
-                        0.0,
-                        0.0,
-                        layer_width,
-                        layer_height
-                    ))
+                    Some(
+                        Rectangle::new(
+                            0.0,
+                            0.0,
+                            layer_width,
+                            layer_height
+                        )
+                    )
                 );
 
                 renders.texture_render.render_sized(
                     renders.texture_render.shader(),
-                    &(transform * image_area_transform),
+                    transform,
                     image.get_texture(),
                     position,
                     layer_width,

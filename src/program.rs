@@ -122,7 +122,6 @@ impl Program {
                     self.ui_manager.process_gui_event(window, &event, &mut self.command_buffer);
                     self.layers_manager.process_gui_event(
                         window,
-                        &self.image_area_transform(true),
                         self.window_width - SIDE_PANELS_WIDTH,
                         &event,
                         &mut self.editor
@@ -188,7 +187,7 @@ impl Program {
         }
     }
 
-    fn process_internal_events(&mut self, window: &mut dyn EditorWindow, event: &glfw::WindowEvent) {
+    fn process_internal_events(&mut self, _window: &mut dyn EditorWindow, event: &glfw::WindowEvent) {
         match event {
             glfw::WindowEvent::Key(Key::Z, _, Action::Press, Modifiers::Control) => {
                 self.command_buffer.push(Command::UndoImageOp);
@@ -292,7 +291,6 @@ impl Program {
             &self.editor,
             self.window_width - SIDE_PANELS_WIDTH,
             &self.background_transparent_texture,
-            &image_area_transform,
         );
 
         self.ui_manager.render(&self.renders, &transform);
@@ -322,14 +320,14 @@ impl Program {
             self.editor.active_layer()
         );
 
-        // let image_area_rectangle = self.image_area_rectangle();
-        // self.renders.solid_rectangle_render.render(
-        //     self.renders.solid_rectangle_render.shader(),
-        //     &transform,
-        //     image_area_rectangle.position,
-        //     image_area_rectangle.size,
-        //     Color4::new(255, 0, 0, 128)
-        // );
+        let image_area_rectangle = self.image_area_rectangle();
+        self.renders.solid_rectangle_render.render(
+            self.renders.solid_rectangle_render.shader(),
+            &transform,
+            image_area_rectangle.position,
+            image_area_rectangle.size,
+            Color4::new(255, 0, 0, 128)
+        );
     }
 
     fn calculate_background_transparent_rectangle(&self) -> (Position, f32, f32) {
@@ -371,6 +369,11 @@ impl Program {
             cgmath::Vector3::new(0.0, 1.0, TOP_PANEL_HEIGHT as f32),
             cgmath::Vector3::new(0.0, 0.0, 1.0),
         ).transpose();
+        // let origin_transform = cgmath::Matrix3::from_cols(
+        //     cgmath::Vector3::new(1.0, 0.0, self.window_width as f32 / 2.0 - self.view_width as f32 / 2.0),
+        //     cgmath::Vector3::new(0.0, 1.0, self.window_height as f32 / 2.0 - self.view_height as f32 / 2.0),
+        //     cgmath::Vector3::new(0.0, 0.0, 1.0),
+        // ).transpose();
 
         if only_origin {
             origin_transform
