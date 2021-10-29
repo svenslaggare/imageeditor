@@ -272,12 +272,31 @@ impl Program {
             self.view_height as f32 / self.zoom
         );
 
-        for (state, image) in self.editor.image().layers() {
+        let changed = {
+            self.tools[self.active_tool.index()].preview(self.editor.active_layer(), &mut self.preview_image)
+        };
+
+        if changed {
+            self.preview_image.clear_cpu();
+        }
+
+        for (index, (state, image)) in self.editor.image().layers().iter().enumerate() {
             if state == &LayerState::Visible {
                 self.renders.texture_render.render_sub(
                     self.renders.texture_render.shader(),
                     &(transform * image_area_transform),
                     image.get_texture(),
+                    Position::new(0.0, 0.0),
+                    self.zoom,
+                    Some(image_crop_rectangle.clone())
+                );
+            }
+
+            if index == self.editor.active_layer_index() {
+                self.renders.texture_render.render_sub(
+                    self.renders.texture_render.shader(),
+                    &(transform * image_area_transform),
+                    self.preview_image.get_texture(),
                     Position::new(0.0, 0.0),
                     self.zoom,
                     Some(image_crop_rectangle.clone())
@@ -294,23 +313,6 @@ impl Program {
         );
 
         self.ui_manager.render(&self.renders, &transform);
-
-        let changed = {
-            self.tools[self.active_tool.index()].preview(self.editor.active_layer(), &mut self.preview_image)
-        };
-
-        if changed {
-            self.preview_image.clear_cpu();
-        }
-
-        self.renders.texture_render.render_sub(
-            self.renders.texture_render.shader(),
-            &(transform * image_area_transform),
-            self.preview_image.get_texture(),
-            Position::new(0.0, 0.0),
-            self.zoom,
-            Some(image_crop_rectangle.clone())
-        );
 
         let image_area_transform_full = self.image_area_transform_matrix4(false);
         self.tools[self.active_tool.index()].render(
