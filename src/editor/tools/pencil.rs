@@ -80,19 +80,43 @@ impl Tool for PencilDrawTool {
                          _command_buffer: &mut CommandBuffer,
                          _image: &editor::Image) -> Option<ImageOperation> {
         let create_begin_draw = |this: &Self, mouse_position: Position, color: editor::Color| {
-            Some(
-                ImageOperation::Sequential(
-                    vec![
-                        ImageOperation::Marker(ImageOperationMarker::BeginDraw),
-                        ImageOperation::Block {
-                            x: mouse_position.x as i32,
-                            y: mouse_position.y as i32,
-                            color,
-                            side_half_width: this.side_half_width
-                        }
-                    ]
+            if this.anti_aliasing_checkbox.checked {
+                Some(
+                    ImageOperation::Sequential(
+                        vec![
+                            ImageOperation::Marker(ImageOperationMarker::BeginDraw),
+                            ImageOperation::FillCircle {
+                                center_x: mouse_position.x as i32,
+                                center_y: mouse_position.y as i32,
+                                radius: this.side_half_width,
+                                color
+                            },
+                            ImageOperation::Circle {
+                                center_x: mouse_position.x as i32,
+                                center_y: mouse_position.y as i32,
+                                radius: this.side_half_width - 4,
+                                border_half_width: 2,
+                                color,
+                                anti_aliased: Some(this.anti_aliasing_checkbox.checked)
+                            }
+                        ]
+                    )
                 )
-            )
+            } else {
+                Some(
+                    ImageOperation::Sequential(
+                        vec![
+                            ImageOperation::Marker(ImageOperationMarker::BeginDraw),
+                            ImageOperation::Block {
+                                x: mouse_position.x as i32,
+                                y: mouse_position.y as i32,
+                                side_half_width: this.side_half_width,
+                                color
+                            },
+                        ]
+                    )
+                )
+            }
         };
 
         let mut op = None;

@@ -69,17 +69,14 @@ impl CircleDrawTool {
         let end_y = end_position.y as i32;
         let radius = (((end_x - start_x).pow(2) + (end_y - start_y).pow(2)) as f64).sqrt() as i32;
 
-        let mut ops = vec![
-            ImageOperation::FillCircle {
-                center_x: start_x,
-                center_y: start_y,
-                radius,
-                color: self.fill_color,
-            }
-        ];
-
         if self.border_checkbox.checked {
-            ops.push(
+            ImageOperation::Sequential(vec![
+                ImageOperation::FillCircle {
+                    center_x: start_x,
+                    center_y: start_y,
+                    radius,
+                    color: self.fill_color,
+                },
                 ImageOperation::Circle {
                     center_x: start_x,
                     center_y: start_y,
@@ -88,10 +85,25 @@ impl CircleDrawTool {
                     color: self.border_color,
                     anti_aliased: Some(self.anti_aliasing_checkbox.checked)
                 }
-            );
+            ])
+        } else {
+            ImageOperation::Sequential(vec![
+                ImageOperation::FillCircle {
+                    center_x: start_x,
+                    center_y: start_y,
+                    radius: radius - 4,
+                    color: self.fill_color,
+                },
+                ImageOperation::Circle {
+                    center_x: start_x,
+                    center_y: start_y,
+                    radius: radius - 4,
+                    border_half_width: 2,
+                    color: self.fill_color,
+                    anti_aliased: Some(self.anti_aliasing_checkbox.checked)
+                }
+            ])
         }
-
-        ImageOperation::Sequential(ops)
     }
 }
 
