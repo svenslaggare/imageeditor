@@ -123,7 +123,7 @@ impl Program {
                     self.layers_manager.process_gui_event(
                         window,
                         &self.image_area_transform(true),
-                        self.view_width,
+                        self.window_width - SIDE_PANELS_WIDTH,
                         &event,
                         &mut self.editor
                     );
@@ -290,7 +290,7 @@ impl Program {
             transform,
             &self.renders,
             &self.editor,
-            self.view_width,
+            self.window_width - SIDE_PANELS_WIDTH,
             &self.background_transparent_texture,
             &image_area_transform,
         );
@@ -376,18 +376,18 @@ impl Program {
             origin_transform
         } else {
             origin_transform
-                *
-                cgmath::Matrix3::from_cols(
-                    cgmath::Vector3::new(self.zoom, 0.0, 0.0),
-                    cgmath::Vector3::new(0.0, self.zoom, 0.0),
-                    cgmath::Vector3::new(0.0, 0.0, 1.0),
-                ).transpose()
-                *
-                cgmath::Matrix3::from_cols(
-                    cgmath::Vector3::new(1.0, 0.0, -self.view_x),
-                    cgmath::Vector3::new(0.0, 1.0, -self.view_y),
-                    cgmath::Vector3::new(0.0, 0.0, 1.0),
-                ).transpose()
+            *
+            cgmath::Matrix3::from_cols(
+                cgmath::Vector3::new(self.zoom, 0.0, 0.0),
+                cgmath::Vector3::new(0.0, self.zoom, 0.0),
+                cgmath::Vector3::new(0.0, 0.0, 1.0),
+            ).transpose()
+            *
+            cgmath::Matrix3::from_cols(
+                cgmath::Vector3::new(1.0, 0.0, -self.view_x),
+                cgmath::Vector3::new(0.0, 1.0, -self.view_y),
+                cgmath::Vector3::new(0.0, 0.0, 1.0),
+            ).transpose()
         }
     }
 
