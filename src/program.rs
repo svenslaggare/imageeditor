@@ -322,14 +322,14 @@ impl Program {
             self.editor.active_layer()
         );
 
-        let image_area_rectangle = self.image_area_rectangle();
-        self.renders.solid_rectangle_render.render(
-            self.renders.solid_rectangle_render.shader(),
-            &transform,
-            image_area_rectangle.position,
-            image_area_rectangle.size,
-            Color4::new(255, 0, 0, 128)
-        );
+        // let image_area_rectangle = self.image_area_rectangle();
+        // self.renders.solid_rectangle_render.render(
+        //     self.renders.solid_rectangle_render.shader(),
+        //     &transform,
+        //     image_area_rectangle.position,
+        //     image_area_rectangle.size,
+        //     Color4::new(255, 0, 0, 128)
+        // );
     }
 
     fn calculate_background_transparent_rectangle(&self) -> (Position, f32, f32) {
@@ -406,7 +406,6 @@ impl Program {
         let origin_transform = self.image_area_transform(true);
         let x = origin_transform.z.x;
         let y = origin_transform.z.y;
-        // Rectangle::new(x, y, self.editor.image().width() as f32 + x, self.editor.image().height() as f32 + y)
         Rectangle::new(x, y, self.view_width as f32, self.view_height as f32)
     }
 }
