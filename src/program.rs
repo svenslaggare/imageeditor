@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::path::Path;
 
-use cgmath::{Matrix3, Matrix4, Transform, Matrix, SquareMatrix};
+use cgmath::{Matrix3, Matrix4, Transform, Matrix, SquareMatrix, Vector2};
 
 use glfw::{Key, Action, Modifiers, MouseButton};
 
@@ -112,9 +112,6 @@ impl Program {
                         self.window_height = height as u32;
                         self.update_view_size();
                     }
-                }
-                glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => {
-                    window.set_should_close(true);
                 }
                 event => {
                     self.process_internal_events(window, &event);
@@ -251,6 +248,7 @@ impl Program {
 
     pub fn render(&mut self, transform: &Matrix4<f32>) {
         let image_area_transform = self.image_area_transform_matrix4(true);
+        let image_area_transform_full = self.image_area_transform_matrix4(false);
 
         let (background_transparent_start, background_transparent_width, background_transparent_height) = self.calculate_background_transparent_rectangle();
         if background_transparent_width > 0.0 && background_transparent_height > 0.0 {
@@ -272,9 +270,12 @@ impl Program {
             self.view_height as f32 / self.zoom
         );
 
-        let changed = {
-            self.tools[self.active_tool.index()].preview(self.editor.active_layer(), &mut self.preview_image)
-        };
+        let mut transparent_area = None;
+        let changed = self.tools[self.active_tool.index()].preview(
+            self.editor.active_layer(),
+            &mut self.preview_image,
+            &mut transparent_area
+        );
 
         if changed {
             self.preview_image.clear_cpu();
@@ -293,6 +294,25 @@ impl Program {
             }
 
             if index == self.editor.active_layer_index() {
+                if let Some(transparent_area) = transparent_area.as_ref() {
+                    self.renders.texture_render.render_sized(
+                        self.renders.texture_render.shader(),
+                        &(transform * image_area_transform_full),
+                        &self.background_transparent_texture,
+                        transparent_area.position,
+                        transparent_area.size.x,
+                        transparent_area.size.y,
+                        Some(
+                            Rectangle::new(
+                                0.0,
+                                0.0,
+                                transparent_area.size.x * self.zoom,
+                                transparent_area.size.y * self.zoom
+                            )
+                        )
+                    );
+                }
+
                 self.renders.texture_render.render_sub(
                     self.renders.texture_render.shader(),
                     &(transform * image_area_transform),
@@ -304,6 +324,38 @@ impl Program {
             }
         }
 
+        self.tools[self.active_tool.index()].render_image_area(
+            &self.renders,
+            &transform,
+            &image_area_transform_full,
+            self.editor.active_layer()
+        );
+
+        let menu_color = Color4::new(255, 255, 255, 255);
+        self.renders.solid_rectangle_render.render(
+            self.renders.solid_rectangle_render.shader(),
+            transform,
+            Position::new(0.0, 0.0),
+            Size::new(LEFT_SIDE_PANEL_WIDTH as f32, self.window_height as f32),
+            menu_color
+        );
+
+        self.renders.solid_rectangle_render.render(
+            self.renders.solid_rectangle_render.shader(),
+            transform,
+            Position::new(0.0, 0.0),
+            Size::new(self.window_width as f32, TOP_PANEL_HEIGHT as f32),
+            menu_color
+        );
+
+        self.renders.solid_rectangle_render.render(
+            self.renders.solid_rectangle_render.shader(),
+            transform,
+            Position::new(self.window_width as f32 - RIGHT_SIDE_PANEL_WIDTH as f32, 0.0),
+            Size::new(RIGHT_SIDE_PANEL_WIDTH as f32, self.window_height as f32),
+            menu_color
+        );
+
         self.layers_manager.render(
             transform,
             &self.renders,
@@ -314,8 +366,7 @@ impl Program {
 
         self.ui_manager.render(&self.renders, &transform);
 
-        let image_area_transform_full = self.image_area_transform_matrix4(false);
-        self.tools[self.active_tool.index()].render(
+        self.tools[self.active_tool.index()].render_ui(
             &self.renders,
             &transform,
             &image_area_transform_full,

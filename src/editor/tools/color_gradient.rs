@@ -112,7 +112,10 @@ impl Tool for ColorGradientDrawTool {
         return op;
     }
 
-    fn preview(&mut self, _image: &editor::Image, preview_image: &mut editor::Image) -> bool {
+    fn preview(&mut self,
+               _image: &editor::Image,
+               preview_image: &mut editor::Image,
+               _transparent_area: &mut Option<Rectangle>) -> bool {
         let mut update_op = preview_image.update_operation();
         if let (Some(start_position), Some(end_position)) = (self.start_position.as_ref(), self.end_position.as_ref()) {
             self.create_op(&start_position, &end_position).apply(&mut update_op, false);
@@ -121,7 +124,7 @@ impl Tool for ColorGradientDrawTool {
         return true;
     }
 
-    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
+    fn render_ui(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
         self.set_linear_button.render(renders, transform);
         self.set_radial_button.render(renders, transform);
     }

@@ -32,7 +32,7 @@ pub fn main() {
         let mut image_to_edit = image::open(&program_args[1]).unwrap().into_rgba();
 
         let width = (image_to_edit.width() + SIDE_PANELS_WIDTH) as i32;
-        let height = (image_to_edit.height() + TOP_PANEL_HEIGHT) as i32;
+        let height = (image_to_edit.height() + TOP_PANEL_HEIGHT + 27) as i32;
 
         let window = ApplicationWindow::builder()
             .application(app)

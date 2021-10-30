@@ -141,7 +141,10 @@ impl Tool for EffectDrawTool {
         None
     }
 
-    fn preview(&mut self, image: &editor::Image, preview_image: &mut editor::Image) -> bool {
+    fn preview(&mut self,
+               image: &editor::Image,
+               preview_image: &mut editor::Image,
+               _transparent_area: &mut Option<Rectangle>) -> bool {
         if self.changed {
             if let Some(preview_frame_buffer) = self.preview_frame_buffer.as_ref() {
                 let mut preview_image_op = preview_image.update_operation();

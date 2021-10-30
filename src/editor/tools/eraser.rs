@@ -99,11 +99,14 @@ impl Tool for EraserDrawTool {
         return op;
     }
 
-    fn preview(&mut self, _image: &editor::Image, _preview_image: &mut editor::Image) -> bool {
+    fn preview(&mut self,
+               _image: &editor::Image,
+               _preview_image: &mut editor::Image,
+               _transparent_area: &mut Option<Rectangle>) -> bool {
         false
     }
 
-    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
+    fn render_ui(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
         self.change_size_button.change_text(format!("Eraser size: {}", self.side_half_width * 2 + 1));
         self.change_size_button.render(renders, transform);
     }

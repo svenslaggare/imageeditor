@@ -60,7 +60,10 @@ impl Tool for ColorPickerTool {
         None
     }
 
-    fn preview(&mut self, _image: &editor::Image, _preview_image: &mut editor::Image) -> bool {
+    fn preview(&mut self,
+               _image: &editor::Image,
+               _preview_image: &mut editor::Image,
+               _transparent_area: &mut Option<Rectangle>) -> bool {
         false
     }
 }

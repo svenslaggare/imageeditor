@@ -383,16 +383,8 @@ impl SelectionTool {
         None
     }
 
-    fn create_erased_area(&self, selection: &Selection, preview: bool) -> ImageOperation {
-        if preview {
-            ImageOperation::SetPseudoTransparent {
-                start_x: selection.start_x,
-                start_y: selection.start_y,
-                end_x: selection.end_x,
-                end_y: selection.end_y,
-                pattern: self.transparent_image.clone()
-            }
-        } else {
+    fn create_erased_area(&self, selection: &Selection, preview: bool) -> ImageOperation{
+        if !preview {
             ImageOperation::FillRectangle {
                 start_x: selection.start_x,
                 start_y: selection.start_y,
@@ -401,6 +393,8 @@ impl SelectionTool {
                 color: image::Rgba([0, 0, 0, 0]),
                 blend: false
             }
+        } else {
+            ImageOperation::Empty
         }
     }
 
@@ -487,31 +481,33 @@ impl Tool for SelectionTool {
         op
     }
 
-    fn preview(&mut self, _image: &editor::Image, preview_image: &mut editor::Image) -> bool {
+    fn preview(&mut self,
+               _image: &editor::Image,
+               preview_image: &mut editor::Image,
+               transparent_area: &mut Option<Rectangle>) -> bool {
         let mut update_op = preview_image.update_operation();
-        // if let Some(selection) = self.selection() {
-        //     if let Some(move_op) = self.create_move(true) {
-        //         move_op.apply(&mut update_op, false);
-        //     }
-        //
-        //     if let Some(resize_op) = self.create_resize(true) {
-        //         resize_op.apply(&mut update_op, false);
-        //     }
-        //
-        //     self.create_selection_gui(&selection).apply(&mut update_op, false);
-        // }
+
+        let mut erased_area = false;
         if let Some(move_op) = self.create_move(true) {
+            erased_area = true;
             move_op.apply(&mut update_op, false);
         }
 
         if let Some(resize_op) = self.create_resize(true) {
+            erased_area = true;
             resize_op.apply(&mut update_op, false);
+        }
+
+        if erased_area {
+            if let Some(selection) = self.original_selection() {
+                *transparent_area = Some(Rectangle::from_min_and_max(&selection.start_position(), &selection.end_position()));
+            }
         }
 
         return true;
     }
 
-    fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>, image: &editor::Image) {
+    fn render_image_area(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>, image: &editor::Image) {
         if let Some(mut selection) = self.selection() {
             let clamp_x = |x: i32| x.clamp(0, image.width() as i32 - 1);
             let clamp_y = |y: i32| y.clamp(0, image.height() as i32 - 1);
