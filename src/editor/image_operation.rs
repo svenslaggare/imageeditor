@@ -190,16 +190,16 @@ impl ImageOperation {
                             update_op,
                             *start_x,
                             *start_y,
-                            *end_x + 1,
-                            *end_y + 1
+                            *end_x,
+                            *end_y
                         )
                     )
                 } else {
                     None
                 };
 
-                for y in *start_y..(*end_y + 1) {
-                    for x in *start_x..(*end_x + 1) {
+                for y in *start_y..(*end_y) {
+                    for x in *start_x..(*end_x) {
                         let pattern_x = x % pattern.width() as i32;
                         let pattern_y = y % pattern.height() as i32;
 
@@ -343,8 +343,8 @@ impl ImageOperation {
 
                 let min_x = std::cmp::max(0, *start_x);
                 let min_y = std::cmp::max(0, *start_y);
-                let max_x = std::cmp::min(width, *end_x + 1);
-                let max_y = std::cmp::min(height, *end_y + 1);
+                let max_x = std::cmp::min(width, *end_x);
+                let max_y = std::cmp::min(height, *end_y);
 
                 let undo_image = if undo {
                     Some(sub_image(update_op, min_x, min_y, max_x, max_y))

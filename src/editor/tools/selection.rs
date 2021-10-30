@@ -260,7 +260,15 @@ impl SelectionTool {
                     if selection_rectangle.contains(&current_mouse_position) {
                         if self.move_pixels_state.moved_pixels_image.is_none() {
                             self.move_pixels_state.original_selection = Some(selection.clone());
-                            self.move_pixels_state.moved_pixels_image = Some(sub_image(image, selection.start_x, selection.start_y, selection.end_x, selection.end_y));
+                            self.move_pixels_state.moved_pixels_image = Some(
+                                sub_image(
+                                    image,
+                                    selection.start_x,
+                                    selection.start_y,
+                                    selection.end_x,
+                                    selection.end_y
+                                )
+                            );
                         }
 
                         self.move_pixels_state.is_moving = true;
