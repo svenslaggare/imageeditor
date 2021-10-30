@@ -19,6 +19,7 @@ use crate::editor::Image;
 pub struct PencilDrawTool {
     is_drawing: Option<editor::Color>,
     prev_mouse_position: Option<Position>,
+    prev_prev_mouse_position: Option<Position>,
     color: editor::Color,
     alternative_color: editor::Color,
     side_half_width: i32,
@@ -31,6 +32,7 @@ impl PencilDrawTool {
         PencilDrawTool {
             is_drawing: None,
             prev_mouse_position: None,
+            prev_prev_mouse_position: None,
             color: image::Rgba([0, 0, 0, 255]),
             alternative_color: image::Rgba([0, 0, 0, 255]),
             side_half_width: 1,
@@ -141,6 +143,7 @@ impl Tool for PencilDrawTool {
                 if self.is_drawing.is_some() {
                     self.is_drawing = None;
                     self.prev_mouse_position = None;
+                    self.prev_prev_mouse_position = None;
                     op = Some(ImageOperation::Marker(ImageOperationMarker::EndDraw));
                 }
             }
@@ -150,11 +153,13 @@ impl Tool for PencilDrawTool {
 
                     if let Some(prev_mouse_position) = self.prev_mouse_position {
                         op = Some(
-                            ImageOperation::Line {
+                            ImageOperation::PencilStroke {
                                 start_x: prev_mouse_position.x as i32,
                                 start_y: prev_mouse_position.y as i32,
                                 end_x: mouse_position.x as i32,
                                 end_y: mouse_position.y as i32,
+                                prev_start_x: self.prev_prev_mouse_position.map(|pos| pos.x as i32),
+                                prev_start_y: self.prev_prev_mouse_position.map(|pos| pos.y as i32),
                                 color,
                                 anti_aliased: Some(self.anti_aliasing_checkbox.checked),
                                 side_half_width: self.side_half_width
@@ -162,6 +167,7 @@ impl Tool for PencilDrawTool {
                         );
                     }
 
+                    self.prev_prev_mouse_position = self.prev_mouse_position;
                     self.prev_mouse_position = Some(mouse_position);
                 }
             }

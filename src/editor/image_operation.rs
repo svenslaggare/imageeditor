@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use image::{Pixel, FilterType};
 
 use crate::editor::image::{Color};
-use crate::editor::image_operation_helpers::{sub_image, draw_block, draw_line, draw_circle, fill_rectangle, bucket_fill, draw_line_anti_aliased, draw_line_anti_aliased_thick, draw_circle_anti_aliased, draw_circle_anti_aliased_thick, color_gradient};
+use crate::editor::image_operation_helpers::{sub_image, draw_block, draw_line, draw_circle, fill_rectangle, bucket_fill, draw_line_anti_aliased, draw_line_anti_aliased_thick, draw_circle_anti_aliased, draw_circle_anti_aliased_thick, color_gradient, pencil_stroke_anti_aliased};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum ImageOperationMarker {
@@ -65,6 +65,7 @@ pub enum ImageOperation {
     SetPixel { x: i32, y: i32, color: Color },
     Block { x: i32, y: i32, color: Color, side_half_width: i32 },
     Line { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, anti_aliased: Option<bool>, side_half_width: i32 },
+    PencilStroke { start_x: i32, start_y: i32, end_x: i32, end_y: i32, prev_start_x: Option<i32>, prev_start_y: Option<i32>, color: Color, anti_aliased: Option<bool>, side_half_width: i32 },
     Rectangle { start_x: i32, start_y: i32, end_x: i32, end_y: i32, border_half_width: i32, color: Color },
     FillRectangle { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, blend: bool },
     Circle { center_x: i32, center_y: i32, radius: i32, border_half_width: i32, color: Color, anti_aliased: Option<bool> },
@@ -248,6 +249,41 @@ impl ImageOperation {
                         *start_y,
                         *end_x,
                         *end_y,
+                        *side_half_width,
+                        *color,
+                        undo,
+                        &mut undo_image
+                    );
+                } else {
+                    draw_line(
+                        *start_x,
+                        *start_y,
+                        *end_x,
+                        *end_y,
+                        |center_x: i32, center_y: i32| {
+                            draw_block(update_op, center_x, center_y, *side_half_width, *color, undo, &mut undo_image);
+                        }
+                    );
+                }
+
+                if undo {
+                    Some(ImageOperation::SetImageSparse { image: undo_image })
+                } else {
+                    None
+                }
+            }
+            ImageOperation::PencilStroke { start_x, start_y, end_x, end_y, prev_start_x, prev_start_y, color, anti_aliased, side_half_width } => {
+                let mut undo_image = SparseImage::new();
+
+                if anti_aliased.unwrap_or(true) {
+                    pencil_stroke_anti_aliased(
+                        update_op,
+                        *start_x,
+                        *start_y,
+                        *end_x,
+                        *end_y,
+                        *prev_start_x,
+                        *prev_start_y,
                         *side_half_width,
                         *color,
                         undo,

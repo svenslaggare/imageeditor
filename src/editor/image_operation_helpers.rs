@@ -331,6 +331,60 @@ pub fn draw_line_anti_aliased_thick<T: ImageOperationSource>(update_op: &mut T,
     }
 }
 
+pub fn pencil_stroke_anti_aliased<T: ImageOperationSource>(update_op: &mut T,
+                                                           x1: i32, y1: i32,
+                                                           x2: i32, y2: i32,
+                                                           prev_x1: Option<i32>, prev_y1: Option<i32>,
+                                                           side_half_width: i32,
+                                                           color: Color,
+                                                           undo: bool,
+                                                           undo_image: &mut SparseImage) {
+    if side_half_width > 0 {
+        fn calculate_gradient(x1: f32, y1: f32, x2: f32, y2: f32) -> (f32, f32) {
+            let dx = x2 - x1;
+            let dy = y2 - y1;
+            let norm = ((dx * dx + dy * dy) as f32).sqrt();
+            if norm < 1E-6 {
+                return (0.0, 0.0);
+            }
+
+            let dx = dx / norm;
+            let dy = dy / norm;
+            (dx, dy)
+        }
+
+        let x1 = x1 as f32;
+        let y1 = y1 as f32;
+        let x2 = x2 as f32;
+        let y2 = y2 as f32;
+
+        let (dx, dy) = calculate_gradient(x1, y1, x2, y2);
+        let (prev_dx, prev_dy) = match (prev_x1, prev_y1) {
+            (Some(prev_x1), Some(prev_y1)) => calculate_gradient(prev_x1 as f32, prev_y1 as f32, x1, y1),
+            _ => (dx, dy)
+        };
+
+        let dx_perp = dy;
+        let dy_perp = -dx;
+        let prev_dx_perp = prev_dy;
+        let prev_dy_perp = -prev_dx;
+
+        for width in 0..(side_half_width + 1) {
+            let blend = width == side_half_width;
+
+            if width != 0 {
+                let width = width as f32;
+                draw_line_anti_aliased_f32(update_op, x1 - prev_dx_perp * width, y1 - prev_dy_perp * width, x2 - dx_perp * width, y2 - dy_perp * width, color, blend, undo, undo_image);
+                draw_line_anti_aliased_f32(update_op, x1 + prev_dx_perp * width, y1 + prev_dy_perp * width, x2 + dx_perp * width, y2 + dy_perp * width, color, blend, undo, undo_image);
+            } else {
+                draw_line_anti_aliased_f32(update_op, x1, y1, x2, y2, color, blend, undo, undo_image);
+            }
+        }
+    } else {
+        draw_line_anti_aliased(update_op, x1, y1, x2, y2, color, undo, undo_image);
+    }
+}
+
 pub fn draw_circle<F: FnMut(i32, i32)>(center_x: i32, center_y: i32, radius: i32, filled: bool, mut set_pixel: F) {
     let mut draw = |x: i32, y: i32| {
         if filled {
