@@ -289,36 +289,6 @@ impl ImageOperation {
                         undo,
                         &mut undo_image
                     );
-
-                    // draw_line(
-                    //     *start_x,
-                    //     *start_y,
-                    //     *end_x,
-                    //     *end_y,
-                    //     |center_x: i32, center_y: i32| {
-                    //         let radius = *side_half_width;
-                    //         draw_circle(
-                    //             center_x,
-                    //             center_y,
-                    //             radius,
-                    //             true,
-                    //             |center_x: i32, center_y: i32| {
-                    //                 draw_block(update_op, center_x, center_y, 0, *color, undo, &mut undo_image);
-                    //             }
-                    //         );
-                    //
-                    //         draw_circle_anti_aliased_thick(
-                    //             update_op,
-                    //             center_x,
-                    //             center_y,
-                    //             radius,
-                    //             2,
-                    //             *color,
-                    //             undo,
-                    //             &mut undo_image
-                    //         );
-                    //     }
-                    // );
                 } else {
                     draw_line(
                         *start_x,

@@ -639,19 +639,18 @@ fn color_within_tolerance(ref_color: &Color, tolerance: f32, color: &Color) -> b
 }
 
 pub fn sub_image<T: ImageSource>(image: &T, min_x: i32, min_y: i32, max_x: i32, max_y: i32) -> image::RgbaImage {
-    let min_x = std::cmp::max(min_x, 0);
-    let min_y = std::cmp::max(min_y, 0);
-    let max_x = std::cmp::min(max_x, image.width() as i32);
-    let max_y = std::cmp::min(max_y, image.height() as i32);
+    let mut sub_image: image::RgbaImage = image::RgbaImage::new((max_x - min_x) as u32, (max_y - min_y) as u32);
 
-    let mut sub_image = image::RgbaImage::new((max_x - min_x) as u32, (max_y - min_y) as u32);
     for y in min_y..max_y {
         for x in min_x..max_x {
-            sub_image.put_pixel(
-                (x - min_x) as u32,
-                (y - min_y) as u32,
-                image.get_pixel(x as u32, y as u32)
-            );
+            if x >= 0 && x < image.width() as i32 && y >= 0 && y < image.height() as i32 {
+                let sub_x = (x - min_x);
+                let sub_y = (y - min_y);
+
+                if sub_x >= 0 && sub_x < sub_image.width() as i32 && sub_y >= 0 && sub_y < sub_image.height() as i32 {
+                    sub_image.put_pixel(sub_x as u32, sub_y as u32, image.get_pixel(x as u32, y as u32));
+                }
+            }
         }
     }
 
