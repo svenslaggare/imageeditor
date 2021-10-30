@@ -479,6 +479,7 @@ impl Tool for SelectionTool {
 
                 self.move_pixels_state.clear();
                 self.resize_pixels_state.clear();
+                self.tool = SelectionSubTool::Select;
             }
             _ => {}
         }
