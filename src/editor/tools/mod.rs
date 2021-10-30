@@ -136,11 +136,11 @@ pub fn create_tools(renders: &Renders) -> Vec<Box<dyn Tool>> {
     ]
 }
 
-pub fn get_valid_rectangle(start_position: &Position, end_position: &Position) -> (i32, i32, i32, i32) {
-    let mut start_x = start_position.x as i32;
-    let mut start_y = start_position.y as i32;
-    let mut end_x = end_position.x as i32;
-    let mut end_y = end_position.y as i32;
+pub fn get_valid_rectangle(start_position: &Position, end_position: &Position) -> (f32, f32, f32, f32) {
+    let mut start_x = start_position.x;
+    let mut start_y = start_position.y;
+    let mut end_x = end_position.x;
+    let mut end_y = end_position.y;
 
     if start_x > end_x {
         std::mem::swap(&mut start_x, &mut end_x);
@@ -151,6 +151,11 @@ pub fn get_valid_rectangle(start_position: &Position, end_position: &Position) -
     }
 
     (start_x, start_y, end_x, end_y)
+}
+
+pub fn get_valid_rectangle_as_int(start_position: &Position, end_position: &Position) -> (i32, i32, i32, i32) {
+    let (start_x, start_y, end_x, end_y) = get_valid_rectangle(start_position, end_position);
+    (start_x as i32, start_y as i32, end_x as i32, end_y as i32)
 }
 
 pub fn get_transformed_mouse_position(window: &mut dyn EditorWindow, transform: &Matrix3<f32>) -> Position {

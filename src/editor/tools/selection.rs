@@ -4,7 +4,7 @@ use cgmath::{Matrix3, Transform, Matrix, Matrix4};
 use crate::rendering::prelude::{Position, Rectangle, Size, Color, Color4};
 use crate::editor;
 use crate::command_buffer::{Command, CommandBuffer};
-use crate::editor::tools::{Tool, get_valid_rectangle, SelectionSubTool, Tools, get_transformed_mouse_position, EditorWindow};
+use crate::editor::tools::{Tool, get_valid_rectangle, SelectionSubTool, Tools, get_transformed_mouse_position, EditorWindow, get_valid_rectangle_as_int};
 use crate::editor::image_operation::{ImageOperation, ImageSource, add_op_sequential};
 use crate::editor::image_operation_helpers::sub_image;
 use crate::editor::Image;
@@ -113,7 +113,7 @@ impl SelectionTool {
     fn selection(&self) -> Option<Selection> {
         match (self.start_position, self.end_position) {
             (Some(start_position), Some(end_position)) => {
-                let (start_x, start_y, end_x, end_y) = get_valid_rectangle(&start_position, &end_position);
+                let (start_x, start_y, end_x, end_y) = get_valid_rectangle_as_int(&start_position, &end_position);
                 Some(
                     Selection {
                         start_x,
@@ -283,8 +283,10 @@ impl SelectionTool {
                 let mouse_position = image_area_transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32));
 
                 if self.move_pixels_state.is_moving {
-                    let selection = self.selection().unwrap();
-                    let offset = selection.end_position() - selection.start_position();
+                    // let selection = self.selection().unwrap();
+                    // let offset = selection.end_position() - selection.start_position();
+                    let (start_x, start_y, end_x, end_y) = get_valid_rectangle(&self.start_position.unwrap(), &self.end_position.unwrap());
+                    let offset = Position::new(end_x, end_y) - Position::new(start_x, start_y);
                     let new_start_position = mouse_position + self.move_pixels_state.move_offset;
 
                     self.start_position = Some(new_start_position);
@@ -513,10 +515,13 @@ impl Tool for SelectionTool {
 
     fn render(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>, image: &editor::Image) {
         if let Some(mut selection) = self.selection() {
-            selection.start_x = selection.start_x.max(0);
-            selection.start_y = selection.start_y.max(0);
-            selection.end_x = selection.end_x.min(image.width() as i32);
-            selection.end_y = selection.end_y.min(image.height() as i32);
+            let clamp_x = |x: i32| x.clamp(0, image.width() as i32 - 1);
+            let clamp_y = |y: i32| y.clamp(0, image.height() as i32 - 1);
+
+            selection.start_x = clamp_x(selection.start_x);
+            selection.start_y = clamp_y(selection.start_y);
+            selection.end_x = clamp_x(selection.end_x);
+            selection.end_y = clamp_y(selection.end_y);
 
             renders.solid_rectangle_render.render(
                 renders.solid_rectangle_render.shader(),

@@ -4,7 +4,7 @@ use cgmath::{Matrix3, Transform, Matrix4};
 use crate::rendering::prelude::{Position, Rectangle};
 use crate::editor;
 use crate::command_buffer::{Command, CommandBuffer};
-use crate::editor::tools::{Tool, get_valid_rectangle, get_transformed_mouse_position, EditorWindow};
+use crate::editor::tools::{Tool, get_valid_rectangle, get_transformed_mouse_position, EditorWindow, get_valid_rectangle_as_int};
 use crate::editor::image_operation::{ImageOperation};
 use crate::ui::button::{TextButton, GenericButton, Checkbox};
 use crate::program::Renders;
@@ -53,7 +53,7 @@ impl RectangleDrawTool {
     }
 
     fn create_op(&self, start_position: &Position, end_position: &Position) -> ImageOperation {
-        let (start_x, start_y, end_x, end_y) = get_valid_rectangle(start_position, end_position);
+        let (start_x, start_y, end_x, end_y) = get_valid_rectangle_as_int(start_position, end_position);
 
         let mut ops = vec![
             ImageOperation::FillRectangle {
