@@ -283,8 +283,6 @@ impl SelectionTool {
                 let mouse_position = image_area_transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32));
 
                 if self.move_pixels_state.is_moving {
-                    // let selection = self.selection().unwrap();
-                    // let offset = selection.end_position() - selection.start_position();
                     let (start_x, start_y, end_x, end_y) = get_valid_rectangle(&self.start_position.unwrap(), &self.end_position.unwrap());
                     let offset = Position::new(end_x, end_y) - Position::new(start_x, start_y);
                     let new_start_position = mouse_position + self.move_pixels_state.move_offset;
