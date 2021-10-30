@@ -81,8 +81,7 @@ pub struct SelectionTool {
     end_position: Option<Position>,
     select_state: SelectState,
     move_pixels_state: MovePixelsState,
-    resize_pixels_state: ResizePixelsState,
-    transparent_image: image::RgbaImage
+    resize_pixels_state: ResizePixelsState
 }
 
 impl SelectionTool {
@@ -105,8 +104,7 @@ impl SelectionTool {
                 is_resizing: false,
                 original_selection: None,
                 resize_pixels_image: None
-            },
-            transparent_image: image::open("content/ui/checkerboard.png").unwrap().into_rgba()
+            }
         }
     }
 
