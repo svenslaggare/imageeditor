@@ -20,21 +20,10 @@ pub struct LayeredImage {
 
 impl LayeredImage {
     pub fn new(image: Image) -> LayeredImage {
-        let mut blank_image = Image::new(image::RgbaImage::new(image.width(), image.height()));
-        {
-            let mut update_op = blank_image.update_operation();
-
-            for y in 50..60 {
-                for x in 50..60 {
-                    update_op.put_pixel(x, y, image::Rgba([0, 0, 0, 255]));
-                }
-            }
-        }
-
         LayeredImage {
             width: image.width(),
             height: image.height(),
-            layers: vec![(LayerState::Visible, image), (LayerState::Visible, blank_image)]
+            layers: vec![(LayerState::Visible, image)]
         }
     }
 
