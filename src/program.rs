@@ -398,7 +398,7 @@ impl Program {
             self.renders.text_render.shader(),
             transform,
             self.renders.ui_font.borrow_mut().deref_mut(),
-            format!("{:.0} %, {:.0}, {:.0}", self.zoom * 100.0, mouse_position.x, mouse_position.y).chars().map(|c| (c, Color::new(0, 0, 0))),
+            format!("{:.0} %, {:.0}, {:.0}", self.zoom * 100.0, mouse_position.x.round(), mouse_position.y.round()).chars().map(|c| (c, Color::new(0, 0, 0))),
             Position::new(self.window_width as f32 - RIGHT_SIDE_PANEL_WIDTH as f32 - 160.0, 10.0),
             TextAlignment::Top
         );
