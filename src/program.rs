@@ -267,11 +267,14 @@ impl Program {
                     self.view_x = self.editor.image().width() as f32 * 0.5 - (self.view_width as f32 / self.zoom) * 0.5;
                     self.view_y = self.editor.image().height() as f32 * 0.5 - (self.view_height as f32 / self.zoom) * 0.5;
                 }
+
+                self.update_view_size();
             }
             glfw::WindowEvent::Key(Key::Num0, _, Action::Press, Modifiers::Control) => {
                 self.view_x = 0.0;
                 self.view_y = 0.0;
                 self.zoom = 1.0;
+                self.update_view_size();
             }
             _ => {}
         }
@@ -459,8 +462,8 @@ impl Program {
     }
 
     fn update_view_size(&mut self) {
-        self.view_width = (self.window_width - SIDE_PANELS_WIDTH).min(self.editor.image().width());
-        self.view_height = (self.window_height - TOP_PANEL_HEIGHT).min(self.editor.image().height());
+        self.view_width = (self.window_width - SIDE_PANELS_WIDTH).min((self.editor.image().width() as f32 * self.zoom.max(1.0)) as u32);
+        self.view_height = (self.window_height - TOP_PANEL_HEIGHT).min((self.editor.image().height() as f32 * self.zoom.max(1.0)) as u32);
     }
 
     fn image_area_transform(&self, only_origin: bool) -> Matrix3<f32> {
