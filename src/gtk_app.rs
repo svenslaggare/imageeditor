@@ -97,7 +97,10 @@ pub fn main() {
                 std::mem::take(&mut gtk_program.event_queue).into_iter()
             );
 
-            gtk_program.program.render(&transform);
+            gtk_program.program.render(
+                &mut gtk_program.editor_window,
+                &transform
+            );
 
             Inhibit(true)
         });

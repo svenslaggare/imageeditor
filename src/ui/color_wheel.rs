@@ -158,7 +158,7 @@ impl GenericButton<CommandBuffer> for ColorWheel {
     }
 
     fn render(&self, renders: &Renders, transform: &Matrix4<f32>) {
-        let buffer = 2.0;
+        let buffer = 10.0;
         let background_start = Position::new(self.position.x - buffer, self.position.y - buffer);
         let background_size = Size::new(
             self.hue_wheel_image.width() as f32 + buffer * 2.0,

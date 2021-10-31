@@ -61,7 +61,7 @@ pub fn main() {
             1.0
         );
 
-        program.render(&transform);
+        program.render(&mut window, &transform);
         window.swap_buffers();
 
         let duration = (std::time::Instant::now() - frame_start_draw).as_millis() as f32 / 1000.0;

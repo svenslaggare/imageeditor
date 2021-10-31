@@ -10,11 +10,11 @@ use glfw::{Key, Action, Modifiers, MouseButton};
 use crate::command_buffer::{CommandBuffer, Command};
 use crate::{editor, ui};
 use crate::rendering::shader::Shader;
-use crate::rendering::prelude::{Position, Rectangle, Color4, Size, blend};
+use crate::rendering::prelude::{Position, Rectangle, Color, Color4, Size, blend};
 use crate::rendering::texture_render::TextureRender;
 use crate::editor::image_operation::{ImageSource, ImageOperation};
 use crate::editor::tools::{Tool, create_tools, Tools, EditorWindow, get_transformed_mouse_position, SelectionSubTool};
-use crate::rendering::text_render::TextRender;
+use crate::rendering::text_render::{TextRender, TextAlignment};
 use crate::rendering::solid_rectangle_render::SolidRectangleRender;
 use crate::rendering::ShaderAndRender;
 use crate::rendering::texture::Texture;
@@ -22,6 +22,7 @@ use crate::rendering::font::Font;
 use crate::rendering::rectangle_render::RectangleRender;
 use crate::editor::editor::{LayerState, LayeredImageOperation};
 use crate::ui::layers::LayersManager;
+use std::ops::DerefMut;
 
 pub const LEFT_SIDE_PANEL_WIDTH: u32 = 70;
 pub const RIGHT_SIDE_PANEL_WIDTH: u32 = 150;
@@ -282,7 +283,7 @@ impl Program {
         ratio_x > 1.0 || ratio_y > 1.0
     }
 
-    pub fn render(&mut self, transform: &Matrix4<f32>) {
+    pub fn render(&mut self, window: &mut dyn EditorWindow, transform: &Matrix4<f32>) {
         let image_area_transform = self.image_area_transform_matrix4(true);
         let image_area_transform_full = self.image_area_transform_matrix4(false);
 
@@ -390,6 +391,16 @@ impl Program {
             Position::new(self.window_width as f32 - RIGHT_SIDE_PANEL_WIDTH as f32, 0.0),
             Size::new(RIGHT_SIDE_PANEL_WIDTH as f32, self.window_height as f32),
             menu_color
+        );
+
+        let mouse_position = get_transformed_mouse_position(window, &self.image_area_transform(false).invert().unwrap());
+        self.renders.text_render.draw_line(
+            self.renders.text_render.shader(),
+            transform,
+            self.renders.ui_font.borrow_mut().deref_mut(),
+            format!("{:.0} %, {:.0}, {:.0}", self.zoom * 100.0, mouse_position.x, mouse_position.y).chars().map(|c| (c, Color::new(0, 0, 0))),
+            Position::new(self.window_width as f32 - RIGHT_SIDE_PANEL_WIDTH as f32 - 160.0, 10.0),
+            TextAlignment::Top
         );
 
         self.layers_manager.render(
