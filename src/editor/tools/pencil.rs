@@ -160,7 +160,9 @@ impl Tool for PencilDrawTool {
                     let mouse_position = image_area_transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32));
 
                     if let Some(prev_mouse_position) = self.prev_mouse_position {
-                        op = Some(
+                        let mut ops = Vec::new();
+
+                        ops.push(
                             ImageOperation::PencilStroke {
                                 start_x: prev_mouse_position.x as i32,
                                 start_y: prev_mouse_position.y as i32,
@@ -173,6 +175,30 @@ impl Tool for PencilDrawTool {
                                 side_half_width: self.side_half_width
                             }
                         );
+
+                        if self.anti_aliasing_checkbox.checked {
+                            ops.push(
+                                ImageOperation::FillCircle {
+                                    center_x: mouse_position.x as i32,
+                                    center_y: mouse_position.y as i32,
+                                    radius: self.side_half_width,
+                                    color
+                                }
+                            );
+
+                            ops.push(
+                                ImageOperation::Circle {
+                                    center_x: mouse_position.x as i32,
+                                    center_y: mouse_position.y as i32,
+                                    radius: self.side_half_width - 4,
+                                    border_half_width: 2,
+                                    color,
+                                    anti_aliased: Some(self.anti_aliasing_checkbox.checked)
+                                }
+                            );
+                        }
+
+                        op = Some(ImageOperation::Sequential(ops));
                     }
 
                     self.prev_prev_mouse_position = self.prev_mouse_position;
