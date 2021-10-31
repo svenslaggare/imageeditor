@@ -9,5 +9,5 @@ mod gtk_app;
 
 fn main() {
     // glfw_app::main();
-    gtk_app::main();
+    gtk_app::app::main();
 }
