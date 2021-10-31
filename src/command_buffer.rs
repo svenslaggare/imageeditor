@@ -10,6 +10,7 @@ pub enum Command {
     SetImageSize(u32, u32),
     SwitchImage(image::RgbaImage),
     SetTool(Tools),
+    SwitchToPrevTool,
     SetColor(image::Rgba<u8>),
     SetAlternativeColor(image::Rgba<u8>),
     ApplyImageOp(ImageOperation),

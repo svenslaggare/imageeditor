@@ -39,6 +39,7 @@ pub struct Program {
     layers_manager: LayersManager,
     tools: Vec<Box<dyn Tool>>,
     active_tool: Tools,
+    prev_tool: Option<Tools>,
     background_transparent_image: image::RgbaImage,
     background_transparent_texture: Texture,
     preview_image: editor::Image,
@@ -79,6 +80,7 @@ impl Program {
             layers_manager: LayersManager::new(),
             tools,
             active_tool: Tools::Pencil,
+            prev_tool: None,
             background_transparent_image,
             background_transparent_texture,
             preview_image,
@@ -150,20 +152,13 @@ impl Program {
                     self.update_view_size();
                 }
                 Command::SetTool(tool) => {
-                    if tool.index() != self.active_tool.index() {
-                        if let Some(op) = self.tools[self.active_tool.index()].on_deactivate(&mut self.command_buffer) {
-                            self.command_buffer.push(Command::ApplyImageOp(op));
-                        }
-                    }
-
-                    self.active_tool = tool;
-                    if let Some(op) = self.tools[self.active_tool.index()].on_active(window, tool) {
-                        self.command_buffer.push(Command::ApplyImageOp(op));
-                    }
-
-                    self.preview_image.clear_cpu();
-                    self.preview_image.update_operation();
+                    self.switch_tool(window, tool);
                 }
+                Command::SwitchToPrevTool => {
+                    if let Some(tool) = self.prev_tool.take() {
+                        self.switch_tool(window, tool);
+                    }
+                },
                 Command::ApplyImageOp(op) => {
                     self.editor.apply_op(op);
                 }
@@ -182,6 +177,24 @@ impl Program {
                 }
             }
         }
+    }
+
+    fn switch_tool(&mut self, window: &mut dyn EditorWindow, tool: Tools) {
+        if tool.index() != self.active_tool.index() {
+            self.prev_tool = Some(self.active_tool);
+
+            if let Some(op) = self.tools[self.active_tool.index()].on_deactivate(&mut self.command_buffer) {
+                self.command_buffer.push(Command::ApplyImageOp(op));
+            }
+        }
+
+        self.active_tool = tool;
+        if let Some(op) = self.tools[self.active_tool.index()].on_active(window, tool) {
+            self.command_buffer.push(Command::ApplyImageOp(op));
+        }
+
+        self.preview_image.clear_cpu();
+        self.preview_image.update_operation();
     }
 
     fn process_internal_events(&mut self, _window: &mut dyn EditorWindow, event: &glfw::WindowEvent) {

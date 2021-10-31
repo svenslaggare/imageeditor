@@ -518,6 +518,7 @@ lazy_static::lazy_static! {
             (gdk::keys::constants::F11, glfw::Key::F11),
             (gdk::keys::constants::F12, glfw::Key::F12),
             (gdk::keys::constants::Return, glfw::Key::Enter),
+            (gdk::keys::constants::Escape, glfw::Key::Escape),
             (gdk::keys::constants::space, glfw::Key::Space),
             (gdk::keys::constants::Delete, glfw::Key::Delete),
             (gdk::keys::constants::BackSpace, glfw::Key::Backspace),

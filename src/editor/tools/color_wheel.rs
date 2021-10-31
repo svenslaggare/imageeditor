@@ -47,6 +47,13 @@ impl Tool for ColorWheelTool {
             command_buffer
         );
 
+        match event {
+            WindowEvent::Key(glfw::Key::Escape, _, Action::Release, _) => {
+                command_buffer.push(Command::SwitchToPrevTool);
+            }
+            _ => {}
+        }
+
         return None;
     }
 
