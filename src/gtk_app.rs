@@ -197,6 +197,9 @@ fn add_menu(app: &Application,
     let entry_height = create_entry(&new_file_dialog.content_area(), "Height:", "800");
 
     let new_file_dialog = Rc::new(new_file_dialog);
+    new_file_dialog.connect_delete_event(|dialog, event| {
+        Inhibit(true)
+    });
 
     let new_file_dialog_clone = new_file_dialog.clone();
     new_image.connect_activate(glib::clone!(@weak window => move |_, _| {
@@ -464,6 +467,10 @@ fn create_file_dialog<F: Fn(&mut GTKProgram, PathBuf) + 'static>(window: &Applic
     ]);
 
     let file_dialog = Rc::new(file_dialog);
+
+    file_dialog.connect_delete_event(|dialog, event| {
+        Inhibit(true)
+    });
 
     let file_dialog_clone = file_dialog.clone();
     let gtk_program_clone = gtk_program.clone();
