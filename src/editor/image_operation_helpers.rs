@@ -1,11 +1,11 @@
-use std::collections::{HashSet, VecDeque};
+use image::{Pixel, FilterType};
 
-use image::Pixel;
+use cgmath::{ElementWise, Vector4};
+use cgmath::num_traits::Pow;
 
 use crate::editor::image_operation::{ImageSource, ImageOperationSource, SparseImage, OptionalImage, ColorGradientType};
 use crate::editor::Color;
 use crate::helpers::TimeMeasurement;
-use cgmath::{ElementWise, InnerSpace, Vector4};
 
 pub fn draw_block<T: ImageOperationSource>(update_op: &mut T,
                                            center_x: i32,
@@ -644,8 +644,8 @@ pub fn sub_image<T: ImageSource>(image: &T, min_x: i32, min_y: i32, max_x: i32, 
     for y in min_y..max_y {
         for x in min_x..max_x {
             if x >= 0 && x < image.width() as i32 && y >= 0 && y < image.height() as i32 {
-                let sub_x = (x - min_x);
-                let sub_y = (y - min_y);
+                let sub_x = x - min_x;
+                let sub_y = y - min_y;
 
                 if sub_x >= 0 && sub_x < sub_image.width() as i32 && sub_y >= 0 && sub_y < sub_image.height() as i32 {
                     sub_image.put_pixel(sub_x as u32, sub_y as u32, image.get_pixel(x as u32, y as u32));
@@ -655,6 +655,81 @@ pub fn sub_image<T: ImageSource>(image: &T, min_x: i32, min_y: i32, max_x: i32, 
     }
 
     sub_image
+}
+
+pub fn rotate_image(image: &image::RgbaImage, rotation: f32, filter_type: FilterType) -> image::RgbaImage {
+    let mut rotated_image: image::RgbaImage = image::RgbaImage::new(image.width() + image.height(), image.height() + image.width());
+    let center_x = image.width() as f32 * 0.5;
+    let center_y = image.height() as f32 * 0.5;
+    let target_center_x = rotated_image.width() as f32 * 0.5;
+    let target_center_y = rotated_image.height() as f32 * 0.5;
+
+    for y in 0..rotated_image.height() {
+        for x in 0..rotated_image.width() {
+            let fx = x as f32 - target_center_x;
+            let fy = y as f32 - target_center_y;
+            let length = (fx.pow(2i32) + fy.pow(2i32)).sqrt();
+            let angle = fy.atan2(fx) - rotation;
+            let source_fx = center_x + length * angle.cos();
+            let source_fy = center_y + length * angle.sin();
+
+            let source_x = source_fx.round() as i32;
+            let source_y = source_fy.round() as i32;
+
+            if source_x >= 0 && source_x < image.width() as i32 && source_y >= 0 && source_y < image.height() as i32 {
+                let target = match filter_type {
+                    FilterType::Nearest => {
+                        *image.get_pixel(source_x as u32, source_y as u32)
+                    }
+                    FilterType::Triangle => {
+                        let source_x1 = (source_fx.floor() as i32);
+                        let mut source_x2 = (source_fx.ceil() as i32);
+                        if source_x1 == source_x2 {
+                            source_x2 += 1;
+                        }
+
+                        let source_x1 = source_x1.clamp(0, image.width() as i32 - 1);
+                        let source_x2 = source_x2.clamp(0, image.width() as i32 - 1);
+
+                        let source_y1 = (source_fy.floor() as i32);
+                        let mut source_y2 = (source_fy.ceil() as i32);
+                        if source_y1 == source_y2 {
+                            source_y2 += 1;
+                        }
+
+                        let source_y1 = source_y1.clamp(0, image.height() as i32 - 1);
+                        let source_y2 = source_y2.clamp(0, image.height() as i32 - 1);
+
+                        let target11 = pixel_to_vec(image.get_pixel(source_x1 as u32, source_y1 as u32));
+                        let target21 = pixel_to_vec(image.get_pixel(source_x2 as u32, source_y1 as u32));
+                        let target12 = pixel_to_vec(image.get_pixel(source_x1 as u32, source_y2 as u32));
+                        let target22 = pixel_to_vec(image.get_pixel(source_x2 as u32, source_y2 as u32));
+
+                        let source_fx1 = source_x1 as f32;
+                        let source_fx2 = source_x2 as f32;
+                        let source_fy1 = source_y1 as f32;
+                        let source_fy2 = source_y2 as f32;
+
+                        let range_x = source_fx2 - source_fx1;
+                        let range_y = source_fy2 - source_fy1;
+                        let factor1 = (source_fx2 - source_fx) / range_x;
+                        let factor2 = (source_fx - source_fx1) / range_x;
+
+                        let interpolate1 = factor1 * target11 + factor2 * target21;
+                        let interpolate2 = factor1 * target12 + factor2 * target22;
+                        let target = ((source_fy2 - source_fy) / range_y) * interpolate1
+                                     + ((source_fy - source_fy1) / range_y) * interpolate2;
+                        vec_to_pixel(&target)
+                    }
+                    _ => { panic!("Unsupported filter type.") }
+                };
+
+                rotated_image.put_pixel(x, y, target);
+            }
+        }
+    }
+
+    rotated_image
 }
 
 pub fn hsv_to_rgb(hue: f64, saturation: f64, value: f64) -> Option<Color> {
@@ -758,4 +833,17 @@ fn alpha_blend(a: Color, b: Color) -> Color {
 fn fmod(numer: f64, denom: f64) -> f64 {
     let rquot: f64 = (numer / denom).floor();
     numer - rquot * denom
+}
+
+fn pixel_to_vec(pixel: &image::Rgba<u8>) -> Vector4<f32> {
+    Vector4::new(pixel[0] as f32, pixel[1] as f32, pixel[2] as f32, pixel[3] as f32)
+}
+
+fn vec_to_pixel(vec: &Vector4<f32>) -> image::Rgba<u8> {
+    image::Rgba([
+        vec[0].clamp(0.0, 255.0) as u8,
+        vec[1].clamp(0.0, 255.0) as u8,
+        vec[2].clamp(0.0, 255.0) as u8,
+        vec[3].clamp(0.0, 255.0) as u8
+    ])
 }

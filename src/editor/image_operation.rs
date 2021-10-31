@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use image::{Pixel, FilterType};
 
 use crate::editor::image::{Color};
-use crate::editor::image_operation_helpers::{sub_image, draw_block, draw_line, draw_circle, fill_rectangle, bucket_fill, draw_line_anti_aliased, draw_line_anti_aliased_thick, draw_circle_anti_aliased, draw_circle_anti_aliased_thick, color_gradient, pencil_stroke_anti_aliased};
+use crate::editor::image_operation_helpers::{sub_image, draw_block, draw_line, draw_circle, fill_rectangle, bucket_fill, draw_line_anti_aliased, draw_line_anti_aliased_thick, draw_circle_anti_aliased, draw_circle_anti_aliased_thick, color_gradient, pencil_stroke_anti_aliased, rotate_image};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum ImageOperationMarker {
@@ -61,6 +61,7 @@ pub enum ImageOperation {
     SetImageSparse { image: SparseImage },
     SetOptionalImage { image: OptionalImage },
     SetScaledImage { image: image::RgbaImage, start_x: i32, start_y: i32, scale_x: f32, scale_y: f32 },
+    SetRotatedImage { image: image::RgbaImage, start_x: i32, start_y: i32, rotation: f32 },
     SetPseudoTransparent { pattern: image::RgbaImage, start_x: i32, start_y: i32, end_x: i32, end_y: i32 },
     SetPixel { x: i32, y: i32, color: Color },
     Block { x: i32, y: i32, color: Color, side_half_width: i32 },
@@ -181,6 +182,16 @@ impl ImageOperation {
                     start_y: *start_y,
                     image: resized_image,
                     blend: false
+                }.apply(update_op, undo)
+            }
+            ImageOperation::SetRotatedImage { image, start_x, start_y, rotation } => {
+                let rotated_image = rotate_image(image, *rotation, FilterType::Triangle);
+
+                ImageOperation::SetImage {
+                    start_x: *start_x,
+                    start_y: *start_y,
+                    image: rotated_image,
+                    blend: true
                 }.apply(update_op, undo)
             }
             ImageOperation::SetPseudoTransparent { pattern, start_x, start_y, end_x, end_y } => {
