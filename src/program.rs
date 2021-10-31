@@ -41,8 +41,7 @@ pub struct Program {
     tools: Vec<Box<dyn Tool>>,
     active_tool: Tools,
     prev_tool: Option<Tools>,
-    background_transparent_image: image::RgbaImage,
-    background_transparent_texture: Texture,
+    transparent_background_texture: Texture,
     preview_image: editor::Image,
     zoom: f32,
     window_width: u32,
@@ -62,9 +61,9 @@ impl Program {
         let width = editor.image().width();
         let height = editor.image().height();
 
-        let background_transparent_image = image::open("content/ui/checkerboard.png").unwrap().into_rgba();
-        let background_transparent_texture = Texture::from_image(&background_transparent_image);
-        background_transparent_texture.bind();
+        let transparent_background_image = image::open("content/ui/checkerboard.png").unwrap().into_rgba();
+        let transparent_background_texture = Texture::from_image(&transparent_background_image);
+        transparent_background_texture.bind();
         unsafe {
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
@@ -82,8 +81,7 @@ impl Program {
             tools,
             active_tool: Tools::Pencil,
             prev_tool: None,
-            background_transparent_image,
-            background_transparent_texture,
+            transparent_background_texture,
             preview_image,
             zoom: 1.0,
             window_width: view_width,
@@ -119,7 +117,12 @@ impl Program {
                 event => {
                     self.process_internal_events(window, &event);
 
-                    self.ui_manager.process_gui_event(window, &event, &mut self.command_buffer);
+                    self.ui_manager.process_gui_event(
+                        window,
+                        &event,
+                        &mut self.command_buffer
+                    );
+
                     self.layers_manager.process_gui_event(
                         window,
                         self.window_width - SIDE_PANELS_WIDTH,
@@ -290,16 +293,42 @@ impl Program {
         let image_area_transform = self.image_area_transform_matrix4(true);
         let image_area_transform_full = self.image_area_transform_matrix4(false);
 
-        let (background_transparent_start, background_transparent_width, background_transparent_height) = self.calculate_background_transparent_rectangle();
-        if background_transparent_width > 0.0 && background_transparent_height > 0.0 {
+        self.render_image_area(
+            transform,
+            &image_area_transform,
+            &image_area_transform_full
+        );
+
+        self.render_ui(
+            window,
+            transform,
+            &image_area_transform_full
+        );
+
+        // let image_area_rectangle = self.image_area_rectangle();
+        // self.renders.solid_rectangle_render.render(
+        //     self.renders.solid_rectangle_render.shader(),
+        //     &transform,
+        //     image_area_rectangle.position,
+        //     image_area_rectangle.size,
+        //     Color4::new(255, 0, 0, 128)
+        // );
+    }
+
+    fn render_image_area(&mut self,
+                         transform: &Matrix4<f32>,
+                         image_area_transform: &Matrix4<f32>,
+                         image_area_transform_full: &Matrix4<f32>) {
+        let (transparent_background_start, transparent_background_width, transparent_background_height) = self.calculate_transparent_background_rectangle();
+        if transparent_background_width > 0.0 && transparent_background_height > 0.0 {
             self.renders.texture_render.render_sized(
                 self.renders.texture_render.shader(),
                 &(transform * image_area_transform),
-                &self.background_transparent_texture,
-                background_transparent_start,
-                background_transparent_width,
-                background_transparent_height,
-                Some(Rectangle::new(0.0, 0.0, background_transparent_width, background_transparent_height))
+                &self.transparent_background_texture,
+                transparent_background_start,
+                transparent_background_width,
+                transparent_background_height,
+                Some(Rectangle::new(0.0, 0.0, transparent_background_width, transparent_background_height))
             );
         }
 
@@ -338,7 +367,7 @@ impl Program {
                     self.renders.texture_render.render_sized(
                         self.renders.texture_render.shader(),
                         &(transform * image_area_transform_full),
-                        &self.background_transparent_texture,
+                        &self.transparent_background_texture,
                         transparent_area.position,
                         transparent_area.size.x,
                         transparent_area.size.y,
@@ -370,7 +399,12 @@ impl Program {
             &image_area_transform_full,
             self.editor.active_layer()
         );
+    }
 
+    fn render_ui(&mut self,
+                 window: &mut dyn EditorWindow,
+                 transform: &Matrix4<f32>,
+                 image_area_transform_full: &Matrix4<f32>) {
         let menu_color = Color4::new(255, 255, 255, 255);
         self.renders.solid_rectangle_render.render(
             self.renders.solid_rectangle_render.shader(),
@@ -411,7 +445,7 @@ impl Program {
             &self.renders,
             &self.editor,
             self.window_width - SIDE_PANELS_WIDTH,
-            &self.background_transparent_texture,
+            &self.transparent_background_texture,
         );
 
         self.ui_manager.render(&self.renders, &transform);
@@ -422,18 +456,9 @@ impl Program {
             &image_area_transform_full,
             self.editor.active_layer()
         );
-
-        // let image_area_rectangle = self.image_area_rectangle();
-        // self.renders.solid_rectangle_render.render(
-        //     self.renders.solid_rectangle_render.shader(),
-        //     &transform,
-        //     image_area_rectangle.position,
-        //     image_area_rectangle.size,
-        //     Color4::new(255, 0, 0, 128)
-        // );
     }
 
-    fn calculate_background_transparent_rectangle(&self) -> (Position, f32, f32) {
+    fn calculate_transparent_background_rectangle(&self) -> (Position, f32, f32) {
         let mut background_transparent_start = Position::new(
             -self.view_x * self.zoom,
             -self.view_y * self.zoom
