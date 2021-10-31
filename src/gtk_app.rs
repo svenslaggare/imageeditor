@@ -312,6 +312,48 @@ fn add_menu(app: &Application,
         }
     }));
     app.add_action(&redo);
+
+    let layer_menu = gio::Menu::new();
+    menu_bar.append_submenu(Some("_Layer"), &layer_menu);
+
+    // New layer
+    layer_menu.append(Some("New layer"), Some("app.new_layer"));
+    let new_layer = gio::SimpleAction::new("new_layer", None);
+    let gl_area_clone = gl_area.clone();
+    let gtk_program_clone = gtk_program.clone();
+    new_layer.connect_activate(glib::clone!(@weak window => move |_, _| {
+        if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
+            program.program.command_buffer.push(Command::NewLayer);
+            gl_area_clone.queue_render();
+        }
+    }));
+    app.add_action(&new_layer);
+
+    // Duplicate layer
+    layer_menu.append(Some("Duplicate layer"), Some("app.duplicate_layer"));
+    let duplicate_layer = gio::SimpleAction::new("duplicate_layer", None);
+    let gl_area_clone = gl_area.clone();
+    let gtk_program_clone = gtk_program.clone();
+    duplicate_layer.connect_activate(glib::clone!(@weak window => move |_, _| {
+        if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
+            program.program.command_buffer.push(Command::DuplicateLayer);
+            gl_area_clone.queue_render();
+        }
+    }));
+    app.add_action(&duplicate_layer);
+
+    // Delete layer
+    layer_menu.append(Some("Delete layer"), Some("app.delete_layer"));
+    let delete_layer = gio::SimpleAction::new("delete_layer", None);
+    let gl_area_clone = gl_area.clone();
+    let gtk_program_clone = gtk_program.clone();
+    delete_layer.connect_activate(glib::clone!(@weak window => move |_, _| {
+        if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
+            program.program.command_buffer.push(Command::DeleteLayer);
+            gl_area_clone.queue_render();
+        }
+    }));
+    app.add_action(&delete_layer);
 }
 
 fn add_input_support(gtk_program: Rc<RefCell<Option<GTKProgram>>>,

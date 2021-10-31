@@ -17,6 +17,9 @@ pub enum Command {
     ApplyImageOp(ImageOperation),
     UndoImageOp,
     RedoImageOp,
+    NewLayer,
+    DuplicateLayer,
+    DeleteLayer
 }
 
 pub struct CommandBuffer {

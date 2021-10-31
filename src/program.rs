@@ -144,6 +144,10 @@ impl Program {
             }
         }
 
+        self.handle_commands(window);
+    }
+
+    fn handle_commands(&mut self, window: &mut dyn EditorWindow) {
         while let Some(command) = self.command_buffer.pop() {
             match command {
                 Command::NewImage(width, height) => {
@@ -173,6 +177,15 @@ impl Program {
                 }
                 Command::RedoImageOp => {
                     self.editor.redo_op();
+                }
+                Command::NewLayer => {
+                    self.editor.add_layer();
+                }
+                Command::DuplicateLayer => {
+                    self.editor.duplicate_active_layer();
+                }
+                Command::DeleteLayer => {
+                    self.editor.delete_active_layer();
                 }
                 command => {
                     for draw_tool in &mut self.tools {

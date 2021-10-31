@@ -66,6 +66,12 @@ impl LayeredImage {
         self.layers.push((LayerState::Visible, Image::new(image::RgbaImage::new(self.width(), self.height()))));
     }
 
+    pub fn add_layer_with_image(&mut self, image: image::RgbaImage) {
+        assert_eq!(self.width, image.width());
+        assert_eq!(self.height, image.height());
+        self.layers.push((LayerState::Visible, Image::new(image)));
+    }
+
     pub fn save(&self, path: &Path) -> std::io::Result<()> {
         let file = std::fs::File::create(path)?;
 
@@ -194,6 +200,30 @@ impl Editor {
 
     pub fn num_alive_layers(&self) -> usize {
         self.image.layers.iter().map(|(state, _)| state != &LayerState::Deleted).count()
+    }
+
+    pub fn add_layer(&mut self) {
+        self.image_mut().add_layer();
+    }
+
+    pub fn duplicate_active_layer(&mut self) {
+        if let Some(layer) = self.image.layers.get(self.active_layer_index) {
+            if layer.0 == LayerState::Visible {
+                let layer_image = layer.1.get_image().clone();
+                self.image_mut().add_layer_with_image(layer_image);
+            }
+        }
+    }
+
+    pub fn delete_active_layer(&mut self) {
+        if self.num_alive_layers() > 1 {
+            self.apply_layer_op(
+                LayeredImageOperation::SetLayerState(
+                    self.active_layer_index(),
+                    LayerState::Deleted
+                )
+            );
+        }
     }
 
     fn merge_draw_operations(&mut self) {

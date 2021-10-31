@@ -29,19 +29,12 @@ impl LayersManager {
         match event {
             glfw::WindowEvent::Key(Key::N, _, Action::Press, modifier) => {
                 if modifier == &(Modifiers::Shift | Modifiers::Control) {
-                    editor.image_mut().add_layer();
+                    editor.add_layer();
                 }
             }
             glfw::WindowEvent::Key(Key::Delete, _, Action::Press, modifier) => {
                 if modifier == &(Modifiers::Shift | Modifiers::Control) {
-                    if editor.num_alive_layers() > 1 {
-                        editor.apply_layer_op(
-                            LayeredImageOperation::SetLayerState(
-                                editor.active_layer_index(),
-                                LayerState::Deleted
-                            )
-                        );
-                    }
+                    editor.delete_active_layer();
                 }
             }
             glfw::WindowEvent::MouseButton(button, Action::Release, _) => {
