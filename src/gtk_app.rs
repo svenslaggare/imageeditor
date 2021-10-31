@@ -16,6 +16,7 @@ use crate::program::{Program, LEFT_SIDE_PANEL_WIDTH, TOP_PANEL_HEIGHT, SIDE_PANE
 use crate::editor::tools::EditorWindow;
 use crate::{ui, editor};
 use crate::command_buffer::Command;
+use std::str::FromStr;
 
 pub fn main() {
     let application = Application::builder()
@@ -174,6 +175,55 @@ fn add_menu(app: &Application,
     app.set_app_menu(Some(&menu));
     app.set_menubar(Some(&menu_bar));
 
+    // New image
+    menu.append(Some("New"), Some("app.new_image"));
+    let new_image = gio::SimpleAction::new("new_image", None);
+
+    let new_file_dialog = gtk::DialogBuilder::new()
+        .transient_for(window)
+        .title("New image")
+        .resizable(false)
+        .modal(true)
+        .build();
+
+    new_file_dialog.content_area().set_spacing(8);
+
+    new_file_dialog.add_buttons(&[
+        ("Cancel", gtk::ResponseType::Cancel),
+        ("Create", gtk::ResponseType::Ok)
+    ]);
+
+    let entry_width = create_entry(&new_file_dialog.content_area(), "Width: ", "1280");
+    let entry_height = create_entry(&new_file_dialog.content_area(), "Height:", "800");
+
+    let new_file_dialog = Rc::new(new_file_dialog);
+
+    let new_file_dialog_clone = new_file_dialog.clone();
+    new_image.connect_activate(glib::clone!(@weak window => move |_, _| {
+        new_file_dialog_clone.show_all();
+    }));
+
+    let gtk_program_clone = gtk_program.clone();
+    new_file_dialog.connect_response(move |dialog, response| {
+        match response {
+            ResponseType::Ok => {
+                if let Some(gtk_program) = gtk_program_clone.borrow_mut().as_mut() {
+                    match (u32::from_str(entry_width.text().as_ref()), u32::from_str(entry_height.text().as_ref())) {
+                        (Ok(width), Ok(height)) => {
+                            gtk_program.program.command_buffer.push(Command::NewImage(width, height));
+                            dialog.hide();
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            _ => {
+                dialog.hide();
+            }
+        }
+    });
+    app.add_action(&new_image);
+
     // Open
     menu.append(Some("Open"), Some("app.open_file"));
     let open_file = gio::SimpleAction::new("open_file", None);
@@ -259,53 +309,6 @@ fn add_menu(app: &Application,
         }
     }));
     app.add_action(&redo);
-}
-
-fn create_file_dialog<F: Fn(&mut GTKProgram, PathBuf) + 'static>(window: &ApplicationWindow,
-                                                                 gtk_program: Rc<RefCell<Option<GTKProgram>>>,
-                                                                 action: FileChooserAction,
-                                                                 on_file: F) -> Rc<gtk::FileChooserDialog> {
-    let file_dialog = gtk::FileChooserDialogBuilder::new()
-        .transient_for(window)
-        .modal(true)
-        .action(action)
-        .build();
-
-    let action_name = match action {
-        FileChooserAction::Open => "Open",
-        FileChooserAction::Save => "Save",
-        FileChooserAction::SelectFolder => "Select",
-        FileChooserAction::CreateFolder => "Create",
-        _ => "Unknown"
-    };
-
-    file_dialog.add_buttons(&[
-        (action_name, gtk::ResponseType::Ok),
-        ("Cancel", gtk::ResponseType::Cancel),
-    ]);
-
-    let file_dialog = Rc::new(file_dialog);
-
-    let file_dialog_clone = file_dialog.clone();
-    let gtk_program_clone = gtk_program.clone();
-    file_dialog.connect_response(move |dialog, response| {
-        match response {
-            ResponseType::Ok => {
-                if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
-                    if let Some(filename) = file_dialog_clone.filename() {
-                        on_file(program, filename);
-                    }
-                }
-
-                dialog.hide();
-            }
-            _ => {
-                dialog.hide();
-            }
-        }
-    });
-
-    file_dialog
 }
 
 fn add_input_support(gtk_program: Rc<RefCell<Option<GTKProgram>>>,
@@ -435,6 +438,71 @@ fn add_input_support(gtk_program: Rc<RefCell<Option<GTKProgram>>>,
         gl_area_clone.queue_render();
         Inhibit(true)
     });
+}
+
+fn create_file_dialog<F: Fn(&mut GTKProgram, PathBuf) + 'static>(window: &ApplicationWindow,
+                                                                 gtk_program: Rc<RefCell<Option<GTKProgram>>>,
+                                                                 action: FileChooserAction,
+                                                                 on_file: F) -> Rc<gtk::FileChooserDialog> {
+    let file_dialog = gtk::FileChooserDialogBuilder::new()
+        .transient_for(window)
+        .modal(true)
+        .action(action)
+        .build();
+
+    let action_name = match action {
+        FileChooserAction::Open => "Open",
+        FileChooserAction::Save => "Save",
+        FileChooserAction::SelectFolder => "Select",
+        FileChooserAction::CreateFolder => "Create",
+        _ => "Unknown"
+    };
+
+    file_dialog.add_buttons(&[
+        (action_name, gtk::ResponseType::Ok),
+        ("Cancel", gtk::ResponseType::Cancel),
+    ]);
+
+    let file_dialog = Rc::new(file_dialog);
+
+    let file_dialog_clone = file_dialog.clone();
+    let gtk_program_clone = gtk_program.clone();
+    file_dialog.connect_response(move |dialog, response| {
+        match response {
+            ResponseType::Ok => {
+                if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
+                    if let Some(filename) = file_dialog_clone.filename() {
+                        on_file(program, filename);
+                    }
+                }
+
+                dialog.hide();
+            }
+            _ => {
+                dialog.hide();
+            }
+        }
+    });
+
+    file_dialog
+}
+
+fn create_entry(container: &gtk::Box, label: &str, default_value: &str) -> gtk::Entry {
+    let box_widget = gtk::Box::new(Orientation::Horizontal, 5);
+
+    let entry_widget = gtk::Entry::builder()
+        .text(default_value)
+        .build();
+
+    let label_widget = gtk::Label::builder()
+        .label(label)
+        .build();
+
+    box_widget.add(&label_widget);
+    box_widget.add(&entry_widget);
+
+    container.add(&box_widget);
+    entry_widget
 }
 
 fn get_glfw_key(key: gdk::keys::Key, state: gdk::ModifierType) -> Option<(glfw::Key, glfw::Modifiers)> {

@@ -8,6 +8,7 @@ use crate::rendering::prelude::{Position, Rectangle};
 #[derive(Debug)]
 pub enum Command {
     SetImageSize(u32, u32),
+    NewImage(u32, u32),
     SwitchImage(image::RgbaImage),
     SetTool(Tools),
     SwitchToPrevTool,
