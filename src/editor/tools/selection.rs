@@ -288,6 +288,15 @@ impl SelectionTool {
                     self.end_position = Some(new_start_position + offset);
                 }
             }
+            glfw::WindowEvent::Key(Key::Escape, _, Action::Release, _ ) => {
+                if let Some(original_selection) = self.original_selection() {
+                    self.start_position = Some(original_selection.start_position());
+                    self.end_position = Some(original_selection.end_position());
+                }
+
+                self.move_pixels_state.clear();
+                self.resize_pixels_state.clear();
+            }
             _ => {}
         }
 
@@ -328,6 +337,15 @@ impl SelectionTool {
                         image_area_transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32))
                     );
                 }
+            }
+            glfw::WindowEvent::Key(Key::Escape, _, Action::Release, _ ) => {
+                if let Some(original_selection) = self.original_selection() {
+                    self.start_position = Some(original_selection.start_position());
+                    self.end_position = Some(original_selection.end_position());
+                }
+
+                self.move_pixels_state.clear();
+                self.resize_pixels_state.clear();
             }
             _ => {}
         }
