@@ -60,8 +60,4 @@ impl EditorWindow for GTKEditorWindow {
     fn height(&self) -> u32 {
         self.height
     }
-
-    fn set_should_close(&mut self, _value: bool) {
-
-    }
 }

@@ -2,6 +2,7 @@ use std::sync::mpsc::Receiver;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::path::Path;
+use std::ops::DerefMut;
 
 use cgmath::{Matrix3, Matrix4, Transform, Matrix, SquareMatrix, Vector2};
 
@@ -22,7 +23,6 @@ use crate::rendering::font::Font;
 use crate::rendering::rectangle_render::RectangleRender;
 use crate::editor::editor::{LayerState, LayeredImageOperation};
 use crate::ui::layers::LayersManager;
-use std::ops::DerefMut;
 
 pub const LEFT_SIDE_PANEL_WIDTH: u32 = 70;
 pub const RIGHT_SIDE_PANEL_WIDTH: u32 = 150;

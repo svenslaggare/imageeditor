@@ -19,28 +19,37 @@ pub fn add(app: &Application,
     app.set_app_menu(Some(&menu));
     app.set_menubar(Some(&menu_bar));
 
-    // New image
+    add_program_menu(app, window, gtk_program.clone(), gl_area.clone(), &menu);
+    add_edit_menu(app, window, gtk_program.clone(), gl_area.clone(), &menu_bar);
+    add_layers_menu(app, window, gtk_program.clone(), gl_area.clone(), &menu_bar);
+}
+
+fn add_program_menu(app: &Application,
+                    window: &ApplicationWindow,
+                    gtk_program: Rc<RefCell<Option<GTKProgram>>>,
+                    gl_area: Rc<GLArea>,
+                    menu: &gio::Menu) {
     menu.append(Some("New"), Some("app.new_image"));
     let new_image = gio::SimpleAction::new("new_image", None);
 
-    let new_file_dialog = gtk::DialogBuilder::new()
+    let new_image_dialog = gtk::DialogBuilder::new()
         .transient_for(window)
         .title("New image")
         .resizable(false)
         .modal(true)
         .build();
 
-    new_file_dialog.content_area().set_spacing(8);
+    new_image_dialog.content_area().set_spacing(8);
 
-    new_file_dialog.add_buttons(&[
+    new_image_dialog.add_buttons(&[
         ("Cancel", gtk::ResponseType::Cancel),
         ("Create", gtk::ResponseType::Ok)
     ]);
 
-    let entry_width = create_entry(&new_file_dialog.content_area(), "Width: ", "1280");
-    let entry_height = create_entry(&new_file_dialog.content_area(), "Height:", "800");
+    let entry_width = create_entry(&new_image_dialog.content_area(), "Width: ", "1280");
+    let entry_height = create_entry(&new_image_dialog.content_area(), "Height:", "800");
 
-    let new_file_dialog = Rc::new(new_file_dialog);
+    let new_file_dialog = Rc::new(new_image_dialog);
     new_file_dialog.connect_delete_event(|dialog, event| {
         Inhibit(true)
     });
@@ -127,7 +136,13 @@ pub fn add(app: &Application,
         window.close();
     }));
     app.add_action(&quit);
+}
 
+fn add_edit_menu(app: &Application,
+                 window: &ApplicationWindow,
+                 gtk_program: Rc<RefCell<Option<GTKProgram>>>,
+                 gl_area: Rc<GLArea>,
+                 menu_bar: &gio::Menu) {
     let edit_menu = gio::Menu::new();
     menu_bar.append_submenu(Some("_Edit"), &edit_menu);
 
@@ -168,7 +183,13 @@ pub fn add(app: &Application,
         }
     }));
     app.add_action(&select_all);
+}
 
+fn add_layers_menu(app: &Application,
+                   window: &ApplicationWindow,
+                   gtk_program: Rc<RefCell<Option<GTKProgram>>>,
+                   gl_area: Rc<GLArea>,
+                   menu_bar: &gio::Menu) {
     let layer_menu = gio::Menu::new();
     menu_bar.append_submenu(Some("_Layer"), &layer_menu);
 

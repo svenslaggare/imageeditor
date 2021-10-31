@@ -36,7 +36,6 @@ pub trait EditorWindow {
     fn get_cursor_pos(&self) -> (f64, f64);
     fn width(&self) -> u32;
     fn height(&self) -> u32;
-    fn set_should_close(&mut self, value: bool);
 }
 
 pub trait Tool {

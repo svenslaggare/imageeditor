@@ -86,10 +86,6 @@ impl EditorWindow for glfw::Window {
     fn height(&self) -> u32 {
         self.get_size().1 as u32
     }
-
-    fn set_should_close(&mut self, value: bool) {
-        self.set_should_close(value);
-    }
 }
 
 fn setup_window(width: u32, height: u32) -> (Glfw, Window, Receiver<(f64, WindowEvent)>) {
