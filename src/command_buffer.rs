@@ -19,7 +19,8 @@ pub enum Command {
     RedoImageOp,
     NewLayer,
     DuplicateLayer,
-    DeleteLayer
+    DeleteLayer,
+    SelectAll
 }
 
 pub struct CommandBuffer {

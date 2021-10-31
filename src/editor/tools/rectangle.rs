@@ -85,7 +85,7 @@ impl RectangleDrawTool {
 }
 
 impl Tool for RectangleDrawTool {
-    fn handle_command(&mut self, command: &Command) {
+    fn handle_command(&mut self, _image: &editor::Image, command: &Command) {
         match command {
             Command::SetColor(color) => {
                 self.fill_color = *color;

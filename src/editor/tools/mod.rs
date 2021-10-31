@@ -52,7 +52,7 @@ pub trait Tool {
 
     }
 
-    fn handle_command(&mut self, command: &Command) {
+    fn handle_command(&mut self, image: &editor::Image, command: &Command) {
 
     }
 

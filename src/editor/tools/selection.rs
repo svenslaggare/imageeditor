@@ -174,8 +174,7 @@ impl SelectionTool {
                 }
             }
             glfw::WindowEvent::Key(Key::A, _, Action::Press, Modifiers::Control) => {
-                self.start_position = Some(Position::new(0.0, 0.0));
-                self.end_position = Some(Position::new(image.width() as f32, image.height() as f32));
+                self.select_all(image);
             }
             glfw::WindowEvent::Key(Key::Delete, _, Action::Press, _) => {
                 if let Some(selection) = self.selection() {
@@ -416,6 +415,11 @@ impl SelectionTool {
             }
         ])
     }
+
+    fn select_all(&mut self, image: &editor::Image) {
+        self.start_position = Some(Position::new(0.0, 0.0));
+        self.end_position = Some(Position::new(image.width() as f32, image.height() as f32));
+    }
 }
 
 impl Tool for SelectionTool {
@@ -477,6 +481,12 @@ impl Tool for SelectionTool {
         }
 
         op
+    }
+
+    fn handle_command(&mut self, image: &editor::Image, command: &Command) {
+        if let Command::SelectAll = command {
+            self.select_all(image);
+        }
     }
 
     fn preview(&mut self,

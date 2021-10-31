@@ -13,7 +13,7 @@ use crate::rendering::shader::Shader;
 use crate::rendering::prelude::{Position, Rectangle, Color4, Size, blend};
 use crate::rendering::texture_render::TextureRender;
 use crate::editor::image_operation::{ImageSource, ImageOperation};
-use crate::editor::tools::{Tool, create_tools, Tools, EditorWindow, get_transformed_mouse_position};
+use crate::editor::tools::{Tool, create_tools, Tools, EditorWindow, get_transformed_mouse_position, SelectionSubTool};
 use crate::rendering::text_render::TextRender;
 use crate::rendering::solid_rectangle_render::SolidRectangleRender;
 use crate::rendering::ShaderAndRender;
@@ -188,8 +188,12 @@ impl Program {
                     self.editor.delete_active_layer();
                 }
                 command => {
+                    if let Command::SelectAll = command {
+                        self.switch_tool(window, Tools::Selection(SelectionSubTool::Select));
+                    }
+
                     for draw_tool in &mut self.tools {
-                        draw_tool.handle_command(&command);
+                        draw_tool.handle_command(self.editor.active_layer(), &command);
                     }
 
                     self.ui_manager.process_command(&command);

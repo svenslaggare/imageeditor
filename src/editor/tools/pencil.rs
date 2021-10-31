@@ -62,7 +62,7 @@ impl PencilDrawTool {
 }
 
 impl Tool for PencilDrawTool {
-    fn handle_command(&mut self, command: &Command) {
+    fn handle_command(&mut self, _image: &editor::Image, command: &Command) {
         match command {
             Command::SetColor(color) => {
                 self.color = *color;

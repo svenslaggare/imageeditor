@@ -313,6 +313,18 @@ fn add_menu(app: &Application,
     }));
     app.add_action(&redo);
 
+    edit_menu.append(Some("Select all"), Some("app.select_all"));
+    let select_all = gio::SimpleAction::new("select_all", None);
+    let gl_area_clone = gl_area.clone();
+    let gtk_program_clone = gtk_program.clone();
+    select_all.connect_activate(glib::clone!(@weak window => move |_, _| {
+        if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
+            program.program.command_buffer.push(Command::SelectAll);
+            gl_area_clone.queue_render();
+        }
+    }));
+    app.add_action(&select_all);
+
     let layer_menu = gio::Menu::new();
     menu_bar.append_submenu(Some("_Layer"), &layer_menu);
 
