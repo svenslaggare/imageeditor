@@ -534,3 +534,11 @@ pub fn add_op_sequential(op: &mut Option<ImageOperation>, new_op: Option<ImageOp
         }
     }
 }
+
+pub fn select_latest(op1: Option<ImageOperation>, op2: Option<ImageOperation>) -> Option<ImageOperation> {
+    if op2.is_some() {
+        op2
+    } else {
+        op1
+    }
+}

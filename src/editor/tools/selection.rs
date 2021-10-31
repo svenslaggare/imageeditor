@@ -5,7 +5,7 @@ use crate::rendering::prelude::{Position, Rectangle, Size, Color, Color4};
 use crate::editor;
 use crate::command_buffer::{Command, CommandBuffer};
 use crate::editor::tools::{Tool, get_valid_rectangle, SelectionSubTool, Tools, get_transformed_mouse_position, EditorWindow, get_valid_rectangle_as_int};
-use crate::editor::image_operation::{ImageOperation, ImageSource, add_op_sequential};
+use crate::editor::image_operation::{ImageOperation, ImageSource, add_op_sequential, select_latest};
 use crate::editor::image_operation_helpers::sub_image;
 use crate::editor::Image;
 use crate::program::Renders;
@@ -316,9 +316,13 @@ impl SelectionTool {
                 self.resize_pixels_state.is_resizing = false;
 
                 let current_mouse_position = get_transformed_mouse_position(window, image_area_transform);
-                if let Some(selection) = self.selection() {
+                if let Some(mut selection) = self.selection() {
                     let selection_rectangle = Rectangle::from_min_and_max(&selection.start_position(), &selection.end_position());
                     if selection_rectangle.contains(&current_mouse_position) {
+                        if let Some(original_selection) = self.move_pixels_state.original_selection.as_ref() {
+                            selection = original_selection.clone();
+                        }
+
                         if self.resize_pixels_state.resize_pixels_image.is_none() {
                             self.resize_pixels_state.original_selection = Some(selection.clone());
                             self.resize_pixels_state.resize_pixels_image = Some(sub_image(image, selection.start_x, selection.start_y, selection.end_x, selection.end_y));
@@ -450,15 +454,13 @@ impl Tool for SelectionTool {
     }
 
     fn on_deactivate(&mut self, _command_buffer: &mut CommandBuffer) -> Option<ImageOperation> {
-        let mut op = None;
+        let op = select_latest(self.create_move(false), self.create_resize(false));
 
         if self.move_pixels_state.moved_pixels_image.is_some() {
-            add_op_sequential(&mut op, self.create_move(false));
             self.move_pixels_state.clear();
         }
 
         if self.resize_pixels_state.resize_pixels_image.is_some() {
-            add_op_sequential(&mut op, self.create_resize(false));
             self.resize_pixels_state.clear();
         }
 
@@ -485,8 +487,10 @@ impl Tool for SelectionTool {
 
         match event {
             glfw::WindowEvent::Key(Key::Enter, _, Action::Release, _) => {
-                add_op_sequential(&mut op, self.create_move(false));
-                add_op_sequential(&mut op, self.create_resize(false));
+                add_op_sequential(
+                    &mut op,
+                    select_latest(self.create_move(false), self.create_resize(false))
+                );
 
                 self.start_position = None;
                 self.end_position = None;
@@ -514,14 +518,9 @@ impl Tool for SelectionTool {
         let mut update_op = preview_image.update_operation();
 
         let mut erased_area = false;
-        if let Some(move_op) = self.create_move(true) {
+        if let Some(preview_op) = select_latest(self.create_move(true), self.create_resize(true)) {
             erased_area = true;
-            move_op.apply(&mut update_op, false);
-        }
-
-        if let Some(resize_op) = self.create_resize(true) {
-            erased_area = true;
-            resize_op.apply(&mut update_op, false);
+            preview_op.apply(&mut update_op, false);
         }
 
         if erased_area {
