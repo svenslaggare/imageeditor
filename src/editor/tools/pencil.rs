@@ -162,20 +162,6 @@ impl Tool for PencilDrawTool {
                     if let Some(prev_mouse_position) = self.prev_mouse_position {
                         let mut ops = Vec::new();
 
-                        ops.push(
-                            ImageOperation::PencilStroke {
-                                start_x: prev_mouse_position.x as i32,
-                                start_y: prev_mouse_position.y as i32,
-                                end_x: mouse_position.x as i32,
-                                end_y: mouse_position.y as i32,
-                                prev_start_x: self.prev_prev_mouse_position.map(|pos| pos.x as i32),
-                                prev_start_y: self.prev_prev_mouse_position.map(|pos| pos.y as i32),
-                                color,
-                                anti_aliased: Some(self.anti_aliasing_checkbox.checked),
-                                side_half_width: self.side_half_width
-                            }
-                        );
-
                         if self.anti_aliasing_checkbox.checked {
                             ops.push(
                                 ImageOperation::FillCircle {
@@ -197,6 +183,20 @@ impl Tool for PencilDrawTool {
                                 }
                             );
                         }
+
+                        ops.push(
+                            ImageOperation::PencilStroke {
+                                start_x: prev_mouse_position.x as i32,
+                                start_y: prev_mouse_position.y as i32,
+                                end_x: mouse_position.x as i32,
+                                end_y: mouse_position.y as i32,
+                                prev_start_x: self.prev_prev_mouse_position.map(|pos| pos.x as i32),
+                                prev_start_y: self.prev_prev_mouse_position.map(|pos| pos.y as i32),
+                                color,
+                                anti_aliased: Some(self.anti_aliasing_checkbox.checked),
+                                side_half_width: self.side_half_width
+                            }
+                        );
 
                         op = Some(ImageOperation::Sequential(ops));
                     }
