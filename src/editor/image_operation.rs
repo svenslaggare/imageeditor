@@ -61,7 +61,7 @@ pub enum ImageOperation {
     SetImageSparse { image: SparseImage },
     SetOptionalImage { image: OptionalImage },
     SetScaledImage { image: image::RgbaImage, start_x: i32, start_y: i32, scale_x: f32, scale_y: f32 },
-    SetRotatedImage { image: image::RgbaImage, start_x: i32, start_y: i32, rotation: f32 },
+    SetRotatedImage { image: image::RgbaImage, center_x: i32, center_y: i32, rotation: f32 },
     SetPseudoTransparent { pattern: image::RgbaImage, start_x: i32, start_y: i32, end_x: i32, end_y: i32 },
     SetPixel { x: i32, y: i32, color: Color },
     Block { x: i32, y: i32, color: Color, side_half_width: i32 },
@@ -184,14 +184,14 @@ impl ImageOperation {
                     blend: false
                 }.apply(update_op, undo)
             }
-            ImageOperation::SetRotatedImage { image, start_x, start_y, rotation } => {
+            ImageOperation::SetRotatedImage { image, center_x, center_y, rotation } => {
                 let rotated_image = rotate_image(image, *rotation, FilterType::Triangle);
 
                 ImageOperation::SetImage {
-                    start_x: *start_x,
-                    start_y: *start_y,
+                    start_x: center_x - rotated_image.width() as i32 / 2,
+                    start_y: center_y - rotated_image.height() as i32 / 2,
                     image: rotated_image,
-                    blend: false
+                    blend: true
                 }.apply(update_op, undo)
             }
             ImageOperation::SetPseudoTransparent { pattern, start_x, start_y, end_x, end_y } => {

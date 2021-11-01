@@ -1,5 +1,5 @@
 use glfw::{WindowEvent, Action, Key, Modifiers, Window};
-use cgmath::{Matrix3, Transform, Matrix, Matrix4};
+use cgmath::{Matrix3, Transform, Matrix, Matrix4, EuclideanSpace};
 
 use crate::rendering::prelude::{Position, Rectangle, Size, Color, Color4};
 use crate::editor;
@@ -75,13 +75,28 @@ impl ResizePixelsState {
     }
 }
 
+struct RotatePixelsState {
+    is_rotating: bool,
+    rotate_pixels_image: Option<image::RgbaImage>,
+    rotation: f32
+}
+
+impl RotatePixelsState {
+    pub fn clear(&mut self) {
+        self.is_rotating = false;
+        self.rotate_pixels_image = None;
+        self.rotation = 0.0;
+    }
+}
+
 pub struct SelectionTool {
     tool: SelectionSubTool,
     start_position: Option<Position>,
     end_position: Option<Position>,
     select_state: SelectState,
     move_pixels_state: MovePixelsState,
-    resize_pixels_state: ResizePixelsState
+    resize_pixels_state: ResizePixelsState,
+    rotate_pixels_state: RotatePixelsState
 }
 
 impl SelectionTool {
@@ -104,6 +119,11 @@ impl SelectionTool {
                 is_resizing: false,
                 original_selection: None,
                 resize_pixels_image: None
+            },
+            rotate_pixels_state: RotatePixelsState {
+                is_rotating: false,
+                rotate_pixels_image: None,
+                rotation: 0.0
             }
         }
     }
@@ -126,6 +146,10 @@ impl SelectionTool {
     }
 
     fn original_selection(&self) -> Option<Selection> {
+        if self.rotate_pixels_state.rotate_pixels_image.is_some() {
+            return self.selection();
+        }
+
         if let Some(selection) = self.resize_pixels_state.original_selection.as_ref() {
             return Some(selection.clone());
         }
@@ -157,6 +181,11 @@ impl SelectionTool {
                     if self.resize_pixels_state.resize_pixels_image.is_some() {
                         add_op_sequential(&mut op, self.create_move(false));
                         self.resize_pixels_state.clear();
+                    }
+
+                    if self.rotate_pixels_state.rotate_pixels_image.is_some() {
+                        add_op_sequential(&mut op, self.create_rotation(false));
+                        self.rotate_pixels_state.clear();
                     }
 
                     self.start_position = Some(get_transformed_mouse_position(window, image_area_transform));
@@ -294,8 +323,7 @@ impl SelectionTool {
                     self.end_position = Some(original_selection.end_position());
                 }
 
-                self.move_pixels_state.clear();
-                self.resize_pixels_state.clear();
+                self.clear_states();
             }
             _ => {}
         }
@@ -325,7 +353,15 @@ impl SelectionTool {
 
                         if self.resize_pixels_state.resize_pixels_image.is_none() {
                             self.resize_pixels_state.original_selection = Some(selection.clone());
-                            self.resize_pixels_state.resize_pixels_image = Some(sub_image(image, selection.start_x, selection.start_y, selection.end_x, selection.end_y));
+                            self.resize_pixels_state.resize_pixels_image = Some(
+                                sub_image(
+                                    image,
+                                    selection.start_x,
+                                    selection.start_y,
+                                    selection.end_x,
+                                    selection.end_y
+                                )
+                            );
                         }
 
                         self.resize_pixels_state.is_resizing = true;
@@ -348,8 +384,69 @@ impl SelectionTool {
                     self.end_position = Some(original_selection.end_position());
                 }
 
-                self.move_pixels_state.clear();
-                self.resize_pixels_state.clear();
+                self.clear_states();
+            }
+            _ => {}
+        }
+
+        return op;
+    }
+
+    fn process_event_rotate_pixels(&mut self,
+                                   window: &mut dyn EditorWindow,
+                                   event: &glfw::WindowEvent,
+                                   image_area_transform: &Matrix3<f32>,
+                                   _image_area_rectangle: &Rectangle,
+                                   _command_buffer: &mut CommandBuffer,
+                                   image: &editor::Image) -> Option<ImageOperation> {
+        let mut op = None;
+        match event {
+            glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
+                self.rotate_pixels_state.is_rotating = false;
+
+                let current_mouse_position = get_transformed_mouse_position(window, image_area_transform);
+                if let Some(mut selection) = self.selection() {
+                    let selection_rectangle = Rectangle::from_min_and_max(&selection.start_position(), &selection.end_position());
+                    if selection_rectangle.contains(&current_mouse_position) {
+                        if let Some(original_selection) = self.move_pixels_state.original_selection.as_ref() {
+                            selection = original_selection.clone();
+                        }
+
+                        if self.rotate_pixels_state.rotate_pixels_image.is_none() {
+                            self.rotate_pixels_state.rotate_pixels_image = Some(
+                                sub_image(
+                                    image,
+                                    selection.start_x,
+                                    selection.start_y,
+                                    selection.end_x,
+                                    selection.end_y
+                                )
+                            );
+                        }
+
+                        self.rotate_pixels_state.is_rotating = true;
+                    }
+                }
+            }
+            glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Release, _) => {
+                self.rotate_pixels_state.is_rotating = false;
+            }
+            glfw::WindowEvent::CursorPos(raw_mouse_x, raw_mouse_y) => {
+                if self.rotate_pixels_state.is_rotating {
+                    if let (Some(start_position), Some(end_position)) = (self.start_position, self.end_position) {
+                        let mouse_position = image_area_transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32));
+                        let diff = mouse_position - (start_position.to_vec() + end_position.to_vec()) * 0.5;
+                        self.rotate_pixels_state.rotation = diff.y.atan2(diff.x);
+                    }
+                }
+            }
+            glfw::WindowEvent::Key(Key::Escape, _, Action::Release, _ ) => {
+                if let Some(original_selection) = self.original_selection() {
+                    self.start_position = Some(original_selection.start_position());
+                    self.end_position = Some(original_selection.end_position());
+                }
+
+                self.clear_states();
             }
             _ => {}
         }
@@ -402,6 +499,27 @@ impl SelectionTool {
         None
     }
 
+    fn create_rotation(&self, preview: bool) -> Option<ImageOperation> {
+        match (self.selection(), self.rotate_pixels_state.rotate_pixels_image.as_ref()) {
+            (Some(selection), Some(resize_pixels_image)) => {
+                return Some(
+                    ImageOperation::Sequential(vec![
+                        self.create_erased_area(&selection, preview),
+                        ImageOperation::SetRotatedImage {
+                            image: resize_pixels_image.clone(),
+                            center_x: (selection.start_x + selection.end_x) / 2,
+                            center_y: (selection.start_y + selection.end_y) / 2,
+                            rotation: self.rotate_pixels_state.rotation
+                        }
+                    ])
+                );
+            }
+            _ => {}
+        }
+
+        None
+    }
+
     fn create_erased_area(&self, selection: &Selection, preview: bool) -> ImageOperation{
         if !preview {
             ImageOperation::FillRectangle {
@@ -442,6 +560,12 @@ impl SelectionTool {
         self.start_position = Some(Position::new(0.0, 0.0));
         self.end_position = Some(Position::new(image.width() as f32, image.height() as f32));
     }
+
+    fn clear_states(&mut self) {
+        self.move_pixels_state.clear();
+        self.resize_pixels_state.clear();
+        self.rotate_pixels_state.clear();
+    }
 }
 
 impl Tool for SelectionTool {
@@ -454,7 +578,10 @@ impl Tool for SelectionTool {
     }
 
     fn on_deactivate(&mut self, _command_buffer: &mut CommandBuffer) -> Option<ImageOperation> {
-        let op = select_latest(self.create_move(false), self.create_resize(false));
+        let op = select_latest(
+            self.create_move(false),
+            select_latest(self.create_resize(false), self.create_rotation(false))
+        );
 
         if self.move_pixels_state.moved_pixels_image.is_some() {
             self.move_pixels_state.clear();
@@ -462,6 +589,10 @@ impl Tool for SelectionTool {
 
         if self.resize_pixels_state.resize_pixels_image.is_some() {
             self.resize_pixels_state.clear();
+        }
+
+        if self.rotate_pixels_state.rotate_pixels_image.is_some() {
+            self.rotate_pixels_state.clear();
         }
 
         if op.is_some() {
@@ -483,20 +614,23 @@ impl Tool for SelectionTool {
             SelectionSubTool::Select => self.process_event_select(window, event, image_area_transform, image_area_rectangle, command_buffer, image),
             SelectionSubTool::MovePixels => self.process_event_move_pixels(window, event, image_area_transform, image_area_rectangle, command_buffer, image),
             SelectionSubTool::ResizePixels => self.process_event_resize_pixels(window, event, image_area_transform, image_area_rectangle, command_buffer, image),
+            SelectionSubTool::RotatePixels => self.process_event_rotate_pixels(window, event, image_area_transform, image_area_rectangle, command_buffer, image),
         };
 
         match event {
             glfw::WindowEvent::Key(Key::Enter, _, Action::Release, _) => {
                 add_op_sequential(
                     &mut op,
-                    select_latest(self.create_move(false), self.create_resize(false))
+                    select_latest(
+                        self.create_move(false),
+                        select_latest(self.create_resize(false), self.create_rotation(false))
+                    )
                 );
 
                 self.start_position = None;
                 self.end_position = None;
 
-                self.move_pixels_state.clear();
-                self.resize_pixels_state.clear();
+                self.clear_states();
                 self.tool = SelectionSubTool::Select;
             }
             _ => {}
@@ -518,7 +652,9 @@ impl Tool for SelectionTool {
         let mut update_op = preview_image.update_operation();
 
         let mut erased_area = false;
-        if let Some(preview_op) = select_latest(self.create_move(true), self.create_resize(true)) {
+        if let Some(preview_op) = select_latest(self.create_move(true),
+                                                select_latest(self.create_resize(true),
+                                                              self.create_rotation(true))) {
             erased_area = true;
             preview_op.apply(&mut update_op, false);
         }

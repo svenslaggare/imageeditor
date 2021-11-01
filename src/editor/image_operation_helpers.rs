@@ -750,24 +750,26 @@ pub fn rotate_image(image: &image::RgbaImage, rotation: f32, filter_type: Filter
         }
     }
 
+    rotated_image
+
     // Shrink to fit
-    let mut sub_image: image::RgbaImage = image::RgbaImage::new(
-        (max_x - min_x) as u32 + 1,
-        (max_y - min_y) as u32 + 1
-    );
-
-    for y in min_y..(max_y + 1) {
-        for x in min_x..(max_x + 1) {
-            let sub_x = x - min_x;
-            let sub_y = y - min_y;
-
-            if sub_x >= 0 && sub_x < sub_image.width() as i32 && sub_y >= 0 && sub_y < sub_image.height() as i32 {
-                sub_image.put_pixel(sub_x as u32, sub_y as u32, *rotated_image.get_pixel(x as u32, y as u32));
-            }
-        }
-    }
-
-    sub_image
+    // let mut sub_image: image::RgbaImage = image::RgbaImage::new(
+    //     (max_x - min_x) as u32 + 1,
+    //     (max_y - min_y) as u32 + 1
+    // );
+    //
+    // for y in min_y..(max_y + 1) {
+    //     for x in min_x..(max_x + 1) {
+    //         let sub_x = x - min_x;
+    //         let sub_y = y - min_y;
+    //
+    //         if sub_x >= 0 && sub_x < sub_image.width() as i32 && sub_y >= 0 && sub_y < sub_image.height() as i32 {
+    //             sub_image.put_pixel(sub_x as u32, sub_y as u32, *rotated_image.get_pixel(x as u32, y as u32));
+    //         }
+    //     }
+    // }
+    //
+    // sub_image
 }
 
 pub fn hsv_to_rgb(hue: f64, saturation: f64, value: f64) -> Option<Color> {

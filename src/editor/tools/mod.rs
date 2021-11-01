@@ -122,7 +122,8 @@ impl Tools {
 pub enum SelectionSubTool {
     Select,
     MovePixels,
-    ResizePixels
+    ResizePixels,
+    RotatePixels
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
