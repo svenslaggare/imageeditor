@@ -191,7 +191,7 @@ impl ImageOperation {
                     start_x: *start_x,
                     start_y: *start_y,
                     image: rotated_image,
-                    blend: true
+                    blend: false
                 }.apply(update_op, undo)
             }
             ImageOperation::SetPseudoTransparent { pattern, start_x, start_y, end_x, end_y } => {

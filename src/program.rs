@@ -96,6 +96,14 @@ impl Program {
         program.command_buffer.push(Command::SetColor(image::Rgba([255, 0, 0, 255])));
         program.command_buffer.push(Command::SetAlternativeColor(image::Rgba([0, 0, 0, 255])));
 
+        // program.command_buffer.push(Command::ApplyImageOp(ImageOperation::SetRotatedImage {
+        //     image: image::open("/home/antjans/Bilder/ProfileOld2.png").unwrap().into_rgba(),
+        //     // image: image::open("/home/antjans/Bilder/green.png").unwrap().into_rgba(),
+        //     start_x: 300,
+        //     start_y: 100,
+        //     rotation: 45.0_f32.to_radians()
+        // }));
+
         program
     }
 

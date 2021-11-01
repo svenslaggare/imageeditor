@@ -6,6 +6,7 @@ use cgmath::num_traits::Pow;
 use crate::editor::image_operation::{ImageSource, ImageOperationSource, SparseImage, OptionalImage, ColorGradientType};
 use crate::editor::Color;
 use crate::helpers::TimeMeasurement;
+use std::cmp::Ordering;
 
 pub fn draw_block<T: ImageOperationSource>(update_op: &mut T,
                                            center_x: i32,
@@ -658,11 +659,20 @@ pub fn sub_image<T: ImageSource>(image: &T, min_x: i32, min_y: i32, max_x: i32, 
 }
 
 pub fn rotate_image(image: &image::RgbaImage, rotation: f32, filter_type: FilterType) -> image::RgbaImage {
-    let mut rotated_image: image::RgbaImage = image::RgbaImage::new(image.width() + image.height(), image.height() + image.width());
+    let mut rotated_image: image::RgbaImage = image::RgbaImage::new(
+        image.width() + image.height(),
+        image.height() + image.width()
+    );
+
     let center_x = image.width() as f32 * 0.5;
     let center_y = image.height() as f32 * 0.5;
     let target_center_x = rotated_image.width() as f32 * 0.5;
     let target_center_y = rotated_image.height() as f32 * 0.5;
+
+    let mut min_x = i32::MAX;
+    let mut min_y = i32::MAX;
+    let mut max_x = i32::MIN;
+    let mut max_y = i32::MIN;
 
     for y in 0..rotated_image.height() {
         for x in 0..rotated_image.width() {
@@ -677,6 +687,11 @@ pub fn rotate_image(image: &image::RgbaImage, rotation: f32, filter_type: Filter
             let source_y = source_fy.round() as i32;
 
             if source_x >= 0 && source_x < image.width() as i32 && source_y >= 0 && source_y < image.height() as i32 {
+                min_x = min_x.min(x as i32);
+                min_y = min_y.min(y as i32);
+                max_x = max_x.max(x as i32);
+                max_y = max_y.max(y as i32);
+
                 let target = match filter_type {
                     FilterType::Nearest => {
                         *image.get_pixel(source_x as u32, source_y as u32)
@@ -712,14 +727,20 @@ pub fn rotate_image(image: &image::RgbaImage, rotation: f32, filter_type: Filter
 
                         let range_x = source_fx2 - source_fx1;
                         let range_y = source_fy2 - source_fy1;
-                        let factor1 = (source_fx2 - source_fx) / range_x;
-                        let factor2 = (source_fx - source_fx1) / range_x;
 
-                        let interpolate1 = factor1 * target11 + factor2 * target21;
-                        let interpolate2 = factor1 * target12 + factor2 * target22;
-                        let target = ((source_fy2 - source_fy) / range_y) * interpolate1
-                                     + ((source_fy - source_fy1) / range_y) * interpolate2;
-                        vec_to_pixel(&target)
+                        if source_x2 - source_x1 > 0 && source_y2 - source_y1 > 0 {
+                            let mut factor1 = (source_fx2 - source_fx) / range_x;
+                            let mut factor2 = (source_fx - source_fx1) / range_x;
+
+                            let interpolate1 = factor1 * target11 + factor2 * target21;
+                            let interpolate2 = factor1 * target12 + factor2 * target22;
+
+                            let target = ((source_fy2 - source_fy) / range_y) * interpolate1
+                                         + ((source_fy - source_fy1) / range_y) * interpolate2;
+                            vec_to_pixel(&target)
+                        } else {
+                            *image.get_pixel(source_x as u32, source_y as u32)
+                        }
                     }
                     _ => { panic!("Unsupported filter type.") }
                 };
@@ -729,7 +750,24 @@ pub fn rotate_image(image: &image::RgbaImage, rotation: f32, filter_type: Filter
         }
     }
 
-    rotated_image
+    // Shrink to fit
+    let mut sub_image: image::RgbaImage = image::RgbaImage::new(
+        (max_x - min_x) as u32 + 1,
+        (max_y - min_y) as u32 + 1
+    );
+
+    for y in min_y..(max_y + 1) {
+        for x in min_x..(max_x + 1) {
+            let sub_x = x - min_x;
+            let sub_y = y - min_y;
+
+            if sub_x >= 0 && sub_x < sub_image.width() as i32 && sub_y >= 0 && sub_y < sub_image.height() as i32 {
+                sub_image.put_pixel(sub_x as u32, sub_y as u32, *rotated_image.get_pixel(x as u32, y as u32));
+            }
+        }
+    }
+
+    sub_image
 }
 
 pub fn hsv_to_rgb(hue: f64, saturation: f64, value: f64) -> Option<Color> {
