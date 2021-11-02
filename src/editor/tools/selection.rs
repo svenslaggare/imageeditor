@@ -77,6 +77,7 @@ impl ResizePixelsState {
 
 struct RotatePixelsState {
     is_rotating: bool,
+    original_selection: Option<Selection>,
     rotate_pixels_image: Option<image::RgbaImage>,
     rotation: f32
 }
@@ -122,6 +123,7 @@ impl SelectionTool {
             },
             rotate_pixels_state: RotatePixelsState {
                 is_rotating: false,
+                original_selection: None,
                 rotate_pixels_image: None,
                 rotation: 0.0
             }
@@ -146,8 +148,8 @@ impl SelectionTool {
     }
 
     fn original_selection(&self) -> Option<Selection> {
-        if self.rotate_pixels_state.rotate_pixels_image.is_some() {
-            return self.selection();
+        if let Some(selection) = self.resize_pixels_state.original_selection.as_ref() {
+            return Some(selection.clone());
         }
 
         if let Some(selection) = self.resize_pixels_state.original_selection.as_ref() {
@@ -413,6 +415,7 @@ impl SelectionTool {
                         }
 
                         if self.rotate_pixels_state.rotate_pixels_image.is_none() {
+                            self.resize_pixels_state.original_selection = Some(selection.clone());
                             self.rotate_pixels_state.rotate_pixels_image = Some(
                                 sub_image(
                                     image,
@@ -500,11 +503,11 @@ impl SelectionTool {
     }
 
     fn create_rotation(&self, preview: bool) -> Option<ImageOperation> {
-        match (self.selection(), self.rotate_pixels_state.rotate_pixels_image.as_ref()) {
-            (Some(selection), Some(resize_pixels_image)) => {
+        match (self.selection(), self.original_selection(), self.rotate_pixels_state.rotate_pixels_image.as_ref()) {
+            (Some(selection), Some(original_selection), Some(resize_pixels_image)) => {
                 return Some(
                     ImageOperation::Sequential(vec![
-                        self.create_erased_area(&selection, preview),
+                        self.create_erased_area(&original_selection, preview),
                         ImageOperation::SetRotatedImage {
                             image: resize_pixels_image.clone(),
                             center_x: (selection.start_x + selection.end_x) / 2,
@@ -578,10 +581,11 @@ impl Tool for SelectionTool {
     }
 
     fn on_deactivate(&mut self, _command_buffer: &mut CommandBuffer) -> Option<ImageOperation> {
-        let op = select_latest(
+        let op = select_latest([
             self.create_move(false),
-            select_latest(self.create_resize(false), self.create_rotation(false))
-        );
+            self.create_resize(false),
+            self.create_rotation(false)
+        ]);
 
         if self.move_pixels_state.moved_pixels_image.is_some() {
             self.move_pixels_state.clear();
@@ -621,10 +625,11 @@ impl Tool for SelectionTool {
             glfw::WindowEvent::Key(Key::Enter, _, Action::Release, _) => {
                 add_op_sequential(
                     &mut op,
-                    select_latest(
+                    select_latest([
                         self.create_move(false),
-                        select_latest(self.create_resize(false), self.create_rotation(false))
-                    )
+                        self.create_resize(false),
+                        self.create_rotation(false)
+                    ])
                 );
 
                 self.start_position = None;
@@ -652,9 +657,9 @@ impl Tool for SelectionTool {
         let mut update_op = preview_image.update_operation();
 
         let mut erased_area = false;
-        if let Some(preview_op) = select_latest(self.create_move(true),
-                                                select_latest(self.create_resize(true),
-                                                              self.create_rotation(true))) {
+        if let Some(preview_op) = select_latest([self.create_move(true),
+                                                 self.create_resize(true),
+                                                 self.create_rotation(true)]) {
             erased_area = true;
             preview_op.apply(&mut update_op, false);
         }
