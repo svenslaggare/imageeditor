@@ -39,7 +39,7 @@ fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
         Position::new(5.0, 5.0),
         (35.0, line_height + 5.0),
         LEFT_SIDE_PANEL_WIDTH as f32,
-        12
+        13
     );
 
     buttons.push(
@@ -49,6 +49,19 @@ fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
             layout.next().unwrap(),
             Some(Box::new(|command_buffer| {
                 command_buffer.push(Command::SetTool(Tools::Pencil));
+            })),
+            None,
+            None
+        ))
+    );
+
+    buttons.push(
+        Box::new(TextButton::<CommandBuffer>::new(
+            font.clone(),
+            "B".to_owned(),
+            layout.next().unwrap(),
+            Some(Box::new(|command_buffer| {
+                command_buffer.push(Command::SetTool(Tools::BlockPencil));
             })),
             None,
             None

@@ -19,8 +19,10 @@ use crate::program::Renders;
 use crate::editor::tools::color_gradient::ColorGradientDrawTool;
 use crate::editor::Image;
 use crate::editor::tools::color_wheel::ColorWheelTool;
+use crate::editor::tools::block_pencil::BlockPencilDrawTool;
 
 pub mod pencil;
+pub mod block_pencil;
 pub mod eraser;
 pub mod line;
 pub mod rectangle;
@@ -98,7 +100,8 @@ pub enum Tools {
     BucketFill,
     ColorPicker,
     ColorGradient,
-    ColorWheel(ColorWheelMode)
+    ColorWheel(ColorWheelMode),
+    BlockPencil
 }
 
 impl Tools {
@@ -113,7 +116,8 @@ impl Tools {
             Tools::BucketFill => 6,
             Tools::ColorPicker => 7,
             Tools::ColorGradient => 8,
-            Tools::ColorWheel(_) => 9
+            Tools::ColorWheel(_) => 9,
+            Tools::BlockPencil => 10,
         }
     }
 }
@@ -143,7 +147,8 @@ pub fn create_tools(renders: &Renders) -> Vec<Box<dyn Tool>> {
         Box::new(BucketFillDrawTool::new(renders)),
         Box::new(ColorPickerTool::new()),
         Box::new(ColorGradientDrawTool::new(renders)),
-        Box::new(ColorWheelTool::new())
+        Box::new(ColorWheelTool::new()),
+        Box::new(BlockPencilDrawTool::new(renders)),
     ]
 }
 
