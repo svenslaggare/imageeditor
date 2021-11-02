@@ -109,12 +109,12 @@ impl Tool for PencilDrawTool {
                     ImageOperation::Sequential(
                         vec![
                             ImageOperation::Marker(ImageOperationMarker::BeginDraw),
-                            ImageOperation::Block {
-                                x: mouse_position.x as i32,
-                                y: mouse_position.y as i32,
-                                side_half_width: this.side_half_width,
+                            ImageOperation::FillCircle {
+                                center_x: mouse_position.x as i32,
+                                center_y: mouse_position.y as i32,
+                                radius: this.side_half_width,
                                 color
-                            },
+                            }
                         ]
                     )
                 )

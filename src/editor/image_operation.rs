@@ -3,47 +3,26 @@ use std::collections::HashMap;
 use image::{Pixel, FilterType};
 
 use crate::editor::image::{Color};
-use crate::editor::image_operation_helpers::{sub_image, draw_block, draw_line, draw_circle, fill_rectangle, bucket_fill, draw_line_anti_aliased, draw_line_anti_aliased_thick, draw_circle_anti_aliased, draw_circle_anti_aliased_thick, color_gradient, pencil_stroke_anti_aliased, rotate_image};
+use crate::editor::image_operation_helpers::{
+    sub_image,
+    draw_block,
+    draw_line,
+    draw_circle,
+    fill_rectangle,
+    bucket_fill,
+    draw_line_anti_aliased,
+    draw_line_anti_aliased_thick,
+    draw_circle_anti_aliased,
+    draw_circle_anti_aliased_thick,
+    color_gradient,
+    pencil_stroke_anti_aliased,
+    rotate_image
+};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum ImageOperationMarker {
     BeginDraw,
     EndDraw
-}
-
-pub type SparseImage = HashMap<(u32, u32), Color>;
-
-#[derive(Debug)]
-pub struct OptionalImage {
-    width: u32,
-    height: u32,
-    data: Vec<Option<Color>>
-}
-
-impl OptionalImage {
-    pub fn new(width: u32, height: u32) -> OptionalImage {
-        OptionalImage {
-            width,
-            height,
-            data: vec![None; (width * height) as usize]
-        }
-    }
-
-    pub fn contains_key(&self, key: &(u32, u32)) -> bool {
-        let (x, y) = key;
-        if *x < self.width && *y < self.height {
-            self.data[(y * self.width + x) as usize].is_some()
-        } else {
-            false
-        }
-    }
-
-    pub fn insert(&mut self, key: (u32, u32), color: Color) {
-        let (x, y) = key;
-        if x < self.width && y < self.height {
-            self.data[(y * self.width + x) as usize] = Some(color);
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -307,7 +286,15 @@ impl ImageOperation {
                         *end_x,
                         *end_y,
                         |center_x: i32, center_y: i32| {
-                            draw_block(update_op, center_x, center_y, *side_half_width, *color, undo, &mut undo_image);
+                            draw_circle(
+                                center_x,
+                                center_y,
+                                *side_half_width,
+                                true,
+                                |center_x: i32, center_y: i32| {
+                                    draw_block(update_op, center_x, center_y, 0, *color, undo, &mut undo_image);
+                                }
+                            );
                         }
                     );
                 }
@@ -528,6 +515,41 @@ impl ImageOperation {
     }
 }
 
+pub type SparseImage = HashMap<(u32, u32), Color>;
+
+#[derive(Debug)]
+pub struct OptionalImage {
+    width: u32,
+    height: u32,
+    data: Vec<Option<Color>>
+}
+
+impl OptionalImage {
+    pub fn new(width: u32, height: u32) -> OptionalImage {
+        OptionalImage {
+            width,
+            height,
+            data: vec![None; (width * height) as usize]
+        }
+    }
+
+    pub fn contains_key(&self, key: &(u32, u32)) -> bool {
+        let (x, y) = key;
+        if *x < self.width && *y < self.height {
+            self.data[(y * self.width + x) as usize].is_some()
+        } else {
+            false
+        }
+    }
+
+    pub fn insert(&mut self, key: (u32, u32), color: Color) {
+        let (x, y) = key;
+        if x < self.width && y < self.height {
+            self.data[(y * self.width + x) as usize] = Some(color);
+        }
+    }
+}
+
 pub fn add_op_sequential(op: &mut Option<ImageOperation>, new_op: Option<ImageOperation>) {
     if let Some(new_op) = new_op {
         match op {
@@ -545,14 +567,6 @@ pub fn add_op_sequential(op: &mut Option<ImageOperation>, new_op: Option<ImageOp
         }
     }
 }
-
-// pub fn select_latest(op1: Option<ImageOperation>, op2: Option<ImageOperation>) -> Option<ImageOperation> {
-//     if op2.is_some() {
-//         op2
-//     } else {
-//         op1
-//     }
-// }
 
 pub fn select_latest<const N: usize>(ops: [Option<ImageOperation>; N]) -> Option<ImageOperation> {
     let mut last = None;
