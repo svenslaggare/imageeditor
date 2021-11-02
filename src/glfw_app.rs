@@ -48,7 +48,7 @@ pub fn main() {
         program.update(&mut window, &mut events);
 
         unsafe {
-            gl::ClearColor(1.0, 1.0, 1.0, 1.0);
+            gl::ClearColor(214.0 / 255.0, 214.0 / 255.0, 214.0 / 255.0, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
         }
 

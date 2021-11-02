@@ -407,6 +407,18 @@ impl Program {
             &image_area_transform_full,
             self.editor.active_layer()
         );
+
+        self.renders.rectangle_render.render(
+            self.renders.rectangle_render.shader(),
+            &(transform * image_area_transform_full),
+            &Rectangle::new(
+                0.0,
+                0.0,
+                self.editor.image().width() as f32,
+                self.editor.image().height() as f32
+            ),
+            Color4::new(0, 0, 0, 255)
+        )
     }
 
     fn render_ui(&mut self,
