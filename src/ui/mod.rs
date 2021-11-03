@@ -32,20 +32,16 @@ pub fn create() -> Manager {
 }
 
 fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
-    let font = Rc::new(RefCell::new(Font::new("content/fonts/NotoMono-Regular.ttf", 24).unwrap()));
-    let line_height = font.borrow_mut().line_height();
-
     let mut layout = layout::adaptive_rows(
-        Position::new(5.0, 5.0),
-        (35.0, line_height + 5.0),
+        Position::new(10.0, 10.0),
+        (35.0, 35.0),
         LEFT_SIDE_PANEL_WIDTH as f32,
         13
     );
 
     buttons.push(
-        Box::new(TextButton::<CommandBuffer>::new(
-            font.clone(),
-            "P".to_owned(),
+        Box::new(TextureButton::<CommandBuffer>::new(
+            &image::open("content/ui/pencil.png").unwrap().into_rgba(),
             layout.next().unwrap(),
             Some(Box::new(|command_buffer| {
                 command_buffer.push(Command::SetTool(Tools::Pencil));
@@ -56,9 +52,8 @@ fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
     );
 
     buttons.push(
-        Box::new(TextButton::<CommandBuffer>::new(
-            font.clone(),
-            "B".to_owned(),
+        Box::new(TextureButton::<CommandBuffer>::new(
+            &image::open("content/ui/block_pencil.png").unwrap().into_rgba(),
             layout.next().unwrap(),
             Some(Box::new(|command_buffer| {
                 command_buffer.push(Command::SetTool(Tools::BlockPencil));
@@ -69,9 +64,8 @@ fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
     );
 
     buttons.push(
-        Box::new(TextButton::<CommandBuffer>::new(
-            font.clone(),
-            "E".to_owned(),
+        Box::new(TextureButton::<CommandBuffer>::new(
+            &image::open("content/ui/eraser.png").unwrap().into_rgba(),
             layout.next().unwrap(),
             Some(Box::new(|command_buffer| {
                 command_buffer.push(Command::SetTool(Tools::Eraser));
@@ -82,9 +76,8 @@ fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
     );
 
     buttons.push(
-        Box::new(TextButton::<CommandBuffer>::new(
-            font.clone(),
-            "L".to_owned(),
+        Box::new(TextureButton::<CommandBuffer>::new(
+            &image::open("content/ui/line.png").unwrap().into_rgba(),
             layout.next().unwrap(),
             Some(Box::new(|command_buffer| {
                 command_buffer.push(Command::SetTool(Tools::Line));
@@ -95,9 +88,8 @@ fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
     );
 
     buttons.push(
-        Box::new(TextButton::<CommandBuffer>::new(
-            font.clone(),
-            "R".to_owned(),
+        Box::new(TextureButton::<CommandBuffer>::new(
+            &image::open("content/ui/rectangle.png").unwrap().into_rgba(),
             layout.next().unwrap(),
             Some(Box::new(|command_buffer| {
                 command_buffer.push(Command::SetTool(Tools::Rectangle));
@@ -108,9 +100,8 @@ fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
     );
 
     buttons.push(
-        Box::new(TextButton::<CommandBuffer>::new(
-            font.clone(),
-            "C".to_owned(),
+        Box::new(TextureButton::<CommandBuffer>::new(
+            &image::open("content/ui/circle.png").unwrap().into_rgba(),
             layout.next().unwrap(),
             Some(Box::new(|command_buffer| {
                 command_buffer.push(Command::SetTool(Tools::Circle));
@@ -121,9 +112,8 @@ fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
     );
 
     buttons.push(
-        Box::new(TextButton::<CommandBuffer>::new(
-            font.clone(),
-            "BF".to_owned(),
+        Box::new(TextureButton::<CommandBuffer>::new(
+            &image::open("content/ui/fill.png").unwrap().into_rgba(),
             layout.next().unwrap(),
             Some(Box::new(|command_buffer| {
                 command_buffer.push(Command::SetTool(Tools::BucketFill));
@@ -134,9 +124,8 @@ fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
     );
 
     buttons.push(
-        Box::new(TextButton::<CommandBuffer>::new(
-            font.clone(),
-            "CP".to_owned(),
+        Box::new(TextureButton::<CommandBuffer>::new(
+            &image::open("content/ui/color_picker.png").unwrap().into_rgba(),
             layout.next().unwrap(),
             Some(Box::new(|command_buffer| {
                 command_buffer.push(Command::SetTool(Tools::ColorPicker));
@@ -147,9 +136,8 @@ fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
     );
 
     buttons.push(
-        Box::new(TextButton::<CommandBuffer>::new(
-            font.clone(),
-            "CG".to_owned(),
+        Box::new(TextureButton::<CommandBuffer>::new(
+            &image::open("content/ui/color_gradient.png").unwrap().into_rgba(),
             layout.next().unwrap(),
             Some(Box::new(|command_buffer| {
                 command_buffer.push(Command::SetTool(Tools::ColorGradient));
@@ -160,9 +148,8 @@ fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
     );
 
     buttons.push(
-        Box::new(TextButton::<CommandBuffer>::new(
-            font.clone(),
-            "S".to_owned(),
+        Box::new(TextureButton::<CommandBuffer>::new(
+            &image::open("content/ui/selection.png").unwrap().into_rgba(),
             layout.next().unwrap(),
             Some(Box::new(|command_buffer| {
                 command_buffer.push(Command::SetTool(Tools::Selection(SelectionSubTool::Select)));
@@ -173,9 +160,8 @@ fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
     );
 
     buttons.push(
-        Box::new(TextButton::<CommandBuffer>::new(
-            font.clone(),
-            "M".to_owned(),
+        Box::new(TextureButton::<CommandBuffer>::new(
+            &image::open("content/ui/move.png").unwrap().into_rgba(),
             layout.next().unwrap(),
             Some(Box::new(|command_buffer| {
                 command_buffer.push(Command::SetTool(Tools::Selection(SelectionSubTool::MovePixels)));
@@ -185,9 +171,8 @@ fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
         ))
     );
 
-    buttons.push(Box::new(TextButton::<CommandBuffer>::new(
-        font.clone(),
-        "RS".to_owned(),
+    buttons.push(Box::new(TextureButton::<CommandBuffer>::new(
+        &image::open("content/ui/resize.png").unwrap().into_rgba(),
         layout.next().unwrap(),
         Some(Box::new(|command_buffer| {
             command_buffer.push(Command::SetTool(Tools::Selection(SelectionSubTool::ResizePixels)));
@@ -196,9 +181,8 @@ fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
         None
     )));
 
-    buttons.push(Box::new(TextButton::<CommandBuffer>::new(
-        font.clone(),
-        "RO".to_owned(),
+    buttons.push(Box::new(TextureButton::<CommandBuffer>::new(
+        &image::open("content/ui/rotate.png").unwrap().into_rgba(),
         layout.next().unwrap(),
         Some(Box::new(|command_buffer| {
             command_buffer.push(Command::SetTool(Tools::Selection(SelectionSubTool::RotatePixels)));
