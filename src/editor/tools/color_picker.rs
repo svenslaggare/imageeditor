@@ -8,14 +8,42 @@ use crate::editor::tools::{Tool, get_transformed_mouse_position, EditorWindow};
 use crate::editor::image_operation::{ImageOperation, ImageOperationMarker, ImageSource};
 use crate::editor::Image;
 
-pub struct ColorPickerTool {
+enum ColorPickerMode {
+    None,
+    Color,
+    AlternativeColor
+}
 
+pub struct ColorPickerTool {
+    mode: ColorPickerMode
 }
 
 impl ColorPickerTool {
     pub fn new() -> ColorPickerTool {
         ColorPickerTool {
+            mode: ColorPickerMode::None
+        }
+    }
 
+    fn do_color_select(&self,
+                       window: &mut dyn EditorWindow,
+                       image_area_transform: &Matrix3<f32>,
+                       image: &editor::Image,
+                       command_buffer: &mut CommandBuffer) {
+        match self.mode {
+            ColorPickerMode::None => {
+
+            }
+            ColorPickerMode::Color => {
+                if let Some(color) = self.select_color(window, image_area_transform, image) {
+                    command_buffer.push(Command::SetColor(color))
+                }
+            }
+            ColorPickerMode::AlternativeColor => {
+                if let Some(color) = self.select_color(window, image_area_transform, image) {
+                    command_buffer.push(Command::SetAlternativeColor(color))
+                }
+            }
         }
     }
 
@@ -40,19 +68,26 @@ impl Tool for ColorPickerTool {
                          window: &mut dyn EditorWindow,
                          event: &WindowEvent,
                          image_area_transform: &Matrix3<f32>,
-                         image_area_rectangle: &Rectangle,
+                         _image_area_rectangle: &Rectangle,
                          command_buffer: &mut CommandBuffer,
                          image: &editor::Image) -> Option<ImageOperation> {
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
-                if let Some(color) = self.select_color(window, image_area_transform, image) {
-                    command_buffer.push(Command::SetColor(color))
-                }
+                self.mode = ColorPickerMode::Color;
+                self.do_color_select(window, image_area_transform, image, command_buffer);
+            }
+            glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Release, _) => {
+                self.mode = ColorPickerMode::None;
             }
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button2, Action::Press, _) => {
-                if let Some(color) = self.select_color(window, image_area_transform, image) {
-                    command_buffer.push(Command::SetAlternativeColor(color))
-                }
+                self.mode = ColorPickerMode::AlternativeColor;
+                self.do_color_select(window, image_area_transform, image, command_buffer);
+            }
+            glfw::WindowEvent::MouseButton(glfw::MouseButton::Button2, Action::Release, _) => {
+                self.mode = ColorPickerMode::None;
+            }
+            glfw::WindowEvent::CursorPos(_, _) => {
+                self.do_color_select(window, image_area_transform, image, command_buffer);
             }
             _ => {}
         }
