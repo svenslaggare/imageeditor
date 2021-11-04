@@ -410,12 +410,8 @@ impl SelectionTool {
                 if let Some(mut selection) = self.selection() {
                     let selection_rectangle = Rectangle::from_min_and_max(&selection.start_position(), &selection.end_position());
                     if selection_rectangle.contains(&current_mouse_position) {
-                        if self.resize_pixels_state.resize_pixels_image.is_some() {
-                            self.resize_pixels_state.clear();
-                        } else {
-                            if let Some(original_selection) = self.move_pixels_state.original_selection.as_ref() {
-                                selection = original_selection.clone();
-                            }
+                        if let Some(original_selection) = self.move_pixels_state.original_selection.as_ref() {
+                            selection = original_selection.clone();
                         }
 
                         if self.rotate_pixels_state.rotate_pixels_image.is_none() {
