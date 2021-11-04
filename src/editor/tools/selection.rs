@@ -1,5 +1,5 @@
 use glfw::{WindowEvent, Action, Key, Modifiers, Window};
-use cgmath::{Matrix3, Transform, Matrix, Matrix4, EuclideanSpace};
+use cgmath::{Matrix3, Transform, Matrix, Matrix4, EuclideanSpace, InnerSpace};
 
 use crate::rendering::prelude::{Position, Rectangle, Size, Color, Color4};
 use crate::editor;
@@ -201,7 +201,13 @@ impl SelectionTool {
             glfw::WindowEvent::CursorPos(raw_mouse_x, raw_mouse_y) => {
                 let mouse_position = image_area_transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32));
                 if self.select_state.is_selecting {
-                    self.end_position = Some(mouse_position);
+                    if window.is_shift_down() {
+                        let start_position = self.start_position.unwrap();
+                        let distance = (mouse_position.x - start_position.x).max((mouse_position.y - start_position.y));
+                        self.end_position = Some(Position::new(start_position.x + distance, start_position.y + distance))
+                    } else {
+                        self.end_position = Some(mouse_position);
+                    }
                 }
             }
             glfw::WindowEvent::Key(Key::A, _, Action::Press, Modifiers::Control) => {
@@ -375,9 +381,15 @@ impl SelectionTool {
             }
             glfw::WindowEvent::CursorPos(raw_mouse_x, raw_mouse_y) => {
                 if self.resize_pixels_state.is_resizing {
-                    self.end_position = Some(
-                        image_area_transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32))
-                    );
+                    let mouse_position = image_area_transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32));
+
+                    if window.is_shift_down() {
+                        let start_position = self.start_position.unwrap();
+                        let distance = (mouse_position.x - start_position.x).max((mouse_position.y - start_position.y));
+                        self.end_position = Some(Position::new(start_position.x + distance, start_position.y + distance))
+                    } else {
+                        self.end_position = Some(mouse_position);
+                    }
                 }
             }
             glfw::WindowEvent::Key(Key::Escape, _, Action::Release, _ ) => {

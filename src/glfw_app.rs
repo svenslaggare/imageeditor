@@ -79,6 +79,10 @@ impl EditorWindow for glfw::Window {
         self.get_cursor_pos()
     }
 
+    fn is_shift_down(&self) -> bool {
+        return self.get_key(Key::LeftShift) == Action::Press || self.get_key(Key::RightShift) == Action::Press;
+    }
+
     fn width(&self) -> u32 {
         self.get_size().0 as u32
     }

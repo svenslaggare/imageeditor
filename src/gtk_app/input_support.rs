@@ -112,6 +112,15 @@ pub fn add(gtk_program: Rc<RefCell<Option<GTKProgram>>>,
                     modifier
                 ));
             }
+
+            if let Some((key, _)) = get_glfw_key(event.keyval(), event.state()) {
+                match key {
+                    glfw::Key::LeftShift | glfw::Key::RightShift => {
+                        program.editor_window.shift_down = true;
+                    }
+                    _ => {}
+                }
+            }
         }
 
         gl_area_clone.queue_render();
@@ -129,6 +138,15 @@ pub fn add(gtk_program: Rc<RefCell<Option<GTKProgram>>>,
                     glfw::Action::Release,
                     modifier
                 ));
+            }
+
+            if let Some((key, _)) = get_glfw_key(event.keyval(), event.state()) {
+                match key {
+                    glfw::Key::LeftShift | glfw::Key::RightShift => {
+                        program.editor_window.shift_down = false;
+                    }
+                    _ => {}
+                }
             }
         }
 
@@ -227,6 +245,8 @@ lazy_static::lazy_static! {
             (gdk::keys::constants::End, glfw::Key::End),
             (gdk::keys::constants::Page_Up, glfw::Key::PageUp),
             (gdk::keys::constants::Page_Down, glfw::Key::PageDown),
+            (gdk::keys::constants::Shift_L, glfw::Key::LeftShift),
+            (gdk::keys::constants::Shift_R, glfw::Key::RightShift),
         ].into_iter()
     );
 }

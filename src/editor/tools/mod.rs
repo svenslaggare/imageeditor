@@ -36,6 +36,7 @@ pub mod effect;
 
 pub trait EditorWindow {
     fn get_cursor_pos(&self) -> (f64, f64);
+    fn is_shift_down(&self) -> bool;
     fn width(&self) -> u32;
     fn height(&self) -> u32;
 }

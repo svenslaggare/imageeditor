@@ -28,6 +28,7 @@ impl GTKProgram {
             program,
             editor_window: GTKEditorWindow {
                 mouse_position: (0.0, 0.0),
+                shift_down: false,
                 width: view_width,
                 height: view_height
             },
@@ -44,6 +45,7 @@ impl GTKProgram {
 
 pub struct GTKEditorWindow {
     pub mouse_position: (f64, f64),
+    pub shift_down: bool,
     pub width: u32,
     pub height: u32
 }
@@ -51,6 +53,10 @@ pub struct GTKEditorWindow {
 impl EditorWindow for GTKEditorWindow {
     fn get_cursor_pos(&self) -> (f64, f64) {
         self.mouse_position
+    }
+
+    fn is_shift_down(&self) -> bool {
+        self.shift_down
     }
 
     fn width(&self) -> u32 {
