@@ -83,6 +83,7 @@ fn add_program_menu(app: &Application,
     let open_file_dialog = create_file_dialog(
         window,
         gtk_program.clone(),
+        "Open image",
         FileChooserAction::Open,
         move |gtk_program, filename| {
             match image::open(&filename) {
@@ -120,6 +121,7 @@ fn add_program_menu(app: &Application,
     let save_file_as_dialog = create_file_dialog(
         window,
         gtk_program.clone(),
+        "Save as",
         FileChooserAction::Save,
         |gtk_program, filename| {
             if let Some(program) = gtk_program.program.borrow_mut().as_mut() {
@@ -128,6 +130,14 @@ fn add_program_menu(app: &Application,
                 }
             }
         }
+    );
+
+    let save_file_as_dialog_clone = save_file_as_dialog.clone();
+    gtk_program.actions.borrow_mut().insert(
+        ProgramActions::SaveImageAs,
+        Box::new(move || {
+            save_file_as_dialog_clone.show();
+        })
     );
 
     let save_file_as_dialog_clone = save_file_as_dialog.clone();

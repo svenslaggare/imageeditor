@@ -10,10 +10,12 @@ use crate::gtk_app::{GTKProgram, GTKProgramRef};
 
 pub fn create_file_dialog<F: Fn(&GTKProgram, PathBuf) + 'static>(window: &ApplicationWindow,
                                                                  gtk_program: GTKProgramRef,
+                                                                 title: &str,
                                                                  action: FileChooserAction,
                                                                  on_file: F) -> Rc<gtk::FileChooserDialog> {
     let file_dialog = gtk::FileChooserDialogBuilder::new()
         .transient_for(window)
+        .title(title)
         .modal(true)
         .action(action)
         .build();

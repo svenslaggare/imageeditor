@@ -73,17 +73,6 @@ pub fn main() {
         });
 
         gl_area.connect_render(move |area, context| {
-            for (action, callback) in gtk_program.actions.borrow_mut().iter() {
-                let triggered = match gtk_program.program.borrow_mut().as_mut() {
-                    Some(program) => program.actions.is_triggered(action),
-                    _ => false
-                };
-
-                if triggered {
-                    callback();
-                }
-            }
-
             context.make_current();
 
             unsafe {
@@ -111,6 +100,17 @@ pub fn main() {
                     editor_window,
                     &transform
                 );
+            }
+
+            for (action, callback) in gtk_program.actions.borrow_mut().iter() {
+                let triggered = match gtk_program.program.borrow_mut().as_mut() {
+                    Some(program) => program.actions.is_triggered(action),
+                    _ => false
+                };
+
+                if triggered {
+                    callback();
+                }
             }
 
             Inhibit(true)
