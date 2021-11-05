@@ -1,9 +1,9 @@
-use itertools::Itertools;
+use std::path::Path;
+
+use image::{GenericImage, FilterType};
 
 use crate::editor::image_operation::{ImageOperation, ImageOperationMarker, ImageSource, ImageOperationSource};
 use crate::editor::Image;
-use std::path::Path;
-use image::GenericImage;
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum LayerState {
@@ -12,6 +12,7 @@ pub enum LayerState {
     Deleted
 }
 
+#[derive(Clone, Debug)]
 pub struct LayeredImage {
     width: u32,
     height: u32,
@@ -25,6 +26,10 @@ impl LayeredImage {
             height: image.height(),
             layers: vec![(LayerState::Visible, image)]
         }
+    }
+
+    pub fn from_rgba(image: image::RgbaImage) -> LayeredImage {
+        LayeredImage::new(Image::new(image))
     }
 
     pub fn width(&self) -> u32 {
@@ -86,27 +91,60 @@ impl LayeredImage {
 
         Ok(())
     }
+
+    pub fn resize(&mut self, new_width: u32, new_height: u32) {
+        self.width = new_width;
+        self.height = new_height;
+
+        for (_, layer) in &mut self.layers {
+            let resized_image = image::imageops::resize(
+                layer.get_image(),
+                new_width,
+                new_height,
+                FilterType::Triangle
+            );
+
+            *layer = Image::new(resized_image);
+        }
+    }
+
+    pub fn resize_canvas(&mut self, new_width: u32, new_height: u32) {
+        self.width = new_width;
+        self.height = new_height;
+
+        for (_, layer) in &mut self.layers {
+            let mut resized_image: image::RgbaImage = image::RgbaImage::new(new_width, new_height);
+            for y in 0..layer.height().min(new_height) {
+                for x in 0..layer.width().min(new_width) {
+                    resized_image.put_pixel(x, y, layer.get_pixel(x, y));
+                }
+            }
+
+            *layer = Image::new(resized_image);
+        }
+    }
 }
 
-#[derive(Debug)]
-pub enum LayeredImageOperation {
-    Sequential(Vec<LayeredImageOperation>),
+#[derive(Clone, Debug)]
+pub enum EditorOperation {
+    Sequential(Vec<EditorOperation>),
     SetLayerState(usize, LayerState),
     SetActiveLayer(usize),
+    SetImage(LayeredImage),
     ImageOp(usize, ImageOperation)
 }
 
-impl LayeredImageOperation {
+impl EditorOperation {
     pub fn is_image_op(&self) -> bool {
         match self {
-            LayeredImageOperation::ImageOp(_, _) => true,
+            EditorOperation::ImageOp(_, _) => true,
             _ => false
         }
     }
 
     pub fn extract_image_op(self) -> Option<(usize, ImageOperation)> {
         match self {
-            LayeredImageOperation::ImageOp(index, op) => Some((index, op)),
+            EditorOperation::ImageOp(index, op) => Some((index, op)),
             _ => None
         }
     }
@@ -115,8 +153,8 @@ impl LayeredImageOperation {
 pub struct Editor {
     image: LayeredImage,
     active_layer_index: usize,
-    undo_stack: Vec<(LayeredImageOperation, LayeredImageOperation)>,
-    redo_stack: Vec<LayeredImageOperation>,
+    undo_stack: Vec<(EditorOperation, EditorOperation)>,
+    redo_stack: Vec<EditorOperation>,
 }
 
 impl Editor {
@@ -141,17 +179,11 @@ impl Editor {
         Image::new(image::RgbaImage::new(self.image.width(), self.image.height()))
     }
 
-    pub fn set_image(&mut self, image: Image) {
-        self.image = LayeredImage::new(image);
-        self.undo_stack.clear();
-        self.redo_stack.clear();
+    pub fn apply_image_op(&mut self, op: ImageOperation) {
+        self.apply_editor_op(EditorOperation::ImageOp(self.active_layer_index, op));
     }
 
-    pub fn apply_op(&mut self, op: ImageOperation) {
-        self.apply_layer_op(LayeredImageOperation::ImageOp(self.active_layer_index, op));
-    }
-
-    pub fn apply_layer_op(&mut self, op: LayeredImageOperation) {
+    pub fn apply_editor_op(&mut self, op: EditorOperation) {
         self.internal_apply_op(op);
         self.redo_stack.clear();
     }
@@ -159,11 +191,11 @@ impl Editor {
     pub fn undo_op(&mut self) {
         if let Some((orig_op, undo)) = self.undo_stack.pop() {
             match orig_op {
-                LayeredImageOperation::ImageOp(orig_op_layer, orig_op) => {
+                EditorOperation::ImageOp(orig_op_layer, orig_op) => {
                     let undo = undo.extract_image_op().unwrap();
                     let mut update_op = self.image.get_layer_mut(undo.0).unwrap().update_operation();
                     undo.1.apply(&mut update_op, false);
-                    self.redo_stack.push(LayeredImageOperation::ImageOp(orig_op_layer, orig_op));
+                    self.redo_stack.push(EditorOperation::ImageOp(orig_op_layer, orig_op));
                 }
                 orig_op => {
                     self.internal_apply_other_op(undo, false);
@@ -206,8 +238,8 @@ impl Editor {
 
     pub fn delete_active_layer(&mut self) {
         if self.num_alive_layers() > 1 {
-            self.apply_layer_op(
-                LayeredImageOperation::SetLayerState(
+            self.apply_editor_op(
+                EditorOperation::SetLayerState(
                     self.active_layer_index(),
                     LayerState::Deleted
                 )
@@ -218,7 +250,7 @@ impl Editor {
     fn merge_draw_operations(&mut self) {
         for i in (0..self.undo_stack.len()).rev() {
             match &self.undo_stack[i].0 {
-                LayeredImageOperation::ImageOp(op_layer, op) => {
+                EditorOperation::ImageOp(op_layer, op) => {
                     let op_layer = *op_layer;
                     if op.is_marker(ImageOperationMarker::BeginDraw) {
                         let max_index = self.undo_stack
@@ -236,8 +268,8 @@ impl Editor {
 
                         undo_ops.reverse();
                         self.undo_stack.push((
-                            LayeredImageOperation::ImageOp(op_layer, ImageOperation::Sequential(ops).remove_markers()),
-                            LayeredImageOperation::ImageOp(op_layer, ImageOperation::Sequential(undo_ops))
+                            EditorOperation::ImageOp(op_layer, ImageOperation::Sequential(ops).remove_markers()),
+                            EditorOperation::ImageOp(op_layer, ImageOperation::Sequential(undo_ops))
                         ));
                         break;
                     }
@@ -247,14 +279,14 @@ impl Editor {
         }
     }
 
-    fn internal_apply_op(&mut self, op: LayeredImageOperation) {
+    fn internal_apply_op(&mut self, op: EditorOperation) {
         match op {
-            LayeredImageOperation::ImageOp(op_layer, op) => {
+            EditorOperation::ImageOp(op_layer, op) => {
                 if !op.is_marker(ImageOperationMarker::EndDraw) {
                     let mut update_op = self.image.get_layer_mut(op_layer).unwrap().update_operation();
                     if let Some(undo_op) = op.apply(&mut update_op, true) {
-                        self.undo_stack.push((LayeredImageOperation::ImageOp(op_layer, op),
-                                              LayeredImageOperation::ImageOp(op_layer, undo_op)));
+                        self.undo_stack.push((EditorOperation::ImageOp(op_layer, op),
+                                              EditorOperation::ImageOp(op_layer, undo_op)));
                     }
                 } else {
                     self.merge_draw_operations();
@@ -264,14 +296,14 @@ impl Editor {
         }
     }
 
-    fn internal_apply_other_op(&mut self, op: LayeredImageOperation, push_undo: bool) {
+    fn internal_apply_other_op(&mut self, op: EditorOperation, push_undo: bool) {
         match op {
-            LayeredImageOperation::Sequential(ops) => {
+            EditorOperation::Sequential(ops) => {
                 for op in ops {
                     self.internal_apply_other_op(op, push_undo);
                 }
             }
-            LayeredImageOperation::SetLayerState(index, state) => {
+            EditorOperation::SetLayerState(index, state) => {
                 let current_state = self.image.layers_mut()[index].0.clone();
                 self.image.layers_mut()[index].0 = state.clone();
 
@@ -288,32 +320,43 @@ impl Editor {
                 };
 
                 if push_undo {
-                    let mut ops = vec![LayeredImageOperation::SetLayerState(index, state)];
-                    let mut undo_ops = vec![LayeredImageOperation::SetLayerState(index, current_state)];
+                    let mut ops = vec![EditorOperation::SetLayerState(index, state)];
+                    let mut undo_ops = vec![EditorOperation::SetLayerState(index, current_state)];
 
                     if let Some((old_active_layer_index, new_active_layer_index)) = change_active_layer_index {
-                        ops.push(LayeredImageOperation::SetActiveLayer(new_active_layer_index));
-                        undo_ops.push(LayeredImageOperation::SetActiveLayer(old_active_layer_index));
+                        ops.push(EditorOperation::SetActiveLayer(new_active_layer_index));
+                        undo_ops.push(EditorOperation::SetActiveLayer(old_active_layer_index));
                     }
 
                     self.undo_stack.push((
-                        LayeredImageOperation::Sequential(ops),
-                        LayeredImageOperation::Sequential(undo_ops)
+                        EditorOperation::Sequential(ops),
+                        EditorOperation::Sequential(undo_ops)
                     ));
                 }
             }
-            LayeredImageOperation::SetActiveLayer(layer_index) => {
+            EditorOperation::SetActiveLayer(layer_index) => {
                 let current_active_layer_index = self.active_layer_index;
                 self.active_layer_index = layer_index;
 
                 if push_undo {
                     self.undo_stack.push((
-                        LayeredImageOperation::SetActiveLayer(layer_index),
-                        LayeredImageOperation::SetActiveLayer(current_active_layer_index)
+                        EditorOperation::SetActiveLayer(layer_index),
+                        EditorOperation::SetActiveLayer(current_active_layer_index)
                     ));
                 }
             }
-            LayeredImageOperation::ImageOp(_, _) => panic!("Should not be used in this way.")
+            EditorOperation::SetImage(image) => {
+                let mut current_image = image;
+                std::mem::swap(&mut current_image, &mut self.image);
+
+                if push_undo {
+                    self.undo_stack.push((
+                        EditorOperation::SetImage(self.image.clone()),
+                        EditorOperation::SetImage(current_image)
+                    ));
+                }
+            }
+            EditorOperation::ImageOp(_, _) => panic!("Should not be used in this way.")
         }
     }
 }

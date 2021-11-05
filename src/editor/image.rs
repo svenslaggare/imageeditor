@@ -5,6 +5,7 @@ use crate::editor::image_operation::{ImageOperationSource, ImageSource};
 
 pub type Color = Rgba<u8>;
 
+#[derive(Debug)]
 pub struct Image {
     underlying_image: image::RgbaImage,
     texture: Texture
@@ -40,6 +41,12 @@ impl Image {
         for pixel in self.underlying_image.pixels_mut() {
             *pixel = image::Rgba([0, 0, 0, 0]);
         }
+    }
+}
+
+impl Clone for Image {
+    fn clone(&self) -> Self {
+        Image::new(self.underlying_image.clone())
     }
 }
 

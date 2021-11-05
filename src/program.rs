@@ -21,8 +21,9 @@ use crate::rendering::ShaderAndRender;
 use crate::rendering::texture::Texture;
 use crate::rendering::font::Font;
 use crate::rendering::rectangle_render::RectangleRender;
-use crate::editor::editor::{LayerState, LayeredImageOperation};
+use crate::editor::editor::{LayerState, EditorOperation};
 use crate::ui::layers::LayersManager;
+use crate::editor::LayeredImage;
 
 pub const LEFT_SIDE_PANEL_WIDTH: u32 = 70;
 pub const RIGHT_SIDE_PANEL_WIDTH: u32 = 150;
@@ -96,14 +97,6 @@ impl Program {
         program.command_buffer.push(Command::SetColor(image::Rgba([255, 0, 0, 255])));
         program.command_buffer.push(Command::SetAlternativeColor(image::Rgba([0, 0, 0, 255])));
 
-        // program.command_buffer.push(Command::ApplyImageOp(ImageOperation::SetRotatedImage {
-        //     image: image::open("/home/antjans/Bilder/ProfileOld2.png").unwrap().into_rgba(),
-        //     // image: image::open("/home/antjans/Bilder/green.png").unwrap().into_rgba(),
-        //     start_x: 300,
-        //     start_y: 100,
-        //     rotation: 45.0_f32.to_radians()
-        // }));
-
         program
     }
 
@@ -164,14 +157,12 @@ impl Program {
             match command {
                 Command::NewImage(width, height) => {
                     let image = image::RgbaImage::new(width, height);
-                    self.editor.set_image(editor::Image::new(image));
-                    self.preview_image = self.editor.new_image_same();
-                    self.update_view_size();
+                    self.editor.apply_editor_op(EditorOperation::SetImage(LayeredImage::from_rgba(image)));
+                    self.image_size_changed();
                 }
                 Command::SwitchImage(image) => {
-                    self.editor.set_image(editor::Image::new(image));
-                    self.preview_image = self.editor.new_image_same();
-                    self.update_view_size();
+                    self.editor.apply_editor_op(EditorOperation::SetImage(LayeredImage::from_rgba(image)));
+                    self.image_size_changed();
                 }
                 Command::SetTool(tool) => {
                     self.switch_tool(window, tool);
@@ -182,13 +173,15 @@ impl Program {
                     }
                 },
                 Command::ApplyImageOp(op) => {
-                    self.editor.apply_op(op);
+                    self.editor.apply_image_op(op);
                 }
                 Command::UndoImageOp => {
                     self.editor.undo_op();
+                    self.update_view_size();
                 }
                 Command::RedoImageOp => {
                     self.editor.redo_op();
+                    self.update_view_size();
                 }
                 Command::NewLayer => {
                     self.editor.add_layer();
@@ -198,6 +191,20 @@ impl Program {
                 }
                 Command::DeleteLayer => {
                     self.editor.delete_active_layer();
+                }
+                Command::ResizeImage(new_width, new_height) => {
+                    let mut image = self.editor.image().clone();
+                    image.resize(new_width, new_height);
+
+                    self.editor.apply_editor_op(EditorOperation::SetImage(image));
+                    self.image_size_changed();
+                }
+                Command::ResizeCanvas(new_width, new_height) => {
+                    let mut image = self.editor.image().clone();
+                    image.resize_canvas(new_width, new_height);
+
+                    self.editor.apply_editor_op(EditorOperation::SetImage(image));
+                    self.image_size_changed();
                 }
                 command => {
                     if let Command::SelectAll = command {
@@ -504,6 +511,14 @@ impl Program {
         let background_transparent_height = background_transparent_end.y - background_transparent_start.y;
 
         (background_transparent_start, background_transparent_width, background_transparent_height)
+    }
+
+    fn image_size_changed(&mut self) {
+        self.preview_image = self.editor.new_image_same();
+        self.zoom = 1.0;
+        self.view_x = 0.0;
+        self.view_y = 0.0;
+        self.update_view_size();
     }
 
     fn update_view_size(&mut self) {

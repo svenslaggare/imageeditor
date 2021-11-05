@@ -2,6 +2,7 @@ use std::os::raw::c_void;
 
 use crate::rendering::helpers::channels_type;
 
+#[derive(Debug)]
 pub struct Texture {
     texture_id: u32,
     width: u32,

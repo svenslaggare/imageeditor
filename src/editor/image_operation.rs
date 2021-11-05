@@ -31,13 +31,13 @@ pub enum ColorGradientType {
     Radial
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ImageOperation {
     Empty,
     Marker(ImageOperationMarker),
     Sequential(Vec<ImageOperation>),
     SetImage { start_x: i32, start_y: i32, image: image::RgbaImage, blend: bool },
-    SetImageSparse { image: SparseImage },
+    SetSparseImage { image: SparseImage },
     SetOptionalImage { image: OptionalImage },
     SetScaledImage { image: image::RgbaImage, start_x: i32, start_y: i32, scale_x: f32, scale_y: f32 },
     SetRotatedImage { image: image::RgbaImage, center_x: i32, center_y: i32, rotation: f32 },
@@ -127,7 +127,7 @@ impl ImageOperation {
 
                 undo_image.map(|image| ImageOperation::SetImage { start_x: *start_x, start_y: *start_y, image, blend: false })
             }
-            ImageOperation::SetImageSparse { image: changes } => {
+            ImageOperation::SetSparseImage { image: changes } => {
                 for ((x, y), pixel) in changes {
                     update_op.put_pixel(*x, *y, *pixel);
                 }
@@ -224,7 +224,7 @@ impl ImageOperation {
                 draw_block(update_op, *x, *y, *side_half_width, *color, undo, &mut undo_image);
 
                 if undo {
-                    Some(ImageOperation::SetImageSparse { image: undo_image })
+                    Some(ImageOperation::SetSparseImage { image: undo_image })
                 } else {
                     None
                 }
@@ -257,7 +257,7 @@ impl ImageOperation {
                 }
 
                 if undo {
-                    Some(ImageOperation::SetImageSparse { image: undo_image })
+                    Some(ImageOperation::SetSparseImage { image: undo_image })
                 } else {
                     None
                 }
@@ -300,7 +300,7 @@ impl ImageOperation {
                 }
 
                 if undo {
-                    Some(ImageOperation::SetImageSparse { image: undo_image })
+                    Some(ImageOperation::SetSparseImage { image: undo_image })
                 } else {
                     None
                 }
@@ -420,7 +420,7 @@ impl ImageOperation {
                 }
 
                 if undo {
-                    Some(ImageOperation::SetImageSparse { image: undo_image })
+                    Some(ImageOperation::SetSparseImage { image: undo_image })
                 } else {
                     None
                 }
@@ -439,7 +439,7 @@ impl ImageOperation {
                 );
 
                 if undo {
-                    Some(ImageOperation::SetImageSparse { image: undo_image })
+                    Some(ImageOperation::SetSparseImage { image: undo_image })
                 } else {
                     None
                 }
@@ -517,7 +517,7 @@ impl ImageOperation {
 
 pub type SparseImage = HashMap<(u32, u32), Color>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct OptionalImage {
     width: u32,
     height: u32,

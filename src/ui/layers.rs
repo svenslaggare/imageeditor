@@ -2,7 +2,7 @@ use glfw::{Action, Key, Modifiers, MouseButton};
 
 use cgmath::{Matrix3, Transform, Matrix4};
 
-use crate::editor::editor::{LayeredImageOperation, LayerState};
+use crate::editor::editor::{EditorOperation, LayerState};
 use crate::program::{RIGHT_SIDE_PANEL_WIDTH, LAYER_BUFFER, LAYER_SPACING, Renders, LEFT_SIDE_PANEL_WIDTH, TOP_PANEL_HEIGHT};
 use crate::rendering::prelude::{Position, Rectangle, Color4, blend, Size};
 use crate::editor::Editor;
@@ -59,9 +59,9 @@ impl LayersManager {
                                 }
                                 MouseButton::Button2 => {
                                     if state == &LayerState::Visible {
-                                        layer_ops.push(LayeredImageOperation::SetLayerState(layer_index, LayerState::Hidden));
+                                        layer_ops.push(EditorOperation::SetLayerState(layer_index, LayerState::Hidden));
                                     } else if state == &LayerState::Hidden {
-                                        layer_ops.push(LayeredImageOperation::SetLayerState(layer_index, LayerState::Visible));
+                                        layer_ops.push(EditorOperation::SetLayerState(layer_index, LayerState::Visible));
                                     }
                                 }
                                 _ => {}
@@ -73,11 +73,11 @@ impl LayersManager {
                 }
 
                 if let Some(active_layer_index) = active_layer_index {
-                    layer_ops.push(LayeredImageOperation::SetActiveLayer(active_layer_index));
+                    layer_ops.push(EditorOperation::SetActiveLayer(active_layer_index));
                 }
 
                 for layer_op in layer_ops {
-                    editor.apply_layer_op(layer_op);
+                    editor.apply_editor_op(layer_op);
                 }
 
             }
