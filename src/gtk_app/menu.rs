@@ -34,14 +34,7 @@ fn add_program_menu(app: &Application,
     menu.append(Some("New"), Some("app.new_image"));
     let new_image = gio::SimpleAction::new("new_image", None);
 
-    let new_image_dialog = gtk::DialogBuilder::new()
-        .transient_for(window)
-        .title("New image")
-        .resizable(false)
-        .modal(true)
-        .build();
-
-    new_image_dialog.content_area().set_spacing(8);
+    let new_image_dialog = create_dialog(window, "New image");
 
     new_image_dialog.add_buttons(&[
         ("Cancel", gtk::ResponseType::Cancel),
@@ -52,9 +45,6 @@ fn add_program_menu(app: &Application,
     let entry_height = create_entry(&new_image_dialog.content_area(), "Height:", "800");
 
     let new_file_dialog = Rc::new(new_image_dialog);
-    new_file_dialog.connect_delete_event(|dialog, event| {
-        Inhibit(true)
-    });
 
     let new_file_dialog_clone = new_file_dialog.clone();
     new_image.connect_activate(glib::clone!(@weak window => move |_, _| {
@@ -197,14 +187,7 @@ fn add_image_menu(app: &Application,
 
     layer_menu.append(Some("Resize image"), Some("app.resize_image"));
     let resize_image = gio::SimpleAction::new("resize_image", None);
-    let resize_image_dialog = gtk::DialogBuilder::new()
-        .transient_for(window)
-        .title("Resize image")
-        .resizable(false)
-        .modal(true)
-        .build();
-
-    resize_image_dialog.content_area().set_spacing(8);
+    let resize_image_dialog = create_dialog(window, "Resize image");
 
     resize_image_dialog.add_buttons(&[
         ("Cancel", gtk::ResponseType::Cancel),
@@ -215,9 +198,6 @@ fn add_image_menu(app: &Application,
     let entry_height = Rc::new(create_entry(&resize_image_dialog.content_area(), "New height:", "0"));
 
     let resize_image_dialog = Rc::new(resize_image_dialog);
-    resize_image_dialog.connect_delete_event(|dialog, event| {
-        Inhibit(true)
-    });
 
     let gtk_program_clone = gtk_program.clone();
     let resize_image_dialog_clone = resize_image_dialog.clone();
@@ -257,14 +237,7 @@ fn add_image_menu(app: &Application,
     // Resize canvas
     layer_menu.append(Some("Resize canvas"), Some("app.resize_canvas"));
     let resize_canvas = gio::SimpleAction::new("resize_canvas", None);
-    let resize_canvas_dialog = gtk::DialogBuilder::new()
-        .transient_for(window)
-        .title("Resize canvas")
-        .resizable(false)
-        .modal(true)
-        .build();
-
-    resize_canvas_dialog.content_area().set_spacing(8);
+    let resize_canvas_dialog = create_dialog(window, "Resize canvas");
 
     resize_canvas_dialog.add_buttons(&[
         ("Cancel", gtk::ResponseType::Cancel),
@@ -275,9 +248,6 @@ fn add_image_menu(app: &Application,
     let entry_height = Rc::new(create_entry(&resize_canvas_dialog.content_area(), "New height:", "0"));
 
     let resize_canvas_dialog = Rc::new(resize_canvas_dialog);
-    resize_canvas_dialog.connect_delete_event(|dialog, event| {
-        Inhibit(true)
-    });
 
     let gtk_program_clone = gtk_program.clone();
     let resize_canvas_dialog_clone = resize_canvas_dialog.clone();
@@ -313,29 +283,6 @@ fn add_image_menu(app: &Application,
         }
     });
     app.add_action(&resize_canvas);
-}
-
-fn parse_new_size(gtk_program: &GTKProgram, entry_width: &gtk::Entry, entry_height: &gtk::Entry) -> Option<(u32, u32)> {
-    let parse_entry = |entry: &gtk::Entry, current: u32| {
-        let text = entry.text();
-        let text: &str = text.as_str();
-        let mut chars = text.chars().collect::<Vec<_>>();
-        if chars.last() == Some(&'%') {
-            chars.remove(chars.len() - 1);
-            let value = f32::from_str(&String::from_iter(chars)).ok()? / 100.0;
-            Some((value * current as f32).round() as u32)
-        } else {
-            u32::from_str(text).ok()
-        }
-    };
-
-    match (parse_entry(entry_width, gtk_program.program.editor.image().width()),
-           parse_entry(entry_height, gtk_program.program.editor.image().height())) {
-        (Some(width), Some(height)) => {
-            Some((width, height))
-        }
-        _ => None
-    }
 }
 
 fn add_layers_menu(app: &Application,
@@ -384,4 +331,43 @@ fn add_layers_menu(app: &Application,
         }
     }));
     app.add_action(&delete_layer);
+}
+
+fn create_dialog(window: &ApplicationWindow, title: &str) -> gtk::Dialog {
+    let dialog = gtk::DialogBuilder::new()
+        .transient_for(window)
+        .title(title)
+        .resizable(false)
+        .modal(true)
+        .build();
+
+    dialog.connect_delete_event(|dialog, event| {
+        Inhibit(true)
+    });
+
+    dialog.content_area().set_spacing(8);
+    dialog
+}
+
+fn parse_new_size(gtk_program: &GTKProgram, entry_width: &gtk::Entry, entry_height: &gtk::Entry) -> Option<(u32, u32)> {
+    let parse_entry = |entry: &gtk::Entry, current: u32| {
+        let text = entry.text();
+        let text: &str = text.as_str();
+        let mut chars = text.chars().collect::<Vec<_>>();
+        if chars.last() == Some(&'%') {
+            chars.remove(chars.len() - 1);
+            let value = f32::from_str(&String::from_iter(chars)).ok()? / 100.0;
+            Some((value * current as f32).round() as u32)
+        } else {
+            u32::from_str(text).ok()
+        }
+    };
+
+    match (parse_entry(entry_width, gtk_program.program.editor.image().width()),
+           parse_entry(entry_height, gtk_program.program.editor.image().height())) {
+        (Some(width), Some(height)) => {
+            Some((width, height))
+        }
+        _ => None
+    }
 }
