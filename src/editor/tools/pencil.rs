@@ -1,20 +1,13 @@
-use std::ops::DerefMut;
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use glfw::{WindowEvent, Action};
-use cgmath::{Matrix3, Transform, Matrix4, Matrix};
+use cgmath::{Matrix3, Transform, Matrix4};
 
 use crate::rendering::prelude::{Position, Rectangle};
-use crate::{editor, rendering};
+use crate::{editor};
 use crate::command_buffer::{Command, CommandBuffer};
 use crate::editor::tools::{Tool, get_transformed_mouse_position, EditorWindow};
 use crate::editor::image_operation::{ImageOperation, ImageOperationMarker};
 use crate::program::Renders;
-use crate::rendering::text_render::TextAlignment;
 use crate::ui::button::{TextButton, GenericButton, Checkbox};
-use crate::rendering::font::Font;
-use crate::editor::Image;
 
 pub struct PencilDrawTool {
     is_drawing: Option<editor::Color>,

@@ -23,8 +23,8 @@ impl Rectangle {
         Rectangle::new(
             min_position.x,
             min_position.y,
-            (max_position.x - min_position.x),
-            (max_position.y - min_position.y)
+            max_position.x - min_position.x,
+            max_position.y - min_position.y
         )
     }
 

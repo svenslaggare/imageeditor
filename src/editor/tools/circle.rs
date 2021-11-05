@@ -8,7 +8,6 @@ use crate::editor::tools::{Tool, get_transformed_mouse_position, EditorWindow};
 use crate::editor::image_operation::{ImageOperation};
 use crate::ui::button::{TextButton, GenericButton, Checkbox};
 use crate::program::Renders;
-use crate::editor::Image;
 
 pub struct CircleDrawTool {
     start_position: Option<Position>,

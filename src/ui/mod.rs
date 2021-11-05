@@ -1,6 +1,3 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use itertools::Itertools;
 
 pub mod manager;
@@ -16,10 +13,8 @@ use crate::command_buffer::{Command, CommandBuffer};
 use crate::rendering::prelude::{Position, Rectangle};
 use crate::editor::tools::{Tools, SelectionSubTool, ColorWheelMode};
 use crate::editor::image_operation_helpers::hsv_to_rgb;
-use crate::ui::button::{TextButton, SolidColorButton};
-use crate::rendering::font::{Font};
+use crate::ui::button::{SolidColorButton};
 use crate::ui::manager::BoxGenericButton;
-use crate::ui::color_wheel::ColorWheel;
 use crate::program::LEFT_SIDE_PANEL_WIDTH;
 
 pub fn create() -> Manager {

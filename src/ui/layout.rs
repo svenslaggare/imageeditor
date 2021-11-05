@@ -1,5 +1,16 @@
 use crate::rendering::prelude::Position;
 
+pub fn adaptive_rows(origin: Position, cell_size: (f32, f32), col_width: f32, num_elements: usize) -> impl Iterator<Item=Position> {
+    AdaptiveRows {
+        origin,
+        cell_size,
+        col_width,
+        num_elements,
+        num_processed: 0,
+        current_position: origin
+    }
+}
+
 struct AdaptiveRows {
     origin: Position,
     cell_size: (f32, f32),
@@ -31,11 +42,11 @@ impl Iterator for AdaptiveRows {
     }
 }
 
-pub fn adaptive_rows(origin: Position, cell_size: (f32, f32), col_width: f32, num_elements: usize) -> impl Iterator<Item=Position> {
-    AdaptiveRows {
+pub fn adaptive_cols(origin: Position, cell_size: (f32, f32), row_height: f32, num_elements: usize) -> impl Iterator<Item=Position> {
+    AdaptiveCols {
         origin,
         cell_size,
-        col_width,
+        row_height,
         num_elements,
         num_processed: 0,
         current_position: origin
@@ -70,16 +81,5 @@ impl Iterator for AdaptiveCols {
         }
 
         Some(position)
-    }
-}
-
-pub fn adaptive_cols(origin: Position, cell_size: (f32, f32), row_height: f32, num_elements: usize) -> impl Iterator<Item=Position> {
-    AdaptiveCols {
-        origin,
-        cell_size,
-        row_height,
-        num_elements,
-        num_processed: 0,
-        current_position: origin
     }
 }

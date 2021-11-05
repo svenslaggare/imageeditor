@@ -1,5 +1,5 @@
 use glfw::{WindowEvent, Action};
-use cgmath::{Matrix3, Transform, Matrix4, Matrix};
+use cgmath::{Matrix3, Transform, Matrix4};
 
 use crate::rendering::prelude::{Position, Rectangle};
 use crate::editor;
@@ -8,7 +8,6 @@ use crate::editor::tools::{Tool, get_transformed_mouse_position, EditorWindow};
 use crate::editor::image_operation::{ImageOperation};
 use crate::ui::button::{TextButton, GenericButton, Checkbox};
 use crate::program::Renders;
-use crate::editor::Image;
 
 pub struct LineDrawTool {
     start_position: Option<Position>,

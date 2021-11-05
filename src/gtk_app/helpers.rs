@@ -1,7 +1,6 @@
-use std::cell::RefCell;
 use std::rc::Rc;
 use std::path::PathBuf;
-use std::ops::{DerefMut, Deref};
+use std::ops::{Deref};
 
 use gtk::prelude::*;
 use gtk::{FileChooserAction, ApplicationWindow, Inhibit, Orientation, ResponseType};
@@ -35,7 +34,7 @@ pub fn create_file_dialog<F: Fn(&GTKProgram, PathBuf) + 'static>(window: &Applic
 
     let file_dialog = Rc::new(file_dialog);
 
-    file_dialog.connect_delete_event(|dialog, event| {
+    file_dialog.connect_delete_event(|_, _| {
         Inhibit(true)
     });
 

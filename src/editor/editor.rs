@@ -2,7 +2,7 @@ use std::path::Path;
 
 use image::{GenericImage, FilterType};
 
-use crate::editor::image_operation::{ImageOperation, ImageOperationMarker, ImageSource, ImageOperationSource};
+use crate::editor::image_operation::{ImageOperation, ImageOperationMarker, ImageSource};
 use crate::editor::Image;
 
 #[derive(Clone, PartialEq, Debug)]
@@ -257,7 +257,7 @@ impl Editor {
                             .iter()
                             .enumerate()
                             .find(|(index, (op, _))| *index >= i && !op.is_image_op())
-                            .map(|(index, op)| index)
+                            .map(|(index, _)| index)
                             .unwrap_or(self.undo_stack.len());
 
                         let (ops, mut undo_ops): (Vec<ImageOperation>, Vec<ImageOperation>) = self.undo_stack.drain(i..max_index)

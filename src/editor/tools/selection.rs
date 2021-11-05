@@ -1,13 +1,12 @@
-use glfw::{WindowEvent, Action, Key, Modifiers, Window};
-use cgmath::{Matrix3, Transform, Matrix, Matrix4, EuclideanSpace, InnerSpace};
+use glfw::{WindowEvent, Action, Key, Modifiers};
+use cgmath::{Matrix3, Transform, Matrix4, EuclideanSpace};
 
-use crate::rendering::prelude::{Position, Rectangle, Size, Color, Color4};
+use crate::rendering::prelude::{Position, Rectangle, Size, Color4};
 use crate::editor;
 use crate::command_buffer::{Command, CommandBuffer};
 use crate::editor::tools::{Tool, get_valid_rectangle, SelectionSubTool, Tools, get_transformed_mouse_position, EditorWindow, get_valid_rectangle_as_int};
 use crate::editor::image_operation::{ImageOperation, ImageSource, add_op_sequential, select_latest};
 use crate::editor::image_operation_helpers::sub_image;
-use crate::editor::Image;
 use crate::program::Renders;
 
 #[derive(Debug, Clone)]
@@ -203,7 +202,7 @@ impl SelectionTool {
                 if self.select_state.is_selecting {
                     if window.is_shift_down() {
                         let start_position = self.start_position.unwrap();
-                        let distance = (mouse_position.x - start_position.x).max((mouse_position.y - start_position.y));
+                        let distance = (mouse_position.x - start_position.x).max(mouse_position.y - start_position.y);
                         self.end_position = Some(Position::new(start_position.x + distance, start_position.y + distance))
                     } else {
                         self.end_position = Some(mouse_position);
@@ -283,7 +282,6 @@ impl SelectionTool {
                                  _image_area_rectangle: &Rectangle,
                                  _command_buffer: &mut CommandBuffer,
                                  image: &editor::Image) -> Option<ImageOperation> {
-        let mut op = None;
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
                 self.move_pixels_state.is_moving = false;
@@ -336,7 +334,7 @@ impl SelectionTool {
             _ => {}
         }
 
-        return op;
+        None
     }
 
     fn process_event_resize_pixels(&mut self,
@@ -346,7 +344,6 @@ impl SelectionTool {
                                    _image_area_rectangle: &Rectangle,
                                    _command_buffer: &mut CommandBuffer,
                                    image: &editor::Image) -> Option<ImageOperation> {
-        let mut op = None;
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
                 self.resize_pixels_state.is_resizing = false;
@@ -385,7 +382,7 @@ impl SelectionTool {
 
                     if window.is_shift_down() {
                         let start_position = self.start_position.unwrap();
-                        let distance = (mouse_position.x - start_position.x).max((mouse_position.y - start_position.y));
+                        let distance = (mouse_position.x - start_position.x).max(mouse_position.y - start_position.y);
                         self.end_position = Some(Position::new(start_position.x + distance, start_position.y + distance))
                     } else {
                         self.end_position = Some(mouse_position);
@@ -403,7 +400,7 @@ impl SelectionTool {
             _ => {}
         }
 
-        return op;
+        None
     }
 
     fn process_event_rotate_pixels(&mut self,
@@ -413,7 +410,6 @@ impl SelectionTool {
                                    _image_area_rectangle: &Rectangle,
                                    _command_buffer: &mut CommandBuffer,
                                    image: &editor::Image) -> Option<ImageOperation> {
-        let mut op = None;
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
                 self.rotate_pixels_state.is_rotating = false;
@@ -466,7 +462,7 @@ impl SelectionTool {
             _ => {}
         }
 
-        return op;
+        None
     }
 
     fn create_move(&self, preview: bool) -> Option<ImageOperation> {

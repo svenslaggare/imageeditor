@@ -1,6 +1,6 @@
 use std::collections::{VecDeque, HashMap};
 use std::rc::Rc;
-use std::cell::{RefCell, RefMut};
+use std::cell::{RefCell};
 
 use crate::{editor, ui};
 use crate::program::{Program, ProgramActions};

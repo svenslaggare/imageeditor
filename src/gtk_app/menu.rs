@@ -1,8 +1,7 @@
-use std::cell::RefCell;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::iter::FromIterator;
-use std::ops::{DerefMut, Deref};
+use std::ops::{ Deref};
 
 use gtk::prelude::*;
 use gtk::{GLArea, gio, Application, ApplicationWindow, glib, FileChooserAction, ResponseType};
@@ -199,7 +198,7 @@ fn add_edit_menu(app: &Application,
 fn add_image_menu(app: &Application,
                   window: &ApplicationWindow,
                   gtk_program: GTKProgramRef,
-                  gl_area: Rc<GLArea>,
+                  _gl_area: Rc<GLArea>,
                   menu_bar: &gio::Menu) {
     let layer_menu = gio::Menu::new();
     menu_bar.append_submenu(Some("_Image"), &layer_menu);
@@ -391,7 +390,7 @@ fn create_dialog(window: &ApplicationWindow, title: &str) -> gtk::Dialog {
         .modal(true)
         .build();
 
-    dialog.connect_delete_event(|dialog, event| {
+    dialog.connect_delete_event(|_, _| {
         Inhibit(true)
     });
 

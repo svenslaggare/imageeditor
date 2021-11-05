@@ -1,7 +1,6 @@
 use cgmath::Matrix4;
 
-use crate::ui::TextureButton;
-use crate::ui::button::{TextButton, SolidColorButton, GenericButton};
+use crate::ui::button::{GenericButton};
 use crate::command_buffer::{CommandBuffer, Command};
 use crate::program::Renders;
 use crate::editor::tools::EditorWindow;

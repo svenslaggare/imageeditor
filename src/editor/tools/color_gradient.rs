@@ -1,5 +1,5 @@
 use glfw::{WindowEvent, Action};
-use cgmath::{Matrix3, Transform, Matrix4, Matrix};
+use cgmath::{Matrix3, Transform, Matrix4};
 
 use crate::rendering::prelude::{Position, Rectangle};
 use crate::editor;
@@ -8,7 +8,6 @@ use crate::editor::tools::{Tool, get_transformed_mouse_position, EditorWindow};
 use crate::editor::image_operation::{ImageOperation, ColorGradientType};
 use crate::ui::button::{TextButton, GenericButton};
 use crate::program::Renders;
-use crate::editor::Image;
 
 pub struct ColorGradientDrawTool {
     start_position: Option<Position>,
@@ -81,9 +80,9 @@ impl Tool for ColorGradientDrawTool {
                          window: &mut dyn EditorWindow,
                          event: &WindowEvent,
                          image_area_transform: &Matrix3<f32>,
-                         image_area_rectangle: &Rectangle,
-                         command_buffer: &mut CommandBuffer,
-                         image: &editor::Image) -> Option<ImageOperation> {
+                         _image_area_rectangle: &Rectangle,
+                         _command_buffer: &mut CommandBuffer,
+                         _image: &editor::Image) -> Option<ImageOperation> {
         let mut op = None;
 
         match event {
@@ -124,7 +123,7 @@ impl Tool for ColorGradientDrawTool {
         return true;
     }
 
-    fn render_ui(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
+    fn render_ui(&mut self, renders: &Renders, transform: &Matrix4<f32>, _image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
         self.set_linear_button.render(renders, transform);
         self.set_radial_button.render(renders, transform);
     }

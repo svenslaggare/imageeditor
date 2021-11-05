@@ -10,14 +10,12 @@ use crate::editor::tools::pencil::PencilDrawTool;
 use crate::editor::tools::eraser::EraserDrawTool;
 use crate::editor::tools::line::LineDrawTool;
 use crate::editor::tools::rectangle::RectangleDrawTool;
-use crate::editor::tools::effect::EffectDrawTool;
 use crate::editor::tools::circle::CircleDrawTool;
 use crate::editor::tools::bucket_fill::BucketFillDrawTool;
 use crate::editor::tools::selection::SelectionTool;
 use crate::editor::tools::color_picker::ColorPickerTool;
 use crate::program::Renders;
 use crate::editor::tools::color_gradient::ColorGradientDrawTool;
-use crate::editor::Image;
 use crate::editor::tools::color_wheel::ColorWheelTool;
 use crate::editor::tools::block_pencil::BlockPencilDrawTool;
 
@@ -42,11 +40,11 @@ pub trait EditorWindow {
 }
 
 pub trait Tool {
-    fn on_active(&mut self, window: &mut dyn EditorWindow, tool: Tools) -> Option<ImageOperation> {
+    fn on_active(&mut self, _window: &mut dyn EditorWindow, _tool: Tools) -> Option<ImageOperation> {
         None
     }
 
-    fn on_deactivate(&mut self, command_buffer: &mut CommandBuffer) -> Option<ImageOperation> {
+    fn on_deactivate(&mut self, _command_buffer: &mut CommandBuffer) -> Option<ImageOperation> {
         None
     }
 
@@ -54,7 +52,7 @@ pub trait Tool {
 
     }
 
-    fn handle_command(&mut self, image: &editor::Image, command: &Command) {
+    fn handle_command(&mut self, _image: &editor::Image, _command: &Command) {
 
     }
 
@@ -74,18 +72,18 @@ pub trait Tool {
                transparent_area: &mut Option<Rectangle>) -> bool;
 
     fn render_ui(&mut self,
-                 renders: &Renders,
-                 transform: &Matrix4<f32>,
-                 image_area_transform: &Matrix4<f32>,
-                 image: &editor::Image) {
+                 _renders: &Renders,
+                 _transform: &Matrix4<f32>,
+                 _image_area_transform: &Matrix4<f32>,
+                 _image: &editor::Image) {
 
     }
 
     fn render_image_area(&mut self,
-                         renders: &Renders,
-                         transform: &Matrix4<f32>,
-                         image_area_transform: &Matrix4<f32>,
-                         image: &editor::Image) {
+                         _renders: &Renders,
+                         _transform: &Matrix4<f32>,
+                         _image_area_transform: &Matrix4<f32>,
+                         _image: &editor::Image) {
 
     }
 }

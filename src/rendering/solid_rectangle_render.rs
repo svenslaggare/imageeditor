@@ -5,7 +5,7 @@ use gl::types::*;
 use cgmath::Matrix4;
 
 use crate::rendering::shader::Shader;
-use crate::rendering::prelude::{Color, Color4};
+use crate::rendering::prelude::{Color4};
 
 const FLOATS_PER_VERTEX: i32 = 6;
 const NUM_VERTICES: i32 = 6;

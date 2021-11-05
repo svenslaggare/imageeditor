@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 use std::iter::FromIterator;
 use std::rc::Rc;
-use std::cell::RefCell;
 
 use gtk::{gdk, EventBox, GLArea};
 use gtk::prelude::*;
 
-use crate::gtk_app::{GTKProgram, GTKProgramRef};
+use crate::gtk_app::{GTKProgramRef};
 
 pub fn add(gtk_program: GTKProgramRef,
            gl_area: Rc<GLArea>,

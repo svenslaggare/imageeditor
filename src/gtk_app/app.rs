@@ -1,24 +1,13 @@
 use std::rc::Rc;
 use std::cell::RefCell;
 use std::ops::{Deref, DerefMut};
-use std::collections::VecDeque;
-use std::collections::HashMap;
-use std::iter::FromIterator;
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
 
 use gtk::prelude::*;
-use gtk::{Application, ApplicationWindow, Button, GLArea, Box, Orientation, EventBox, gdk, glib, Menu, AccelGroup, MenuBar, MenuItem, Image, Label, CheckMenuItem, IconSize, AccelFlags, gio, FileChooserAction, ResponseType};
+use gtk::{Application, ApplicationWindow, GLArea, Orientation, EventBox};
 use gtk::gio::ApplicationFlags;
-use gtk::gdk::keys::Key;
-use gtk::gdk::ScrollDirection;
 
-use crate::program::{Program, LEFT_SIDE_PANEL_WIDTH, TOP_PANEL_HEIGHT, SIDE_PANELS_WIDTH, ProgramActions};
-use crate::editor::tools::EditorWindow;
-use crate::{ui, editor};
-use crate::command_buffer::Command;
-use crate::gtk_app::helpers::{create_entry, create_file_dialog};
 use crate::gtk_app::{GTKProgram, menu, input_support};
+use crate::program::{SIDE_PANELS_WIDTH, TOP_PANEL_HEIGHT};
 
 pub fn main() {
     let application = Application::builder()
@@ -26,13 +15,13 @@ pub fn main() {
         .build();
 
     application.set_flags(ApplicationFlags::HANDLES_OPEN);
-    application.connect_open(|app, files, file| {
+    application.connect_open(|app, _files, _file| {
         app.activate();
     });
 
     application.connect_activate(|app| {
         let program_args = std::env::args().collect::<Vec<_>>();
-        let mut image_to_edit = image::open(&program_args[1]).unwrap().into_rgba();
+        let image_to_edit = image::open(&program_args[1]).unwrap().into_rgba();
 
         let width = (image_to_edit.width() + SIDE_PANELS_WIDTH) as i32;
         let height = (image_to_edit.height() + TOP_PANEL_HEIGHT + 27) as i32;
@@ -46,12 +35,12 @@ pub fn main() {
 
         let gtk_program = Rc::new(GTKProgram::new());
 
-        let layout = Box::new(Orientation::Vertical, 6);
+        let layout = gtk::Box::new(Orientation::Vertical, 6);
         window.add(&layout);
 
         let gl_area = Rc::new(GLArea::new());
         let gtk_program_clone = gtk_program.clone();
-        gl_area.connect_resize(move |gl_area, width, height| {
+        gl_area.connect_resize(move |_, width, height| {
             gtk_program_clone.change_size(width as u32, height as u32);
         });
 

@@ -1,12 +1,11 @@
 use glfw::{WindowEvent, Action};
-use cgmath::{Matrix3, Transform};
+use cgmath::{Matrix3};
 
-use crate::rendering::prelude::{Position, Rectangle};
+use crate::rendering::prelude::{Rectangle};
 use crate::editor;
 use crate::command_buffer::{Command, CommandBuffer};
 use crate::editor::tools::{Tool, get_transformed_mouse_position, EditorWindow};
-use crate::editor::image_operation::{ImageOperation, ImageOperationMarker, ImageSource};
-use crate::editor::Image;
+use crate::editor::image_operation::{ImageOperation, ImageSource};
 
 enum ColorPickerMode {
     None,

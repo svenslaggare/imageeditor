@@ -6,7 +6,6 @@ use cgmath::num_traits::Pow;
 use crate::editor::image_operation::{ImageSource, ImageOperationSource, SparseImage, OptionalImage, ColorGradientType};
 use crate::editor::Color;
 use crate::helpers::TimeMeasurement;
-use std::cmp::Ordering;
 
 pub fn draw_block<T: ImageOperationSource>(update_op: &mut T,
                                            center_x: i32,
@@ -697,8 +696,8 @@ pub fn rotate_image(image: &image::RgbaImage, rotation: f32, filter_type: Filter
                         *image.get_pixel(source_x as u32, source_y as u32)
                     }
                     FilterType::Triangle => {
-                        let source_x1 = (source_fx.floor() as i32);
-                        let mut source_x2 = (source_fx.ceil() as i32);
+                        let source_x1 = source_fx.floor() as i32;
+                        let mut source_x2 = source_fx.ceil() as i32;
                         if source_x1 == source_x2 {
                             source_x2 += 1;
                         }
@@ -706,8 +705,8 @@ pub fn rotate_image(image: &image::RgbaImage, rotation: f32, filter_type: Filter
                         let source_x1 = source_x1.clamp(0, image.width() as i32 - 1);
                         let source_x2 = source_x2.clamp(0, image.width() as i32 - 1);
 
-                        let source_y1 = (source_fy.floor() as i32);
-                        let mut source_y2 = (source_fy.ceil() as i32);
+                        let source_y1 = source_fy.floor() as i32;
+                        let mut source_y2 = source_fy.ceil() as i32;
                         if source_y1 == source_y2 {
                             source_y2 += 1;
                         }
@@ -729,8 +728,8 @@ pub fn rotate_image(image: &image::RgbaImage, rotation: f32, filter_type: Filter
                         let range_y = source_fy2 - source_fy1;
 
                         if source_x2 - source_x1 > 0 && source_y2 - source_y1 > 0 {
-                            let mut factor1 = (source_fx2 - source_fx) / range_x;
-                            let mut factor2 = (source_fx - source_fx1) / range_x;
+                            let factor1 = (source_fx2 - source_fx) / range_x;
+                            let factor2 = (source_fx - source_fx1) / range_x;
 
                             let interpolate1 = factor1 * target11 + factor2 * target21;
                             let interpolate2 = factor1 * target12 + factor2 * target22;
@@ -832,12 +831,12 @@ pub fn rgb_to_hsv(color: Color) -> (f64, f64, f64) {
     let rgb_delta = max_rgb - min_rgb;
 
     let mut hue = 0.0;
-    let mut saturation = 0.0;
-    let mut value = 0.0;
+    let saturation;
+    let value;
 
     if rgb_delta > 0.0 {
         if max_rgb == r {
-            hue = 60.0 * (fmod(((g - b) / rgb_delta), 6.0));
+            hue = 60.0 * fmod((g - b) / rgb_delta, 6.0);
         } else if max_rgb == g {
             hue = 60.0 * (((b - r) / rgb_delta) + 2.0);
         } else if max_rgb == b {

@@ -7,7 +7,7 @@ use crate::command_buffer::{CommandBuffer, Command};
 use crate::rendering::texture::Texture;
 use crate::rendering::prelude::{Position, Rectangle, Size};
 use crate::rendering::prelude::Color4 as RenderingColor4;
-use crate::ui::button::{ButtonAction, GenericButton, CommandAction};
+use crate::ui::button::{GenericButton};
 use crate::editor::tools::{EditorWindow, ColorWheelMode};
 use crate::program::Renders;
 use crate::editor::image_operation_helpers::{hsv_to_rgb, rgb_to_hsv};

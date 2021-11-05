@@ -1,5 +1,5 @@
 use glfw::{WindowEvent, Action};
-use cgmath::{Matrix3, Transform, Matrix4};
+use cgmath::{Matrix3, Matrix4};
 
 use crate::rendering::prelude::{Position, Rectangle};
 use crate::editor;
@@ -8,7 +8,6 @@ use crate::editor::tools::{Tool, get_transformed_mouse_position, EditorWindow};
 use crate::editor::image_operation::{ImageOperation};
 use crate::ui::button::{TextButton, GenericButton};
 use crate::program::Renders;
-use crate::editor::Image;
 
 pub struct BucketFillDrawTool {
     color: editor::Color,
@@ -56,9 +55,9 @@ impl Tool for BucketFillDrawTool {
                          window: &mut dyn EditorWindow,
                          event: &WindowEvent,
                          image_area_transform: &Matrix3<f32>,
-                         image_area_rectangle: &Rectangle,
-                         command_buffer: &mut CommandBuffer,
-                         image: &editor::Image) -> Option<ImageOperation> {
+                         _image_area_rectangle: &Rectangle,
+                         _command_buffer: &mut CommandBuffer,
+                         _image: &editor::Image) -> Option<ImageOperation> {
         let mut op = None;
 
         match event {
@@ -99,7 +98,7 @@ impl Tool for BucketFillDrawTool {
         return false;
     }
 
-    fn render_ui(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
+    fn render_ui(&mut self, renders: &Renders, transform: &Matrix4<f32>, _image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
         self.change_tolerance_button.change_text(format!("Tolerance: {:.0} %", self.tolerance * 100.0));
         self.change_tolerance_button.render(renders, transform);
     }

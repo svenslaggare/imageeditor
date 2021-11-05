@@ -1,6 +1,6 @@
 use glfw::{Action, Key, Modifiers, MouseButton};
 
-use cgmath::{Matrix3, Transform, Matrix4};
+use cgmath::{Matrix4};
 
 use crate::editor::editor::{EditorOperation, LayerState};
 use crate::program::{RIGHT_SIDE_PANEL_WIDTH, LAYER_BUFFER, LAYER_SPACING, Renders, LEFT_SIDE_PANEL_WIDTH, TOP_PANEL_HEIGHT};

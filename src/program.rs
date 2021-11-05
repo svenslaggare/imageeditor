@@ -1,20 +1,18 @@
-use std::sync::mpsc::Receiver;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::path::Path;
 use std::ops::DerefMut;
 use std::collections::HashMap;
 
-use cgmath::{Matrix3, Matrix4, Transform, Matrix, SquareMatrix, Vector2};
+use cgmath::{Matrix3, Matrix4, Matrix, SquareMatrix};
 
-use glfw::{Key, Action, Modifiers, MouseButton};
+use glfw::{Key, Action, Modifiers};
 
 use crate::command_buffer::{CommandBuffer, Command};
 use crate::{editor, ui};
 use crate::rendering::shader::Shader;
-use crate::rendering::prelude::{Position, Rectangle, Color, Color4, Size, blend};
+use crate::rendering::prelude::{Position, Rectangle, Color, Color4, Size};
 use crate::rendering::texture_render::TextureRender;
-use crate::editor::image_operation::{ImageSource, ImageOperation};
 use crate::editor::tools::{Tool, create_tools, Tools, EditorWindow, get_transformed_mouse_position, SelectionSubTool};
 use crate::rendering::text_render::{TextRender, TextAlignment};
 use crate::rendering::solid_rectangle_render::SolidRectangleRender;

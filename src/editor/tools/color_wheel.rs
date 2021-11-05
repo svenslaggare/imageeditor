@@ -1,14 +1,13 @@
 use glfw::{WindowEvent, Action};
-use cgmath::{Matrix3, Transform, Matrix4, Matrix};
+use cgmath::{Matrix3, Matrix4};
 
-use crate::rendering::prelude::{Position, Rectangle};
+use crate::rendering::prelude::{Rectangle};
 use crate::editor;
 use crate::command_buffer::{Command, CommandBuffer};
-use crate::editor::tools::{Tool, get_transformed_mouse_position, EditorWindow, Tools};
-use crate::editor::image_operation::{ImageOperation, ColorGradientType};
-use crate::ui::button::{TextButton, GenericButton};
+use crate::editor::tools::{Tool, EditorWindow, Tools};
+use crate::editor::image_operation::{ImageOperation};
+use crate::ui::button::{GenericButton};
 use crate::program::Renders;
-use crate::editor::Image;
 use crate::ui::color_wheel::ColorWheel;
 
 pub struct ColorWheelTool {

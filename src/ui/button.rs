@@ -1,20 +1,16 @@
 use std::ops::DerefMut;
 
-use glfw::{WindowEvent, Action};
+use glfw::{Action};
 use cgmath::Matrix4;
 
 use crate::rendering::texture::Texture;
 use crate::rendering::prelude::{Position, Rectangle};
 use crate::rendering::prelude::Color as RenderingColor;
 use crate::rendering::prelude::Color4 as RenderingColor4;
-use crate::rendering::texture_render::TextureRender;
-use crate::rendering::shader::Shader;
 use crate::command_buffer::{CommandBuffer, Command};
-use crate::rendering::text_render::{TextRender, TextAlignment};
-use crate::rendering::font::{Font, FontRef};
+use crate::rendering::text_render::{TextAlignment};
+use crate::rendering::font::{ FontRef};
 use crate::editor::Color;
-use crate::rendering::solid_rectangle_render::SolidRectangleRender;
-use crate::rendering::ShaderAndRender;
 use crate::program::Renders;
 use crate::editor::tools::EditorWindow;
 

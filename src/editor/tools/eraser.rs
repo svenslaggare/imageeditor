@@ -3,12 +3,11 @@ use cgmath::{Matrix3, Transform, Matrix4};
 
 use crate::rendering::prelude::{Position, Rectangle};
 use crate::editor;
-use crate::command_buffer::{Command, CommandBuffer};
+use crate::command_buffer::{CommandBuffer};
 use crate::editor::tools::{Tool, get_transformed_mouse_position, EditorWindow};
 use crate::editor::image_operation::{ImageOperation, ImageOperationMarker};
 use crate::ui::button::{TextButton, GenericButton};
 use crate::program::Renders;
-use crate::editor::Image;
 
 pub struct EraserDrawTool {
     is_drawing: bool,
@@ -44,9 +43,9 @@ impl Tool for EraserDrawTool {
                          window: &mut dyn EditorWindow,
                          event: &WindowEvent,
                          image_area_transform: &Matrix3<f32>,
-                         image_area_rectangle: &Rectangle,
-                         command_buffer: &mut CommandBuffer,
-                         image: &editor::Image) -> Option<ImageOperation> {
+                         _image_area_rectangle: &Rectangle,
+                         _command_buffer: &mut CommandBuffer,
+                         _image: &editor::Image) -> Option<ImageOperation> {
         let create_begin_draw = |this: &Self, mouse_position: Position| {
             Some(ImageOperation::Sequential(vec![
                 ImageOperation::Marker(ImageOperationMarker::BeginDraw),
@@ -106,7 +105,7 @@ impl Tool for EraserDrawTool {
         false
     }
 
-    fn render_ui(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
+    fn render_ui(&mut self, renders: &Renders, transform: &Matrix4<f32>, _image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
         self.change_size_button.change_text(format!("Eraser size: {}", self.side_half_width * 2 + 1));
         self.change_size_button.render(renders, transform);
     }

@@ -1,9 +1,8 @@
 use std::sync::mpsc::Receiver;
 
-use glfw::{Context, Key, Action, Glfw, Window, WindowEvent, Modifiers};
-use gl::types::*;
+use glfw::{Context, Key, Action, Glfw, Window, WindowEvent};
 
-use crate::program::{Program, LEFT_SIDE_PANEL_WIDTH, TOP_PANEL_HEIGHT, SIDE_PANELS_WIDTH};
+use crate::program::{Program, TOP_PANEL_HEIGHT, SIDE_PANELS_WIDTH};
 use crate::{editor, ui};
 use crate::editor::tools::EditorWindow;
 

@@ -10,9 +10,7 @@ use crate::editor::image_operation_helpers::{
     draw_circle,
     fill_rectangle,
     bucket_fill,
-    draw_line_anti_aliased,
     draw_line_anti_aliased_thick,
-    draw_circle_anti_aliased,
     draw_circle_anti_aliased_thick,
     color_gradient,
     pencil_stroke_anti_aliased,
@@ -41,7 +39,6 @@ pub enum ImageOperation {
     SetOptionalImage { image: OptionalImage },
     SetScaledImage { image: image::RgbaImage, start_x: i32, start_y: i32, scale_x: f32, scale_y: f32 },
     SetRotatedImage { image: image::RgbaImage, center_x: i32, center_y: i32, rotation: f32 },
-    SetPseudoTransparent { pattern: image::RgbaImage, start_x: i32, start_y: i32, end_x: i32, end_y: i32 },
     SetPixel { x: i32, y: i32, color: Color },
     Block { x: i32, y: i32, color: Color, side_half_width: i32 },
     Line { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, anti_aliased: Option<bool>, side_half_width: i32 },
@@ -172,34 +169,6 @@ impl ImageOperation {
                     image: rotated_image,
                     blend: true
                 }.apply(update_op, undo)
-            }
-            ImageOperation::SetPseudoTransparent { pattern, start_x, start_y, end_x, end_y } => {
-                let undo_image = if undo {
-                    Some(
-                        sub_image(
-                            update_op,
-                            *start_x,
-                            *start_y,
-                            *end_x,
-                            *end_y
-                        )
-                    )
-                } else {
-                    None
-                };
-
-                for y in *start_y..(*end_y) {
-                    for x in *start_x..(*end_x) {
-                        let pattern_x = x % pattern.width() as i32;
-                        let pattern_y = y % pattern.height() as i32;
-
-                        if x >= 0 && x < update_op.width() as i32 && y >= 0 && y < update_op.height() as i32 {
-                            update_op.put_pixel(x as u32, y as u32, *pattern.get_pixel(pattern_x as u32, pattern_y as u32));
-                        }
-                    }
-                }
-
-                undo_image.map(|image| ImageOperation::SetImage { start_x: *start_x, start_y: *start_y, image, blend: false })
             }
             ImageOperation::SetPixel { x, y, color } => {
                 let width = update_op.width();

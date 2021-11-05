@@ -4,11 +4,10 @@ use cgmath::{Matrix3, Transform, Matrix4};
 use crate::rendering::prelude::{Position, Rectangle};
 use crate::editor;
 use crate::command_buffer::{Command, CommandBuffer};
-use crate::editor::tools::{Tool, get_valid_rectangle, get_transformed_mouse_position, EditorWindow, get_valid_rectangle_as_int};
+use crate::editor::tools::{Tool, get_transformed_mouse_position, EditorWindow, get_valid_rectangle_as_int};
 use crate::editor::image_operation::{ImageOperation};
 use crate::ui::button::{TextButton, GenericButton, Checkbox};
 use crate::program::Renders;
-use crate::editor::Image;
 
 pub struct RectangleDrawTool {
     start_position: Option<Position>,
@@ -143,7 +142,7 @@ impl Tool for RectangleDrawTool {
         return true;
     }
 
-    fn render_ui(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
+    fn render_ui(&mut self, renders: &Renders, transform: &Matrix4<f32>, _image_area_transform: &Matrix4<f32>, _image: &editor::Image) {
         self.change_border_size_button.change_text(format!("Border size: {}", self.border_half_width * 2 + 1));
         self.change_border_size_button.render(renders, transform);
 
