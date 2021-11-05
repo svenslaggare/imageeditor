@@ -2,17 +2,19 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::iter::FromIterator;
+use std::ops::{DerefMut, Deref};
 
 use gtk::prelude::*;
 use gtk::{GLArea, gio, Application, ApplicationWindow, glib, FileChooserAction, ResponseType};
 
-use crate::gtk_app::GTKProgram;
+use crate::gtk_app::{GTKProgram, GTKProgramRef};
 use crate::gtk_app::helpers::{create_entry, create_file_dialog};
 use crate::command_buffer::Command;
+use crate::program::ProgramActions;
 
 pub fn add(app: &Application,
            window: &ApplicationWindow,
-           gtk_program: Rc<RefCell<Option<GTKProgram>>>,
+           gtk_program: GTKProgramRef,
            gl_area: Rc<GLArea>) {
     let menu = gio::Menu::new();
     let menu_bar = gio::Menu::new();
@@ -28,7 +30,7 @@ pub fn add(app: &Application,
 
 fn add_program_menu(app: &Application,
                     window: &ApplicationWindow,
-                    gtk_program: Rc<RefCell<Option<GTKProgram>>>,
+                    gtk_program: GTKProgramRef,
                     gl_area: Rc<GLArea>,
                     menu: &gio::Menu) {
     menu.append(Some("New"), Some("app.new_image"));
@@ -55,14 +57,12 @@ fn add_program_menu(app: &Application,
     new_file_dialog.connect_response(move |dialog, response| {
         match response {
             ResponseType::Ok => {
-                if let Some(gtk_program) = gtk_program_clone.borrow_mut().as_mut() {
-                    match (u32::from_str(entry_width.text().as_ref()), u32::from_str(entry_height.text().as_ref())) {
-                        (Ok(width), Ok(height)) => {
-                            gtk_program.program.command_buffer.push(Command::NewImage(width, height));
-                            dialog.hide();
-                        }
-                        _ => {}
+                match (u32::from_str(entry_width.text().as_ref()), u32::from_str(entry_height.text().as_ref())) {
+                    (Ok(width), Ok(height)) => {
+                        gtk_program_clone.program.borrow_mut().as_mut().unwrap().command_buffer.push(Command::NewImage(width, height));
+                        dialog.hide();
                     }
+                    _ => {}
                 }
             }
             _ => {
@@ -81,10 +81,10 @@ fn add_program_menu(app: &Application,
         window,
         gtk_program.clone(),
         FileChooserAction::Open,
-        move |program, filename| {
+        move |gtk_program, filename| {
             match image::open(&filename) {
                 Ok(image) => {
-                    program.program.command_buffer.push(Command::SwitchImage(image.into_rgba()));
+                    gtk_program.program.borrow_mut().as_mut().unwrap().command_buffer.push(Command::SwitchImage(image.into_rgba()));
                     gl_area_clone.queue_render();
                 }
                 Err(err) => {
@@ -108,8 +108,8 @@ fn add_program_menu(app: &Application,
         window,
         gtk_program.clone(),
         FileChooserAction::Save,
-        |program, filename| {
-            if let Err(err) = program.program.editor.image().save(&filename) {
+        |gtk_program, filename| {
+            if let Err(err) = gtk_program.program.borrow_mut().as_mut().unwrap().editor.image().save(&filename) {
                 println!("Failed to save file due to: {:?}.", err);
             }
         }
@@ -132,7 +132,7 @@ fn add_program_menu(app: &Application,
 
 fn add_edit_menu(app: &Application,
                  window: &ApplicationWindow,
-                 gtk_program: Rc<RefCell<Option<GTKProgram>>>,
+                 gtk_program: GTKProgramRef,
                  gl_area: Rc<GLArea>,
                  menu_bar: &gio::Menu) {
     let edit_menu = gio::Menu::new();
@@ -144,10 +144,8 @@ fn add_edit_menu(app: &Application,
     let gl_area_clone = gl_area.clone();
     let gtk_program_clone = gtk_program.clone();
     undo.connect_activate(glib::clone!(@weak window => move |_, _| {
-        if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
-            program.program.command_buffer.push(Command::UndoImageOp);
-            gl_area_clone.queue_render();
-        }
+        gtk_program_clone.program.borrow_mut().as_mut().unwrap().command_buffer.push(Command::UndoImageOp);
+        gl_area_clone.queue_render();
     }));
     app.add_action(&undo);
 
@@ -157,10 +155,8 @@ fn add_edit_menu(app: &Application,
     let gl_area_clone = gl_area.clone();
     let gtk_program_clone = gtk_program.clone();
     redo.connect_activate(glib::clone!(@weak window => move |_, _| {
-        if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
-            program.program.command_buffer.push(Command::RedoImageOp);
-            gl_area_clone.queue_render();
-        }
+        gtk_program_clone.program.borrow_mut().as_mut().unwrap().command_buffer.push(Command::RedoImageOp);
+        gl_area_clone.queue_render();
     }));
     app.add_action(&redo);
 
@@ -169,17 +165,15 @@ fn add_edit_menu(app: &Application,
     let gl_area_clone = gl_area.clone();
     let gtk_program_clone = gtk_program.clone();
     select_all.connect_activate(glib::clone!(@weak window => move |_, _| {
-        if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
-            program.program.command_buffer.push(Command::SelectAll);
-            gl_area_clone.queue_render();
-        }
+        gtk_program_clone.program.borrow_mut().as_mut().unwrap().command_buffer.push(Command::SelectAll);
+        gl_area_clone.queue_render();
     }));
     app.add_action(&select_all);
 }
 
 fn add_image_menu(app: &Application,
                   window: &ApplicationWindow,
-                  gtk_program: Rc<RefCell<Option<GTKProgram>>>,
+                  gtk_program: GTKProgramRef,
                   gl_area: Rc<GLArea>,
                   menu_bar: &gio::Menu) {
     let layer_menu = gio::Menu::new();
@@ -203,13 +197,25 @@ fn add_image_menu(app: &Application,
     let resize_image_dialog_clone = resize_image_dialog.clone();
     let entry_width_clone = entry_width.clone();
     let entry_height_clone = entry_height.clone();
+
     resize_image.connect_activate(glib::clone!(@weak window => move |_, _| {
-        if let Some(gtk_program) = gtk_program_clone.borrow_mut().as_mut() {
-            entry_width_clone.set_text(&format!("{}", gtk_program.program.editor.image().width()));
-            entry_height_clone.set_text(&format!("{}", gtk_program.program.editor.image().height()));
-            resize_image_dialog_clone.show_all();
-        }
+        entry_width_clone.set_text(&format!("{}", gtk_program_clone.program.borrow_mut().as_mut().unwrap().editor.image().width()));
+        entry_height_clone.set_text(&format!("{}", gtk_program_clone.program.borrow_mut().as_mut().unwrap().editor.image().height()));
+        resize_image_dialog_clone.show_all();
     }));
+
+    let gtk_program_clone = gtk_program.clone();
+    let resize_image_dialog_clone = resize_image_dialog.clone();
+    let entry_width_clone = entry_width.clone();
+    let entry_height_clone = entry_height.clone();
+    gtk_program.actions.borrow_mut().insert(
+        ProgramActions::ResizeImage,
+        Box::new(move || {
+            entry_width_clone.set_text(&format!("{}", gtk_program_clone.program.borrow_mut().as_mut().unwrap().editor.image().width()));
+            entry_height_clone.set_text(&format!("{}", gtk_program_clone.program.borrow_mut().as_mut().unwrap().editor.image().height()));
+            resize_image_dialog_clone.show_all();
+        })
+    );
 
     let gtk_program_clone = gtk_program.clone();
     let entry_width_clone = entry_width.clone();
@@ -217,14 +223,12 @@ fn add_image_menu(app: &Application,
     resize_image_dialog.connect_response(move |dialog, response| {
         match response {
             ResponseType::Ok => {
-                if let Some(gtk_program) = gtk_program_clone.borrow_mut().as_mut() {
-                    match parse_new_size(gtk_program, entry_width_clone.as_ref(), entry_height_clone.as_ref()) {
-                        Some((width, height)) => {
-                            gtk_program.program.command_buffer.push(Command::ResizeImage(width, height));
-                            dialog.hide();
-                        }
-                        _ => {}
+                match parse_new_size(gtk_program_clone.deref(), entry_width_clone.as_ref(), entry_height_clone.as_ref()) {
+                    Some((width, height)) => {
+                        gtk_program_clone.program.borrow_mut().as_mut().unwrap().command_buffer.push(Command::ResizeImage(width, height));
+                        dialog.hide();
                     }
+                    _ => {}
                 }
             }
             _ => {
@@ -254,12 +258,23 @@ fn add_image_menu(app: &Application,
     let entry_width_clone = entry_width.clone();
     let entry_height_clone = entry_height.clone();
     resize_canvas.connect_activate(glib::clone!(@weak window => move |_, _| {
-        if let Some(gtk_program) = gtk_program_clone.borrow_mut().as_mut() {
-            entry_width_clone.set_text(&format!("{}", gtk_program.program.editor.image().width()));
-            entry_height_clone.set_text(&format!("{}", gtk_program.program.editor.image().height()));
-            resize_canvas_dialog_clone.show_all();
-        }
+        entry_width_clone.set_text(&format!("{}", gtk_program_clone.program.borrow_mut().as_mut().unwrap().editor.image().width()));
+        entry_height_clone.set_text(&format!("{}", gtk_program_clone.program.borrow_mut().as_mut().unwrap().editor.image().height()));
+        resize_canvas_dialog_clone.show_all();
     }));
+
+    let gtk_program_clone = gtk_program.clone();
+    let resize_canvas_dialog_clone = resize_canvas_dialog.clone();
+    let entry_width_clone = entry_width.clone();
+    let entry_height_clone = entry_height.clone();
+    gtk_program.actions.borrow_mut().insert(
+        ProgramActions::ResizeCanvas,
+        Box::new(move || {
+            entry_width_clone.set_text(&format!("{}", gtk_program_clone.program.borrow_mut().as_mut().unwrap().editor.image().width()));
+            entry_height_clone.set_text(&format!("{}", gtk_program_clone.program.borrow_mut().as_mut().unwrap().editor.image().height()));
+            resize_canvas_dialog_clone.show_all();
+        })
+    );
 
     let gtk_program_clone = gtk_program.clone();
     let entry_width_clone = entry_width.clone();
@@ -267,14 +282,12 @@ fn add_image_menu(app: &Application,
     resize_canvas_dialog.connect_response(move |dialog, response| {
         match response {
             ResponseType::Ok => {
-                if let Some(gtk_program) = gtk_program_clone.borrow_mut().as_mut() {
-                    match parse_new_size(gtk_program, entry_width_clone.as_ref(), entry_height_clone.as_ref()) {
-                        Some((width, height)) => {
-                            gtk_program.program.command_buffer.push(Command::ResizeCanvas(width, height));
-                            dialog.hide();
-                        }
-                        _ => {}
+                match parse_new_size(gtk_program_clone.deref(), entry_width_clone.as_ref(), entry_height_clone.as_ref()) {
+                    Some((width, height)) => {
+                        gtk_program_clone.program.borrow_mut().as_mut().unwrap().command_buffer.push(Command::ResizeCanvas(width, height));
+                        dialog.hide();
                     }
+                    _ => {}
                 }
             }
             _ => {
@@ -287,7 +300,7 @@ fn add_image_menu(app: &Application,
 
 fn add_layers_menu(app: &Application,
                    window: &ApplicationWindow,
-                   gtk_program: Rc<RefCell<Option<GTKProgram>>>,
+                   gtk_program: GTKProgramRef,
                    gl_area: Rc<GLArea>,
                    menu_bar: &gio::Menu) {
     let layer_menu = gio::Menu::new();
@@ -299,10 +312,8 @@ fn add_layers_menu(app: &Application,
     let gl_area_clone = gl_area.clone();
     let gtk_program_clone = gtk_program.clone();
     new_layer.connect_activate(glib::clone!(@weak window => move |_, _| {
-        if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
-            program.program.command_buffer.push(Command::NewLayer);
-            gl_area_clone.queue_render();
-        }
+        gtk_program_clone.program.borrow_mut().as_mut().unwrap().command_buffer.push(Command::NewLayer);
+        gl_area_clone.queue_render();
     }));
     app.add_action(&new_layer);
 
@@ -312,10 +323,8 @@ fn add_layers_menu(app: &Application,
     let gl_area_clone = gl_area.clone();
     let gtk_program_clone = gtk_program.clone();
     duplicate_layer.connect_activate(glib::clone!(@weak window => move |_, _| {
-        if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
-            program.program.command_buffer.push(Command::DuplicateLayer);
-            gl_area_clone.queue_render();
-        }
+        gtk_program_clone.program.borrow_mut().as_mut().unwrap().command_buffer.push(Command::DuplicateLayer);
+        gl_area_clone.queue_render();
     }));
     app.add_action(&duplicate_layer);
 
@@ -325,10 +334,8 @@ fn add_layers_menu(app: &Application,
     let gl_area_clone = gl_area.clone();
     let gtk_program_clone = gtk_program.clone();
     delete_layer.connect_activate(glib::clone!(@weak window => move |_, _| {
-        if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
-            program.program.command_buffer.push(Command::DeleteLayer);
-            gl_area_clone.queue_render();
-        }
+        gtk_program_clone.program.borrow_mut().as_mut().unwrap().command_buffer.push(Command::DeleteLayer);
+        gl_area_clone.queue_render();
     }));
     app.add_action(&delete_layer);
 }
@@ -363,8 +370,10 @@ fn parse_new_size(gtk_program: &GTKProgram, entry_width: &gtk::Entry, entry_heig
         }
     };
 
-    match (parse_entry(entry_width, gtk_program.program.editor.image().width()),
-           parse_entry(entry_height, gtk_program.program.editor.image().height())) {
+    let mut program = gtk_program.program.borrow_mut();
+    let program = program.as_mut().unwrap();
+    match (parse_entry(entry_width, program.editor.image().width()),
+           parse_entry(entry_height,program.editor.image().height())) {
         (Some(width), Some(height)) => {
             Some((width, height))
         }

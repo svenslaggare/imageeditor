@@ -6,9 +6,9 @@ use std::cell::RefCell;
 use gtk::{gdk, EventBox, GLArea};
 use gtk::prelude::*;
 
-use crate::gtk_app::GTKProgram;
+use crate::gtk_app::{GTKProgram, GTKProgramRef};
 
-pub fn add(gtk_program: Rc<RefCell<Option<GTKProgram>>>,
+pub fn add(gtk_program: GTKProgramRef,
            gl_area: Rc<GLArea>,
            event_box: Rc<EventBox>) {
     event_box.add_events(
@@ -27,15 +27,13 @@ pub fn add(gtk_program: Rc<RefCell<Option<GTKProgram>>>,
     event_box.connect_button_press_event(move |_, event| {
         event_box_clone.grab_focus();
 
-        if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
-            program.editor_window.mouse_position = event.coords().unwrap();
+        gtk_program_clone.editor_window.borrow_mut().as_mut().unwrap().mouse_position = event.coords().unwrap();
 
-            program.event_queue.push_back(glfw::WindowEvent::MouseButton(
-                get_glfw_mouse_button(event.button()),
-                glfw::Action::Press,
-                glfw::Modifiers::empty()
-            ));
-        }
+        gtk_program_clone.event_queue.borrow_mut().push_back(glfw::WindowEvent::MouseButton(
+            get_glfw_mouse_button(event.button()),
+            glfw::Action::Press,
+            glfw::Modifiers::empty()
+        ));
 
         gl_area_clone.queue_render();
         Inhibit(true)
@@ -44,31 +42,50 @@ pub fn add(gtk_program: Rc<RefCell<Option<GTKProgram>>>,
     let gl_area_clone = gl_area.clone();
     let gtk_program_clone = gtk_program.clone();
     event_box.connect_button_release_event(move |_, event| {
-        if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
-            program.editor_window.mouse_position = event.coords().unwrap();
+        gtk_program_clone.editor_window.borrow_mut().as_mut().unwrap().mouse_position = event.coords().unwrap();
 
-            program.event_queue.push_back(glfw::WindowEvent::MouseButton(
-                get_glfw_mouse_button(event.button()),
-                glfw::Action::Release,
-                glfw::Modifiers::empty()
-            ));
-        }
+        gtk_program_clone.event_queue.borrow_mut().push_back(glfw::WindowEvent::MouseButton(
+            get_glfw_mouse_button(event.button()),
+            glfw::Action::Release,
+            glfw::Modifiers::empty()
+        ));
 
         gl_area_clone.queue_render();
         Inhibit(true)
     });
 
     let gl_area_clone = gl_area.clone();
-    let program_clone = gtk_program.clone();
+    let gtk_program_clone = gtk_program.clone();
     event_box.connect_motion_notify_event(move |_, event| {
-        if let Some(program) = program_clone.borrow_mut().as_mut() {
-            let mouse_position = event.coords().unwrap();
-            program.editor_window.mouse_position = mouse_position;
+        let mouse_position = event.coords().unwrap();
+        gtk_program_clone.editor_window.borrow_mut().as_mut().unwrap().mouse_position = mouse_position;
 
-            program.event_queue.push_back(glfw::WindowEvent::CursorPos(
-                mouse_position.0,
-                mouse_position.1
-            ));
+        gtk_program_clone.event_queue.borrow_mut().push_back(glfw::WindowEvent::CursorPos(
+            mouse_position.0,
+            mouse_position.1
+        ));
+
+        gl_area_clone.queue_render();
+        Inhibit(true)
+    });
+
+    let gl_area_clone = gl_area.clone();
+    let gtk_program_clone = gtk_program.clone();
+    event_box.connect_scroll_event(move |_, event| {
+        match event.scroll_direction() {
+            Some(gdk::ScrollDirection::Down) => {
+                gtk_program_clone.event_queue.borrow_mut().push_back(glfw::WindowEvent::Scroll(0.0, -1.0));
+            }
+            Some(gdk::ScrollDirection::Up) => {
+                gtk_program_clone.event_queue.borrow_mut().push_back(glfw::WindowEvent::Scroll(0.0, 1.0));
+            }
+            Some(gdk::ScrollDirection::Right) => {
+                gtk_program_clone.event_queue.borrow_mut().push_back(glfw::WindowEvent::Scroll(1.0, 0.0));
+            }
+            Some(gdk::ScrollDirection::Left) => {
+                gtk_program_clone.event_queue.borrow_mut().push_back(glfw::WindowEvent::Scroll(-1.0, 0.0));
+            }
+            _ => {}
         }
 
         gl_area_clone.queue_render();
@@ -76,21 +93,21 @@ pub fn add(gtk_program: Rc<RefCell<Option<GTKProgram>>>,
     });
 
     let gl_area_clone = gl_area.clone();
-    let program_clone = gtk_program.clone();
-    event_box.connect_scroll_event(move |_, event| {
-        if let Some(program) = program_clone.borrow_mut().as_mut() {
-            match event.scroll_direction() {
-                Some(gdk::ScrollDirection::Down) => {
-                    program.event_queue.push_back(glfw::WindowEvent::Scroll(0.0, -1.0));
-                }
-                Some(gdk::ScrollDirection::Up) => {
-                    program.event_queue.push_back(glfw::WindowEvent::Scroll(0.0, 1.0));
-                }
-                Some(gdk::ScrollDirection::Right) => {
-                    program.event_queue.push_back(glfw::WindowEvent::Scroll(1.0, 0.0));
-                }
-                Some(gdk::ScrollDirection::Left) => {
-                    program.event_queue.push_back(glfw::WindowEvent::Scroll(-1.0, 0.0));
+    let gtk_program_clone = gtk_program.clone();
+    event_box.connect_key_press_event(move |_, event| {
+        if let Some((key, modifier)) = get_glfw_key(event.keyval(), event.state()) {
+            gtk_program_clone.event_queue.borrow_mut().push_back(glfw::WindowEvent::Key(
+                key,
+                0,
+                glfw::Action::Press,
+                modifier
+            ));
+        }
+
+        if let Some((key, _)) = get_glfw_key(event.keyval(), event.state()) {
+            match key {
+                glfw::Key::LeftShift | glfw::Key::RightShift => {
+                    gtk_program_clone.editor_window.borrow_mut().as_mut().unwrap().shift_down = true;
                 }
                 _ => {}
             }
@@ -101,52 +118,23 @@ pub fn add(gtk_program: Rc<RefCell<Option<GTKProgram>>>,
     });
 
     let gl_area_clone = gl_area.clone();
-    let program_clone = gtk_program.clone();
-    event_box.connect_key_press_event(move |_, event| {
-        if let Some(program) = program_clone.borrow_mut().as_mut() {
-            if let Some((key, modifier)) = get_glfw_key(event.keyval(), event.state()) {
-                program.event_queue.push_back(glfw::WindowEvent::Key(
-                    key,
-                    0,
-                    glfw::Action::Press,
-                    modifier
-                ));
-            }
-
-            if let Some((key, _)) = get_glfw_key(event.keyval(), event.state()) {
-                match key {
-                    glfw::Key::LeftShift | glfw::Key::RightShift => {
-                        program.editor_window.shift_down = true;
-                    }
-                    _ => {}
-                }
-            }
+    let gtk_program_clone = gtk_program.clone();
+    event_box.connect_key_release_event(move |_, event| {
+        if let Some((key, modifier)) = get_glfw_key(event.keyval(), event.state()) {
+            gtk_program_clone.event_queue.borrow_mut().push_back(glfw::WindowEvent::Key(
+                key,
+                0,
+                glfw::Action::Release,
+                modifier
+            ));
         }
 
-        gl_area_clone.queue_render();
-        Inhibit(true)
-    });
-
-    let gl_area_clone = gl_area.clone();
-    let program_clone = gtk_program.clone();
-    event_box.connect_key_release_event(move |_, event| {
-        if let Some(program) = program_clone.borrow_mut().as_mut() {
-            if let Some((key, modifier)) = get_glfw_key(event.keyval(), event.state()) {
-                program.event_queue.push_back(glfw::WindowEvent::Key(
-                    key,
-                    0,
-                    glfw::Action::Release,
-                    modifier
-                ));
-            }
-
-            if let Some((key, _)) = get_glfw_key(event.keyval(), event.state()) {
-                match key {
-                    glfw::Key::LeftShift | glfw::Key::RightShift => {
-                        program.editor_window.shift_down = false;
-                    }
-                    _ => {}
+        if let Some((key, _)) = get_glfw_key(event.keyval(), event.state()) {
+            match key {
+                glfw::Key::LeftShift | glfw::Key::RightShift => {
+                    gtk_program_clone.editor_window.borrow_mut().as_mut().unwrap().shift_down = false;
                 }
+                _ => {}
             }
         }
 

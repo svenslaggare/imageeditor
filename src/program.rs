@@ -3,6 +3,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::path::Path;
 use std::ops::DerefMut;
+use std::collections::HashMap;
 
 use cgmath::{Matrix3, Matrix4, Transform, Matrix, SquareMatrix, Vector2};
 
@@ -50,7 +51,8 @@ pub struct Program {
     view_width: u32,
     view_height: u32,
     view_x: f32,
-    view_y: f32
+    view_y: f32,
+    pub actions: ProgramActionsManager
 }
 
 impl Program {
@@ -90,7 +92,8 @@ impl Program {
             view_width: view_width - SIDE_PANELS_WIDTH,
             view_height: view_height - TOP_PANEL_HEIGHT,
             view_x: 0.0,
-            view_y: 0.0
+            view_y: 0.0,
+            actions: ProgramActionsManager::new()
         };
 
         program.command_buffer.push(Command::SetImageSize(width, height));
@@ -255,6 +258,14 @@ impl Program {
                     Err(err) => {
                         println!("Failed to save due to: {}.", err);
                     }
+                }
+            }
+            glfw::WindowEvent::Key(Key::R, _, Action::Press, Modifiers::Control) => {
+                self.actions.trigger(ProgramActions::ResizeImage);
+            }
+            glfw::WindowEvent::Key(Key::R, _, Action::Press, modifier) => {
+                if modifier == &(Modifiers::Control | Modifiers::Shift) {
+                    self.actions.trigger(ProgramActions::ResizeCanvas);
                 }
             }
             glfw::WindowEvent::Key(Key::Left, _, Action::Press | Action::Repeat, _) => {
@@ -582,6 +593,38 @@ impl Program {
         let x = origin_transform.z.x;
         let y = origin_transform.z.y;
         Rectangle::new(x, y, self.view_width as f32, self.view_height as f32)
+    }
+}
+
+#[derive(PartialEq, Eq, Hash)]
+pub enum ProgramActions {
+    ResizeImage,
+    ResizeCanvas
+}
+
+pub struct ProgramActionsManager {
+    states: HashMap<ProgramActions, bool>
+}
+
+impl ProgramActionsManager {
+    pub fn new() -> ProgramActionsManager {
+        ProgramActionsManager {
+            states: HashMap::new()
+        }
+    }
+
+    pub fn trigger(&mut self, action: ProgramActions) {
+        *self.states.entry(action).or_insert(true) = true;
+    }
+
+    pub fn is_triggered(&mut self, action: &ProgramActions) -> bool {
+        if let Some(state) = self.states.get_mut(action) {
+            let current_state = *state;
+            *state = false;
+            current_state
+        } else {
+            false
+        }
     }
 }
 

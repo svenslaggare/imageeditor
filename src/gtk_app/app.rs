@@ -1,6 +1,6 @@
 use std::rc::Rc;
 use std::cell::RefCell;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 use std::collections::VecDeque;
 use std::collections::HashMap;
 use std::iter::FromIterator;
@@ -13,7 +13,7 @@ use gtk::gio::ApplicationFlags;
 use gtk::gdk::keys::Key;
 use gtk::gdk::ScrollDirection;
 
-use crate::program::{Program, LEFT_SIDE_PANEL_WIDTH, TOP_PANEL_HEIGHT, SIDE_PANELS_WIDTH};
+use crate::program::{Program, LEFT_SIDE_PANEL_WIDTH, TOP_PANEL_HEIGHT, SIDE_PANELS_WIDTH, ProgramActions};
 use crate::editor::tools::EditorWindow;
 use crate::{ui, editor};
 use crate::command_buffer::Command;
@@ -44,7 +44,7 @@ pub fn main() {
             .default_height(height)
             .build();
 
-        let gtk_program = Rc::new(RefCell::new(Option::<GTKProgram>::None));
+        let gtk_program = Rc::new(GTKProgram::new());
 
         let layout = Box::new(Orientation::Vertical, 6);
         window.add(&layout);
@@ -52,9 +52,7 @@ pub fn main() {
         let gl_area = Rc::new(GLArea::new());
         let gtk_program_clone = gtk_program.clone();
         gl_area.connect_resize(move |gl_area, width, height| {
-            if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
-                program.change_size(width as u32, height as u32);
-            }
+            gtk_program_clone.change_size(width as u32, height as u32);
         });
 
         let event_box = Rc::new(EventBox::new());
@@ -71,12 +69,15 @@ pub fn main() {
         let image_to_edit = Rc::new(RefCell::new(Some(image_to_edit)));
         gl_area.connect_realize(move |area| {
             area.context().unwrap().make_current();
-            *program_clone.borrow_mut() = Some(GTKProgram::new(width as u32, height as u32, image_to_edit.borrow_mut().take().unwrap()));
+            program_clone.initialize(width as u32, height as u32, image_to_edit.borrow_mut().take().unwrap());
         });
 
         gl_area.connect_render(move |area, context| {
-            let mut gtk_program = gtk_program.borrow_mut();
-            let gtk_program = gtk_program.as_mut().unwrap();
+            for (action, callback) in gtk_program.actions.borrow_mut().iter() {
+                if gtk_program.program.borrow_mut().as_mut().unwrap().actions.is_triggered(action) {
+                    callback();
+                }
+            }
 
             context.make_current();
 
@@ -94,15 +95,17 @@ pub fn main() {
                 1.0
             );
 
-            gtk_program.program.update(
-                &mut gtk_program.editor_window,
-                std::mem::take(&mut gtk_program.event_queue).into_iter()
-            );
+            if let (Some(program), Some(editor_window)) = (gtk_program.program.borrow_mut().as_mut(), gtk_program.editor_window.borrow_mut().as_mut()) {
+                program.update(
+                    editor_window,
+                    std::mem::take(gtk_program.event_queue.borrow_mut().deref_mut()).into_iter()
+                );
 
-            gtk_program.program.render(
-                &mut gtk_program.editor_window,
-                &transform
-            );
+                program.render(
+                    editor_window,
+                    &transform
+                );
+            }
 
             Inhibit(true)
         });

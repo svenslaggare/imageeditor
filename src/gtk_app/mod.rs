@@ -1,7 +1,9 @@
-use std::collections::VecDeque;
+use std::collections::{VecDeque, HashMap};
+use std::rc::Rc;
+use std::cell::{RefCell, RefMut};
 
 use crate::{editor, ui};
-use crate::program::Program;
+use crate::program::{Program, ProgramActions};
 use crate::editor::tools::EditorWindow;
 
 pub mod app;
@@ -9,37 +11,51 @@ pub mod helpers;
 pub mod input_support;
 pub mod menu;
 
+pub type GTKProgramRef = Rc<GTKProgram>;
+
 pub struct GTKProgram {
-    pub program: Program,
-    pub editor_window: GTKEditorWindow,
-    pub event_queue: VecDeque<glfw::WindowEvent>
+    pub program: RefCell<Option<Program>>,
+    pub editor_window: RefCell<Option<GTKEditorWindow>>,
+    pub event_queue: RefCell<VecDeque<glfw::WindowEvent>>,
+    pub actions: RefCell<HashMap<ProgramActions, Box<dyn Fn()>>>
 }
 
 impl GTKProgram {
-    pub fn new(view_width: u32, view_height: u32, image_to_edit: image::RgbaImage) -> GTKProgram {
-        let mut program = Program::new(
-            view_width,
-            view_height,
-            editor::Editor::new(editor::Image::new(image_to_edit)),
-            ui::create(),
+    pub fn new() -> GTKProgram {
+        GTKProgram {
+            program: RefCell::new(None),
+            editor_window: RefCell::new(None),
+            event_queue: RefCell::new(VecDeque::new()),
+            actions: RefCell::new(HashMap::new())
+        }
+    }
+
+    pub fn initialize(&self, view_width: u32, view_height: u32, image_to_edit: image::RgbaImage) {
+        *self.program.borrow_mut() = Some(
+            Program::new(
+                view_width,
+                view_height,
+                editor::Editor::new(editor::Image::new(image_to_edit)),
+                ui::create(),
+            )
         );
 
-        GTKProgram {
-            program,
-            editor_window: GTKEditorWindow {
+        *self.editor_window.borrow_mut() = Some(
+            GTKEditorWindow {
                 mouse_position: (0.0, 0.0),
                 shift_down: false,
                 width: view_width,
                 height: view_height
-            },
-            event_queue: VecDeque::new()
-        }
+            }
+        );
     }
 
-    pub fn change_size(&mut self, width: u32, height: u32) {
-        self.event_queue.push_back(glfw::WindowEvent::FramebufferSize(width as i32, height as i32));
-        self.editor_window.width = width;
-        self.editor_window.height = height;
+    pub fn change_size(&self, width: u32, height: u32) {
+        if let Some(editor_window) = self.editor_window.borrow_mut().as_mut() {
+            self.event_queue.borrow_mut().push_back(glfw::WindowEvent::FramebufferSize(width as i32, height as i32));
+            editor_window.width = width;
+            editor_window.height = height;
+        }
     }
 }
 

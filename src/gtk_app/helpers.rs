@@ -1,16 +1,17 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::path::PathBuf;
+use std::ops::{DerefMut, Deref};
 
 use gtk::prelude::*;
 use gtk::{FileChooserAction, ApplicationWindow, Inhibit, Orientation, ResponseType};
 
-use crate::gtk_app::GTKProgram;
+use crate::gtk_app::{GTKProgram, GTKProgramRef};
 
-pub fn create_file_dialog<F: Fn(&mut GTKProgram, PathBuf) + 'static>(window: &ApplicationWindow,
-                                                                     gtk_program: Rc<RefCell<Option<GTKProgram>>>,
-                                                                     action: FileChooserAction,
-                                                                     on_file: F) -> Rc<gtk::FileChooserDialog> {
+pub fn create_file_dialog<F: Fn(&GTKProgram, PathBuf) + 'static>(window: &ApplicationWindow,
+                                                                 gtk_program: GTKProgramRef,
+                                                                 action: FileChooserAction,
+                                                                 on_file: F) -> Rc<gtk::FileChooserDialog> {
     let file_dialog = gtk::FileChooserDialogBuilder::new()
         .transient_for(window)
         .modal(true)
@@ -41,10 +42,8 @@ pub fn create_file_dialog<F: Fn(&mut GTKProgram, PathBuf) + 'static>(window: &Ap
     file_dialog.connect_response(move |dialog, response| {
         match response {
             ResponseType::Ok => {
-                if let Some(program) = gtk_program_clone.borrow_mut().as_mut() {
-                    if let Some(filename) = file_dialog_clone.filename() {
-                        on_file(program, filename);
-                    }
+                if let Some(filename) = file_dialog_clone.filename() {
+                    on_file(gtk_program_clone.deref(), filename);
                 }
 
                 dialog.hide();
