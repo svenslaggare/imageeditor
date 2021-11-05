@@ -260,6 +260,9 @@ impl Program {
                     }
                 }
             }
+            glfw::WindowEvent::Key(Key::O, _, Action::Press, Modifiers::Control) => {
+                self.actions.trigger(ProgramActions::OpenImage);
+            }
             glfw::WindowEvent::Key(Key::R, _, Action::Press, Modifiers::Control) => {
                 self.actions.trigger(ProgramActions::ResizeImage);
             }
@@ -598,6 +601,7 @@ impl Program {
 
 #[derive(PartialEq, Eq, Hash)]
 pub enum ProgramActions {
+    OpenImage,
     ResizeImage,
     ResizeCanvas
 }

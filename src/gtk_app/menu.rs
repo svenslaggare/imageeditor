@@ -100,6 +100,14 @@ fn add_program_menu(app: &Application,
     );
 
     let open_file_dialog_clone = open_file_dialog.clone();
+    gtk_program.actions.borrow_mut().insert(
+        ProgramActions::OpenImage,
+        Box::new(move || {
+            open_file_dialog_clone.show();
+        })
+    );
+
+    let open_file_dialog_clone = open_file_dialog.clone();
     open_file.connect_activate(glib::clone!(@weak window => move |_, _| {
         open_file_dialog_clone.show();
     }));
