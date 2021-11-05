@@ -27,7 +27,9 @@ pub fn add(gtk_program: GTKProgramRef,
     event_box.connect_button_press_event(move |_, event| {
         event_box_clone.grab_focus();
 
-        gtk_program_clone.editor_window.borrow_mut().as_mut().unwrap().mouse_position = event.coords().unwrap();
+        if let Some(editor_window) = gtk_program_clone.editor_window.borrow_mut().as_mut() {
+            editor_window.mouse_position = event.coords().unwrap();
+        }
 
         gtk_program_clone.event_queue.borrow_mut().push_back(glfw::WindowEvent::MouseButton(
             get_glfw_mouse_button(event.button()),
@@ -42,7 +44,9 @@ pub fn add(gtk_program: GTKProgramRef,
     let gl_area_clone = gl_area.clone();
     let gtk_program_clone = gtk_program.clone();
     event_box.connect_button_release_event(move |_, event| {
-        gtk_program_clone.editor_window.borrow_mut().as_mut().unwrap().mouse_position = event.coords().unwrap();
+        if let Some(editor_window) = gtk_program_clone.editor_window.borrow_mut().as_mut() {
+            editor_window.mouse_position = event.coords().unwrap();
+        }
 
         gtk_program_clone.event_queue.borrow_mut().push_back(glfw::WindowEvent::MouseButton(
             get_glfw_mouse_button(event.button()),
@@ -58,7 +62,9 @@ pub fn add(gtk_program: GTKProgramRef,
     let gtk_program_clone = gtk_program.clone();
     event_box.connect_motion_notify_event(move |_, event| {
         let mouse_position = event.coords().unwrap();
-        gtk_program_clone.editor_window.borrow_mut().as_mut().unwrap().mouse_position = mouse_position;
+        if let Some(editor_window) = gtk_program_clone.editor_window.borrow_mut().as_mut() {
+           editor_window.mouse_position = mouse_position;
+        }
 
         gtk_program_clone.event_queue.borrow_mut().push_back(glfw::WindowEvent::CursorPos(
             mouse_position.0,
@@ -107,7 +113,9 @@ pub fn add(gtk_program: GTKProgramRef,
         if let Some((key, _)) = get_glfw_key(event.keyval(), event.state()) {
             match key {
                 glfw::Key::LeftShift | glfw::Key::RightShift => {
-                    gtk_program_clone.editor_window.borrow_mut().as_mut().unwrap().shift_down = true;
+                    if let Some(editor_window) = gtk_program_clone.editor_window.borrow_mut().as_mut() {
+                        editor_window.shift_down = true;
+                    }
                 }
                 _ => {}
             }
@@ -132,7 +140,9 @@ pub fn add(gtk_program: GTKProgramRef,
         if let Some((key, _)) = get_glfw_key(event.keyval(), event.state()) {
             match key {
                 glfw::Key::LeftShift | glfw::Key::RightShift => {
-                    gtk_program_clone.editor_window.borrow_mut().as_mut().unwrap().shift_down = false;
+                    if let Some(editor_window) = gtk_program_clone.editor_window.borrow_mut().as_mut() {
+                        editor_window.shift_down = false;
+                    }
                 }
                 _ => {}
             }

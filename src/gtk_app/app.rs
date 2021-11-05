@@ -74,7 +74,12 @@ pub fn main() {
 
         gl_area.connect_render(move |area, context| {
             for (action, callback) in gtk_program.actions.borrow_mut().iter() {
-                if gtk_program.program.borrow_mut().as_mut().unwrap().actions.is_triggered(action) {
+                let triggered = match gtk_program.program.borrow_mut().as_mut() {
+                    Some(program) => program.actions.is_triggered(action),
+                    _ => false
+                };
+
+                if triggered {
                     callback();
                 }
             }
@@ -95,7 +100,8 @@ pub fn main() {
                 1.0
             );
 
-            if let (Some(program), Some(editor_window)) = (gtk_program.program.borrow_mut().as_mut(), gtk_program.editor_window.borrow_mut().as_mut()) {
+            if let (Some(program), Some(editor_window)) = (gtk_program.program.borrow_mut().as_mut(),
+                                                           gtk_program.editor_window.borrow_mut().as_mut()) {
                 program.update(
                     editor_window,
                     std::mem::take(gtk_program.event_queue.borrow_mut().deref_mut()).into_iter()
