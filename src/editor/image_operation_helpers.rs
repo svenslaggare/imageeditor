@@ -4,7 +4,6 @@ use cgmath::{ElementWise, Vector4, Point2, Matrix3, Transform};
 
 use crate::editor::image_operation::{ImageSource, ImageOperationSource, SparseImage, OptionalImage, ColorGradientType};
 use crate::editor::Color;
-use crate::helpers::TimeMeasurement;
 
 pub fn draw_block<T: ImageOperationSource>(update_op: &mut T,
                                            center_x: i32,
@@ -536,7 +535,6 @@ pub fn bucket_fill<T: ImageOperationSource>(update_op: &mut T,
                                             tolerance: f32,
                                             undo: bool,
                                             undo_image: &mut OptionalImage) {
-    let _tm = TimeMeasurement::new("bucket fill");
     let width = update_op.width() as i32;
     let height = update_op.height() as i32;
 
