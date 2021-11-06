@@ -607,6 +607,7 @@ impl SelectionTool {
         self.move_pixels_state.clear();
         self.resize_pixels_state.clear();
         self.rotate_pixels_state.clear();
+        self.skip_erase_original_selection = false;
     }
 }
 
