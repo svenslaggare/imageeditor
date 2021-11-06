@@ -93,6 +93,7 @@ pub struct SelectionTool {
     tool: SelectionSubTool,
     start_position: Option<Position>,
     end_position: Option<Position>,
+    skip_erase_original_selection: bool,
     select_state: SelectState,
     move_pixels_state: MovePixelsState,
     resize_pixels_state: ResizePixelsState,
@@ -107,6 +108,7 @@ impl SelectionTool {
             end_position: None,
             // start_position: Some(Position::new(243.0, 325.0)),
             // end_position: Some(Position::new(739.0, 545.0)),
+            skip_erase_original_selection: false,
             select_state: SelectState {
                 is_selecting: false,
                 copied_image: None
@@ -115,7 +117,7 @@ impl SelectionTool {
                 original_selection: None,
                 is_moving: false,
                 move_offset: cgmath::Vector2::new(0.0, 0.0),
-                moved_pixels_image: None
+                moved_pixels_image: None,
             },
             resize_pixels_state: ResizePixelsState {
                 is_resizing: false,
@@ -242,12 +244,13 @@ impl SelectionTool {
                 }
             }
             glfw::WindowEvent::Key(Key::V, _, Action::Press, Modifiers::Control) => {
-                let mouse_position = get_transformed_mouse_position(window, image_area_transform);
-                let start_x = mouse_position.x as i32;
-                let start_y = mouse_position.y as i32;
-
                 if let Some(copied_image) = self.select_state.copied_image.as_ref() {
-                    op = Some(ImageOperation::SetImage { start_x, start_y, image: copied_image.clone(), blend: false });
+                    self.start_position = Some(Position::new(0.0, 0.0));
+                    self.end_position = Some(Position::new(copied_image.width() as f32, copied_image.height() as f32));
+
+                    self.move_pixels_state.original_selection = self.selection();
+                    self.move_pixels_state.moved_pixels_image = Some(copied_image.clone());
+                    self.skip_erase_original_selection = true;
                 }
             }
             glfw::WindowEvent::Key(Key::X, _, Action::Press, Modifiers::Control) => {
@@ -476,19 +479,25 @@ impl SelectionTool {
     fn create_move(&self, preview: bool) -> Option<ImageOperation> {
         match (self.selection(), self.original_selection(), self.move_pixels_state.moved_pixels_image.as_ref()) {
             (Some(selection), Some(original_selection), Some(moved_pixels_image)) => {
-                return Some(
-                    ImageOperation::Sequential(
-                        vec![
-                            self.create_erased_area(&original_selection, preview),
-                            ImageOperation::SetImage {
-                                start_x: selection.start_x as i32,
-                                start_y: selection.start_y as i32,
-                                image: moved_pixels_image.clone(),
-                                blend: true
-                            }
-                        ]
+                let set_image = ImageOperation::SetImage {
+                    start_x: selection.start_x as i32,
+                    start_y: selection.start_y as i32,
+                    image: moved_pixels_image.clone(),
+                    blend: true
+                };
+
+                return if !self.skip_erase_original_selection {
+                    Some(
+                        ImageOperation::Sequential(
+                            vec![
+                                self.create_erased_area(&original_selection, preview),
+                                set_image
+                            ]
+                        )
                     )
-                );
+                } else {
+                    Some(set_image)
+                }
             }
             _ => {}
         }
@@ -499,18 +508,24 @@ impl SelectionTool {
     fn create_resize(&self, preview: bool) -> Option<ImageOperation> {
         match (self.selection(), self.original_selection(), self.resize_pixels_state.resize_pixels_image.as_ref()) {
             (Some(selection), Some(original_selection), Some(resize_pixels_image)) => {
-                return Some(
-                    ImageOperation::Sequential(vec![
-                        self.create_erased_area(&original_selection, preview),
-                        ImageOperation::SetScaledImage {
-                            image: resize_pixels_image.clone(),
-                            start_x: selection.start_x,
-                            start_y: selection.start_y,
-                            scale_x: (selection.end_x - selection.start_x) as f32 / resize_pixels_image.width() as f32,
-                            scale_y: (selection.end_y - selection.start_y) as f32 / resize_pixels_image.height() as f32
-                        }
-                    ])
-                );
+                let set_image = ImageOperation::SetScaledImage {
+                    image: resize_pixels_image.clone(),
+                    start_x: selection.start_x,
+                    start_y: selection.start_y,
+                    scale_x: (selection.end_x - selection.start_x) as f32 / resize_pixels_image.width() as f32,
+                    scale_y: (selection.end_y - selection.start_y) as f32 / resize_pixels_image.height() as f32
+                };
+
+                return if !self.skip_erase_original_selection {
+                    Some(
+                        ImageOperation::Sequential(vec![
+                            self.create_erased_area(&original_selection, preview),
+                            set_image
+                        ])
+                    )
+                } else {
+                    Some(set_image)
+                }
             }
             _ => {}
         }
@@ -521,19 +536,25 @@ impl SelectionTool {
     fn create_rotation(&self, preview: bool) -> Option<ImageOperation> {
         match (self.selection(), self.original_selection(), self.rotate_pixels_state.rotate_pixels_image.as_ref()) {
             (Some(selection), Some(original_selection), Some(resize_pixels_image)) => {
-                return Some(
-                    ImageOperation::Sequential(vec![
-                        self.create_erased_area(&original_selection, preview),
-                        ImageOperation::SetRotatedImage {
-                            image: resize_pixels_image.clone(),
-                            start_x: selection.start_x,
-                            start_y: selection.start_y,
-                            end_x: selection.end_x,
-                            end_y: selection.end_y,
-                            rotation: self.rotate_pixels_state.rotation
-                        }
-                    ])
-                );
+                let set_image = ImageOperation::SetRotatedImage {
+                    image: resize_pixels_image.clone(),
+                    start_x: selection.start_x,
+                    start_y: selection.start_y,
+                    end_x: selection.end_x,
+                    end_y: selection.end_y,
+                    rotation: self.rotate_pixels_state.rotation
+                };
+
+                return if !self.skip_erase_original_selection {
+                    Some(
+                        ImageOperation::Sequential(vec![
+                            self.create_erased_area(&original_selection, preview),
+                            set_image
+                        ])
+                    )
+                } else {
+                    Some(set_image)
+                }
             }
             _ => {}
         }
@@ -678,7 +699,7 @@ impl Tool for SelectionTool {
         if let Some(preview_op) = select_latest([self.create_move(true),
                                                  self.create_resize(true),
                                                  self.create_rotation(true)]) {
-            erased_area = true;
+            erased_area = !self.skip_erase_original_selection;
             preview_op.apply(&mut update_op, false);
         }
 
