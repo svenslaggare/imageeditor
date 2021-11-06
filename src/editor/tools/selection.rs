@@ -105,6 +105,8 @@ impl SelectionTool {
             tool: SelectionSubTool::Select,
             start_position: None,
             end_position: None,
+            // start_position: Some(Position::new(243.0, 325.0)),
+            // end_position: Some(Position::new(739.0, 545.0)),
             select_state: SelectState {
                 is_selecting: false,
                 copied_image: None
@@ -447,7 +449,13 @@ impl SelectionTool {
                     if let (Some(start_position), Some(end_position)) = (self.start_position, self.end_position) {
                         let mouse_position = image_area_transform.transform_point(cgmath::Point2::new(*raw_mouse_x as f32, *raw_mouse_y as f32));
                         let diff = mouse_position - (start_position.to_vec() + end_position.to_vec()) * 0.5;
-                        self.rotate_pixels_state.rotation = diff.y.atan2(diff.x);
+                        let mut angle = diff.y.atan2(diff.x);
+
+                        if window.is_shift_down() {
+                            angle = (angle / 45.0_f32.to_radians()).round() * 45.0_f32.to_radians();
+                        }
+
+                        self.rotate_pixels_state.rotation = angle;
                     }
                 }
             }
@@ -518,8 +526,10 @@ impl SelectionTool {
                         self.create_erased_area(&original_selection, preview),
                         ImageOperation::SetRotatedImage {
                             image: resize_pixels_image.clone(),
-                            center_x: (selection.start_x + selection.end_x) / 2,
-                            center_y: (selection.start_y + selection.end_y) / 2,
+                            start_x: selection.start_x,
+                            start_y: selection.start_y,
+                            end_x: selection.end_x,
+                            end_y: selection.end_y,
                             rotation: self.rotate_pixels_state.rotation
                         }
                     ])

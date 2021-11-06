@@ -3,19 +3,7 @@ use std::collections::HashMap;
 use image::{Pixel, FilterType};
 
 use crate::editor::image::{Color};
-use crate::editor::image_operation_helpers::{
-    sub_image,
-    draw_block,
-    draw_line,
-    draw_circle,
-    fill_rectangle,
-    bucket_fill,
-    draw_line_anti_aliased_thick,
-    draw_circle_anti_aliased_thick,
-    color_gradient,
-    pencil_stroke_anti_aliased,
-    rotate_image
-};
+use crate::editor::image_operation_helpers::{sub_image, draw_block, draw_line, draw_circle, fill_rectangle, bucket_fill, draw_line_anti_aliased_thick, draw_circle_anti_aliased_thick, color_gradient, pencil_stroke_anti_aliased, rotate_image};
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum ImageOperationMarker {
@@ -38,7 +26,7 @@ pub enum ImageOperation {
     SetSparseImage { image: SparseImage },
     SetOptionalImage { image: OptionalImage },
     SetScaledImage { image: image::RgbaImage, start_x: i32, start_y: i32, scale_x: f32, scale_y: f32 },
-    SetRotatedImage { image: image::RgbaImage, center_x: i32, center_y: i32, rotation: f32 },
+    SetRotatedImage { image: image::RgbaImage, start_x: i32, start_y: i32, end_x: i32, end_y: i32, rotation: f32 },
     SetPixel { x: i32, y: i32, color: Color },
     Block { x: i32, y: i32, color: Color, side_half_width: i32 },
     Line { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, anti_aliased: Option<bool>, side_half_width: i32 },
@@ -160,12 +148,16 @@ impl ImageOperation {
                     blend: false
                 }.apply(update_op, undo)
             }
-            ImageOperation::SetRotatedImage { image, center_x, center_y, rotation } => {
+            ImageOperation::SetRotatedImage { image, start_x, start_y, end_x, end_y, rotation } => {
                 let rotated_image = rotate_image(image, *rotation, FilterType::Triangle);
+                let start_fx = ((start_x + end_x) as f32 * 0.5).floor() - (rotated_image.width() as f32 * 0.5).floor();
+                let start_fy = ((start_y + end_y) as f32 * 0.5).floor() - (rotated_image.height() as f32 * 0.5).floor();
+                let start_x = start_fx as i32;
+                let start_y = start_fy as i32;
 
                 ImageOperation::SetImage {
-                    start_x: center_x - rotated_image.width() as i32 / 2,
-                    start_y: center_y - rotated_image.height() as i32 / 2,
+                    start_x,
+                    start_y,
                     image: rotated_image,
                     blend: true
                 }.apply(update_op, undo)

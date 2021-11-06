@@ -1,7 +1,6 @@
 use image::{Pixel, FilterType};
 
-use cgmath::{ElementWise, Vector4};
-use cgmath::num_traits::Pow;
+use cgmath::{ElementWise, Vector4, Point2, Matrix3, Transform};
 
 use crate::editor::image_operation::{ImageSource, ImageOperationSource, SparseImage, OptionalImage, ColorGradientType};
 use crate::editor::Color;
@@ -658,30 +657,32 @@ pub fn sub_image<T: ImageSource>(image: &T, min_x: i32, min_y: i32, max_x: i32, 
 }
 
 pub fn rotate_image(image: &image::RgbaImage, rotation: f32, filter_type: FilterType) -> image::RgbaImage {
+    let rotated_image_size = image.width() + image.height();
     let mut rotated_image: image::RgbaImage = image::RgbaImage::new(
-        image.width() + image.height(),
-        image.height() + image.width()
+        rotated_image_size,
+        rotated_image_size
     );
 
-    let center_x = image.width() as f32 * 0.5;
-    let center_y = image.height() as f32 * 0.5;
-    let target_center_x = rotated_image.width() as f32 * 0.5;
-    let target_center_y = rotated_image.height() as f32 * 0.5;
+    let center_x = (image.width() as f32 * 0.5).floor();
+    let center_y = (image.height() as f32 * 0.5).floor();
+    let target_center_x = (rotated_image.width() as f32 * 0.5).floor();
+    let target_center_y = (rotated_image.height() as f32 * 0.5).floor();
 
     let mut min_x = i32::MAX;
     let mut min_y = i32::MAX;
     let mut max_x = i32::MIN;
     let mut max_y = i32::MIN;
 
+    let mut transform = Matrix3::<f32>::from_angle_z(cgmath::Rad(-rotation));
+    transform.z.x = center_x;
+    transform.z.y = center_y;
+
     for y in 0..rotated_image.height() {
         for x in 0..rotated_image.width() {
-            let fx = x as f32 - target_center_x;
-            let fy = y as f32 - target_center_y;
-            let length = (fx.pow(2i32) + fy.pow(2i32)).sqrt();
-            let angle = fy.atan2(fx) - rotation;
-            let source_fx = center_x + length * angle.cos();
-            let source_fy = center_y + length * angle.sin();
-
+            let source = transform.transform_point(Point2::new(x as f32 - target_center_x,
+                                                               y as f32 - target_center_y));
+            let source_fx = source.x;
+            let source_fy = source.y;
             let source_x = source_fx.round() as i32;
             let source_y = source_fy.round() as i32;
 
@@ -735,7 +736,7 @@ pub fn rotate_image(image: &image::RgbaImage, rotation: f32, filter_type: Filter
                             let interpolate2 = factor1 * target12 + factor2 * target22;
 
                             let target = ((source_fy2 - source_fy) / range_y) * interpolate1
-                                         + ((source_fy - source_fy1) / range_y) * interpolate2;
+                                          + ((source_fy - source_fy1) / range_y) * interpolate2;
                             vec_to_pixel(&target)
                         } else {
                             *image.get_pixel(source_x as u32, source_y as u32)
@@ -769,6 +770,14 @@ pub fn rotate_image(image: &image::RgbaImage, rotation: f32, filter_type: Filter
     // }
     //
     // sub_image
+}
+
+pub fn symmetric_round(x: f32) -> f32 {
+    x.abs().round() * x.signum()
+}
+
+pub fn symmetric_floor(x: f32) -> f32 {
+    x.abs().floor() * x.signum()
 }
 
 pub fn hsv_to_rgb(hue: f64, saturation: f64, value: f64) -> Option<Color> {
