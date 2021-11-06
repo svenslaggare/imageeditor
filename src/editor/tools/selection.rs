@@ -708,6 +708,13 @@ impl Tool for SelectionTool {
                     }
                 }
             }
+            Command::AbortedResizeCanvas => {
+                if self.select_state.triggered_resize {
+                    if let Some(copied_image) = self.select_state.copied_image.as_ref() {
+                        self.handle_paste(copied_image.clone());
+                    }
+                }
+            }
             _ => {}
         }
     }

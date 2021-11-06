@@ -21,7 +21,8 @@ pub enum Command {
     SelectAll,
     ResizeImage(u32, u32),
     ResizeCanvas(u32, u32),
-    RequestResizeCanvas(u32, u32)
+    RequestResizeCanvas(u32, u32),
+    AbortedResizeCanvas
 }
 
 pub struct CommandBuffer {

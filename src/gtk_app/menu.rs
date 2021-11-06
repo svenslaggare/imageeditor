@@ -337,6 +337,10 @@ fn add_image_menu(app: &Application,
                 }
             }
             _ => {
+                if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
+                    program.command_buffer.push(Command::AbortedResizeCanvas);
+                }
+
                 dialog.hide();
             }
         }
