@@ -113,6 +113,21 @@ fn add_program_menu(app: &Application,
     }));
     app.add_action(&open_file);
 
+    // Save
+    menu.append(Some("Save"), Some("app.save_file"));
+    let save_file = gio::SimpleAction::new("save_file", None);
+    let gtk_program_clone = gtk_program.clone();
+    save_file.connect_activate(glib::clone!(@weak window => move |_, _| {
+        if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
+            if let Some(path) = program.editor.image().path() {
+               if let Err(err) = program.editor.image().save(path) {
+                    println!("Failed to save file due to: {:?}.", err);
+               }
+            }
+        }
+    }));
+    app.add_action(&save_file);
+
     // Save as
     menu.append(Some("Save as"), Some("app.save_file_as"));
     let save_file_as = gio::SimpleAction::new("save_file_as", None);
