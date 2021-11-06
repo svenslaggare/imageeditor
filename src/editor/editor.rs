@@ -78,12 +78,14 @@ impl EditorImage {
         let writer = std::io::BufWriter::new(file);
         let encoder = image::png::PNGEncoder::new(writer);
         let mut image: image::RgbaImage = image::RgbaImage::new(self.width(), self.height());
-        for (_, layer) in &self.layers {
-            let layer = layer.get_image();
+        for (state, layer) in &self.layers {
+            if state == &LayerState::Visible {
+                let layer = layer.get_image();
 
-            for y in 0..image.height() {
-                for x in 0..image.width() {
-                    image.blend_pixel(x, y, *layer.get_pixel(x, y));
+                for y in 0..image.height() {
+                    for x in 0..image.width() {
+                        image.blend_pixel(x, y, *layer.get_pixel(x, y));
+                    }
                 }
             }
         }
