@@ -98,6 +98,12 @@ impl EditorImage {
         Ok(())
     }
 
+    pub fn save_as(&mut self, path: &Path) -> std::io::Result<()> {
+        self.save(path)?;
+        self.path = Some(path.to_path_buf());
+        Ok(())
+    }
+
     pub fn resize(&mut self, new_width: u32, new_height: u32) {
         self.width = new_width;
         self.height = new_height;

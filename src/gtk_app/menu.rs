@@ -122,9 +122,9 @@ fn add_program_menu(app: &Application,
         gtk_program.clone(),
         "Save as",
         FileChooserAction::Save,
-        |gtk_program, filename| {
+        |gtk_program, path| {
             if let Some(program) = gtk_program.program.borrow_mut().as_mut() {
-                if let Err(err) = program.editor.image().save(&filename) {
+                if let Err(err) = program.editor.image_mut().save_as(&path) {
                     println!("Failed to save file due to: {:?}.", err);
                 }
             }
