@@ -20,7 +20,8 @@ pub enum Command {
     DeleteLayer,
     SelectAll,
     ResizeImage(u32, u32),
-    ResizeCanvas(u32, u32)
+    ResizeCanvas(u32, u32),
+    RequestResizeCanvas(u32, u32)
 }
 
 pub struct CommandBuffer {

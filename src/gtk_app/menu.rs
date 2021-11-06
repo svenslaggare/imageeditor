@@ -9,7 +9,7 @@ use gtk::{GLArea, gio, Application, ApplicationWindow, glib, FileChooserAction, 
 use crate::gtk_app::{GTKProgram, GTKProgramRef};
 use crate::gtk_app::helpers::{create_entry, create_file_dialog};
 use crate::command_buffer::Command;
-use crate::program::ProgramActions;
+use crate::program::{ProgramAction, ProgramActionData};
 
 pub fn add(app: &Application,
            window: &ApplicationWindow,
@@ -101,8 +101,8 @@ fn add_program_menu(app: &Application,
 
     let open_file_dialog_clone = open_file_dialog.clone();
     gtk_program.actions.borrow_mut().insert(
-        ProgramActions::OpenImage,
-        Box::new(move || {
+        ProgramAction::OpenImage,
+        Box::new(move |_| {
             open_file_dialog_clone.show();
         })
     );
@@ -133,8 +133,8 @@ fn add_program_menu(app: &Application,
 
     let save_file_as_dialog_clone = save_file_as_dialog.clone();
     gtk_program.actions.borrow_mut().insert(
-        ProgramActions::SaveImageAs,
-        Box::new(move || {
+        ProgramAction::SaveImageAs,
+        Box::new(move |_| {
             save_file_as_dialog_clone.show();
         })
     );
@@ -233,11 +233,16 @@ fn add_image_menu(app: &Application,
     let entry_width_clone = entry_width.clone();
     let entry_height_clone = entry_height.clone();
     gtk_program.actions.borrow_mut().insert(
-        ProgramActions::ResizeImage,
-        Box::new(move || {
+        ProgramAction::ResizeImage,
+        Box::new(move |requested_size| {
             if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
-                entry_width_clone.set_text(&format!("{}", program.editor.image().width()));
-                entry_height_clone.set_text(&format!("{}", program.editor.image().height()));
+                let (width, height) = match requested_size {
+                    ProgramActionData::Size(width, height) => (width, height),
+                    _ => (program.editor.image().width(), program.editor.image().height())
+                };
+
+                entry_width_clone.set_text(&format!("{}", width));
+                entry_height_clone.set_text(&format!("{}", height));
                 resize_image_dialog_clone.show_all();
             }
         })
@@ -299,11 +304,16 @@ fn add_image_menu(app: &Application,
     let entry_width_clone = entry_width.clone();
     let entry_height_clone = entry_height.clone();
     gtk_program.actions.borrow_mut().insert(
-        ProgramActions::ResizeCanvas,
-        Box::new(move || {
+        ProgramAction::ResizeCanvas,
+        Box::new(move |requested_size| {
             if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
-                entry_width_clone.set_text(&format!("{}", program.editor.image().width()));
-                entry_height_clone.set_text(&format!("{}", program.editor.image().height()));
+                let (width, height) = match requested_size {
+                    ProgramActionData::Size(width, height) => (width, height),
+                    _ => (program.editor.image().width(), program.editor.image().height())
+                };
+
+                entry_width_clone.set_text(&format!("{}", width));
+                entry_height_clone.set_text(&format!("{}", height));
                 resize_canvas_dialog_clone.show_all();
             }
         })

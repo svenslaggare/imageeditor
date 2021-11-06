@@ -7,7 +7,7 @@ use gtk::{Application, ApplicationWindow, GLArea, Orientation, EventBox};
 use gtk::gio::ApplicationFlags;
 
 use crate::gtk_app::{GTKProgram, menu, input_support};
-use crate::program::{SIDE_PANELS_WIDTH, TOP_PANEL_HEIGHT};
+use crate::program::{SIDE_PANELS_WIDTH, TOP_PANEL_HEIGHT, ProgramActionData};
 
 pub fn main() {
     let application = Application::builder()
@@ -94,11 +94,11 @@ pub fn main() {
             for (action, callback) in gtk_program.actions.borrow_mut().iter() {
                 let triggered = match gtk_program.program.borrow_mut().as_mut() {
                     Some(program) => program.actions.is_triggered(action),
-                    _ => false
+                    _ => ProgramActionData::None
                 };
 
-                if triggered {
-                    callback();
+                if triggered != ProgramActionData::None {
+                    callback(triggered);
                 }
             }
 

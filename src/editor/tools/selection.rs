@@ -42,7 +42,8 @@ impl Selection {
 
 struct SelectState {
     is_selecting: bool,
-    copied_image: Option<image::RgbaImage>
+    copied_image: Option<image::RgbaImage>,
+    triggered_resize: bool
 }
 
 struct MovePixelsState {
@@ -111,7 +112,8 @@ impl SelectionTool {
             skip_erase_original_selection: false,
             select_state: SelectState {
                 is_selecting: false,
-                copied_image: None
+                copied_image: None,
+                triggered_resize: false
             },
             move_pixels_state: MovePixelsState {
                 original_selection: None,
@@ -171,7 +173,7 @@ impl SelectionTool {
                             event: &glfw::WindowEvent,
                             image_area_transform: &Matrix3<f32>,
                             image_area_rectangle: &Rectangle,
-                            _command_buffer: &mut CommandBuffer,
+                            command_buffer: &mut CommandBuffer,
                             image: &editor::Image) -> Option<ImageOperation> {
         let mut op = None;
         match event {
@@ -245,12 +247,12 @@ impl SelectionTool {
             }
             glfw::WindowEvent::Key(Key::V, _, Action::Press, Modifiers::Control) => {
                 if let Some(copied_image) = self.select_state.copied_image.as_ref() {
-                    self.start_position = Some(Position::new(0.0, 0.0));
-                    self.end_position = Some(Position::new(copied_image.width() as f32, copied_image.height() as f32));
-
-                    self.move_pixels_state.original_selection = self.selection();
-                    self.move_pixels_state.moved_pixels_image = Some(copied_image.clone());
-                    self.skip_erase_original_selection = true;
+                    if (copied_image.width() <= image.width() && copied_image.height() <= image.height()) || self.select_state.triggered_resize {
+                        self.handle_paste(copied_image.clone());
+                    } else {
+                        self.select_state.triggered_resize = true;
+                        command_buffer.push(Command::RequestResizeCanvas(copied_image.width(), copied_image.height()));
+                    }
                 }
             }
             glfw::WindowEvent::Key(Key::X, _, Action::Press, Modifiers::Control) => {
@@ -476,6 +478,16 @@ impl SelectionTool {
         None
     }
 
+    fn handle_paste(&mut self, copied_image: image::RgbaImage) {
+        self.start_position = Some(Position::new(0.0, 0.0));
+        self.end_position = Some(Position::new(copied_image.width() as f32, copied_image.height() as f32));
+
+        self.move_pixels_state.original_selection = self.selection();
+        self.move_pixels_state.moved_pixels_image = Some(copied_image);
+        self.skip_erase_original_selection = true;
+        self.select_state.triggered_resize = false;
+    }
+
     fn create_move(&self, preview: bool) -> Option<ImageOperation> {
         match (self.selection(), self.original_selection(), self.move_pixels_state.moved_pixels_image.as_ref()) {
             (Some(selection), Some(original_selection), Some(moved_pixels_image)) => {
@@ -685,8 +697,18 @@ impl Tool for SelectionTool {
     }
 
     fn handle_command(&mut self, image: &editor::Image, command: &Command) {
-        if let Command::SelectAll = command {
-            self.select_all(image);
+        match command {
+            Command::SelectAll => {
+                self.select_all(image);
+            }
+            Command::ResizeCanvas(_, _) => {
+                if self.select_state.triggered_resize {
+                    if let Some(copied_image) = self.select_state.copied_image.as_ref() {
+                        self.handle_paste(copied_image.clone());
+                    }
+                }
+            }
+            _ => {}
         }
     }
 

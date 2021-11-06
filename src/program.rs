@@ -193,23 +193,32 @@ impl Program {
                 Command::DeleteLayer => {
                     self.editor.delete_active_layer();
                 }
-                Command::ResizeImage(new_width, new_height) => {
-                    let mut image = self.editor.image().clone();
-                    image.resize(new_width, new_height);
-
-                    self.editor.apply_editor_op(EditorOperation::SetImage(image));
-                    self.image_size_changed();
-                }
-                Command::ResizeCanvas(new_width, new_height) => {
-                    let mut image = self.editor.image().clone();
-                    image.resize_canvas(new_width, new_height);
-
-                    self.editor.apply_editor_op(EditorOperation::SetImage(image));
-                    self.image_size_changed();
+                Command::RequestResizeCanvas(new_width, new_height) => {
+                    self.actions.trigger_with_data(
+                        ProgramAction::ResizeCanvas,
+                        ProgramActionData::Size(new_width, new_height)
+                    );
                 }
                 command => {
-                    if let Command::SelectAll = command {
-                        self.switch_tool(window, Tools::Selection(SelectionSubTool::Select));
+                    match command {
+                        Command::SelectAll => {
+                            self.switch_tool(window, Tools::Selection(SelectionSubTool::Select));
+                        }
+                        Command::ResizeImage(new_width, new_height) => {
+                            let mut image = self.editor.image().clone();
+                            image.resize(new_width, new_height);
+
+                            self.editor.apply_editor_op(EditorOperation::SetImage(image));
+                            self.image_size_changed();
+                        }
+                        Command::ResizeCanvas(new_width, new_height) => {
+                            let mut image = self.editor.image().clone();
+                            image.resize_canvas(new_width, new_height);
+
+                            self.editor.apply_editor_op(EditorOperation::SetImage(image));
+                            self.image_size_changed();
+                        }
+                        _ => {}
                     }
 
                     for draw_tool in &mut self.tools {
@@ -259,19 +268,19 @@ impl Program {
                 }
             }
             glfw::WindowEvent::Key(Key::O, _, Action::Press, Modifiers::Control) => {
-                self.actions.trigger(ProgramActions::OpenImage);
+                self.actions.trigger(ProgramAction::OpenImage);
             }
             glfw::WindowEvent::Key(Key::S, _, Action::Press, modifier) => {
                 if modifier == &(Modifiers::Control | Modifiers::Shift) {
-                    self.actions.trigger(ProgramActions::SaveImageAs);
+                    self.actions.trigger(ProgramAction::SaveImageAs);
                 }
             }
             glfw::WindowEvent::Key(Key::R, _, Action::Press, Modifiers::Control) => {
-                self.actions.trigger(ProgramActions::ResizeImage);
+                self.actions.trigger(ProgramAction::ResizeImage);
             }
             glfw::WindowEvent::Key(Key::R, _, Action::Press, modifier) => {
                 if modifier == &(Modifiers::Control | Modifiers::Shift) {
-                    self.actions.trigger(ProgramActions::ResizeCanvas);
+                    self.actions.trigger(ProgramAction::ResizeCanvas);
                 }
             }
             glfw::WindowEvent::Key(Key::Left, _, Action::Press | Action::Repeat, _) => {
@@ -603,15 +612,22 @@ impl Program {
 }
 
 #[derive(PartialEq, Eq, Hash)]
-pub enum ProgramActions {
+pub enum ProgramAction {
     OpenImage,
     SaveImageAs,
     ResizeImage,
     ResizeCanvas
 }
 
+#[derive(Clone, PartialEq)]
+pub enum ProgramActionData {
+    None,
+    Triggered,
+    Size(u32, u32)
+}
+
 pub struct ProgramActionsManager {
-    states: HashMap<ProgramActions, bool>
+    states: HashMap<ProgramAction, ProgramActionData>
 }
 
 impl ProgramActionsManager {
@@ -621,17 +637,21 @@ impl ProgramActionsManager {
         }
     }
 
-    pub fn trigger(&mut self, action: ProgramActions) {
-        *self.states.entry(action).or_insert(true) = true;
+    pub fn trigger(&mut self, action: ProgramAction) {
+        self.trigger_with_data(action, ProgramActionData::Triggered);
     }
 
-    pub fn is_triggered(&mut self, action: &ProgramActions) -> bool {
+    pub fn trigger_with_data(&mut self, action: ProgramAction, data: ProgramActionData) {
+        *self.states.entry(action).or_insert_with(|| data) = data.clone();
+    }
+
+    pub fn is_triggered(&mut self, action: &ProgramAction) -> ProgramActionData {
         if let Some(state) = self.states.get_mut(action) {
-            let current_state = *state;
-            *state = false;
+            let current_state = state.clone();
+            *state = ProgramActionData::None;
             current_state
         } else {
-            false
+            ProgramActionData::None
         }
     }
 }

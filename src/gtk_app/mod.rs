@@ -3,7 +3,7 @@ use std::rc::Rc;
 use std::cell::{RefCell};
 
 use crate::{editor, ui};
-use crate::program::{Program, ProgramActions};
+use crate::program::{Program, ProgramAction, ProgramActionData};
 use crate::editor::tools::EditorWindow;
 
 pub mod app;
@@ -17,7 +17,7 @@ pub struct GTKProgram {
     pub program: RefCell<Option<Program>>,
     pub editor_window: RefCell<Option<GTKEditorWindow>>,
     pub event_queue: RefCell<VecDeque<glfw::WindowEvent>>,
-    pub actions: RefCell<HashMap<ProgramActions, Box<dyn Fn()>>>
+    pub actions: RefCell<HashMap<ProgramAction, Box<dyn Fn(ProgramActionData)>>>
 }
 
 impl GTKProgram {
