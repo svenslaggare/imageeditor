@@ -8,6 +8,8 @@ use gtk::gio::ApplicationFlags;
 
 use crate::gtk_app::{GTKProgram, menu, input_support};
 use crate::program::{SIDE_PANELS_WIDTH, TOP_PANEL_HEIGHT, ProgramActionData};
+use std::path::Path;
+use crate::editor::EditorImage;
 
 pub fn main() {
     let application = Application::builder()
@@ -21,7 +23,8 @@ pub fn main() {
 
     application.connect_activate(|app| {
         let program_args = std::env::args().collect::<Vec<_>>();
-        let image_to_edit = image::open(&program_args[1]).unwrap().into_rgba();
+        let image_to_edit_path = Path::new(&program_args[1]).to_path_buf();
+        let image_to_edit = image::open(&image_to_edit_path).unwrap().into_rgba();
 
         let width = (image_to_edit.width() + SIDE_PANELS_WIDTH) as i32;
         let height = (image_to_edit.height() + TOP_PANEL_HEIGHT + 27) as i32;
@@ -58,9 +61,18 @@ pub fn main() {
         let image_to_edit = Rc::new(RefCell::new(Some(image_to_edit)));
         gl_area.connect_realize(move |area| {
             area.context().unwrap().make_current();
-            program_clone.initialize(width as u32, height as u32, image_to_edit.borrow_mut().take().unwrap());
+            program_clone.initialize(
+                width as u32,
+                height as u32,
+                EditorImage::from_rgba(
+                    Some(image_to_edit_path.to_path_buf()),
+                    image_to_edit.borrow_mut().take().unwrap()
+                )
+            );
         });
 
+        let window = Rc::new(window);
+        let window_clone = window.clone();
         gl_area.connect_render(move |area, context| {
             context.make_current();
 
@@ -80,6 +92,11 @@ pub fn main() {
 
             if let (Some(program), Some(editor_window)) = (gtk_program.program.borrow_mut().as_mut(),
                                                            gtk_program.editor_window.borrow_mut().as_mut()) {
+                window_clone.set_title(&format!(
+                    "ImageEditor - {}",
+                    program.editor.image().path().map(|path| path.file_name().unwrap().to_str().unwrap()).unwrap_or("Untitled")
+                ));
+
                 program.update(
                     editor_window,
                     std::mem::take(gtk_program.event_queue.borrow_mut().deref_mut()).into_iter()

@@ -43,8 +43,8 @@ pub fn create_file_dialog<F: Fn(&GTKProgram, PathBuf) + 'static>(window: &Applic
     file_dialog.connect_response(move |dialog, response| {
         match response {
             ResponseType::Ok => {
-                if let Some(filename) = file_dialog_clone.filename() {
-                    on_file(gtk_program_clone.deref(), filename);
+                if let Some(path) = file_dialog_clone.filename() {
+                    on_file(gtk_program_clone.deref(), path);
                 }
 
                 dialog.hide();

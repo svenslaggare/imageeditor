@@ -5,6 +5,7 @@ use std::cell::{RefCell};
 use crate::{editor, ui};
 use crate::program::{Program, ProgramAction, ProgramActionData};
 use crate::editor::tools::EditorWindow;
+use crate::editor::EditorImage;
 
 pub mod app;
 pub mod helpers;
@@ -30,12 +31,12 @@ impl GTKProgram {
         }
     }
 
-    pub fn initialize(&self, view_width: u32, view_height: u32, image_to_edit: image::RgbaImage) {
+    pub fn initialize(&self, view_width: u32, view_height: u32, image: EditorImage) {
         *self.program.borrow_mut() = Some(
             Program::new(
                 view_width,
                 view_height,
-                editor::Editor::new(editor::Image::new(image_to_edit)),
+                editor::Editor::new(image),
                 ui::create(),
             )
         );

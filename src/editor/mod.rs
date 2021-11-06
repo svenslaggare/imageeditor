@@ -7,4 +7,4 @@ pub mod tools;
 pub use crate::editor::image::Image;
 pub use crate::editor::image::Color;
 pub use crate::editor::editor::Editor;
-pub use crate::editor::editor::LayeredImage;
+pub use crate::editor::editor::EditorImage;

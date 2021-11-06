@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::path::PathBuf;
 
 use crate::editor::image_operation::ImageOperation;
 use crate::editor::tools::Tools;
@@ -7,7 +8,7 @@ use crate::editor::tools::Tools;
 pub enum Command {
     SetImageSize(u32, u32),
     NewImage(u32, u32),
-    SwitchImage(image::RgbaImage),
+    SwitchImage(PathBuf, image::RgbaImage),
     SetTool(Tools),
     SwitchToPrevTool,
     SetColor(image::Rgba<u8>),

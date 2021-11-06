@@ -84,11 +84,11 @@ fn add_program_menu(app: &Application,
         gtk_program.clone(),
         "Open image",
         FileChooserAction::Open,
-        move |gtk_program, filename| {
-            match image::open(&filename) {
+        move |gtk_program, path| {
+            match image::open(&path) {
                 Ok(image) => {
                     if let Some(program) = gtk_program.program.borrow_mut().as_mut() {
-                        program.command_buffer.push(Command::SwitchImage(image.into_rgba()));
+                        program.command_buffer.push(Command::SwitchImage(path, image.into_rgba()));
                         gl_area_clone.queue_render();
                     }
                 }

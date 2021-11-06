@@ -248,7 +248,8 @@ impl SelectionTool {
             glfw::WindowEvent::Key(Key::V, _, Action::Press, Modifiers::Control) => {
                 if let Some(copied_image) = self.select_state.copied_image.as_ref() {
                     if (copied_image.width() <= image.width() && copied_image.height() <= image.height()) || self.select_state.triggered_resize {
-                        self.handle_paste(copied_image.clone());
+                        let copied_image = copied_image.clone();
+                        self.handle_paste(copied_image);
                     } else {
                         self.select_state.triggered_resize = true;
                         command_buffer.push(Command::RequestResizeCanvas(copied_image.width(), copied_image.height()));
@@ -704,14 +705,16 @@ impl Tool for SelectionTool {
             Command::ResizeCanvas(_, _) => {
                 if self.select_state.triggered_resize {
                     if let Some(copied_image) = self.select_state.copied_image.as_ref() {
-                        self.handle_paste(copied_image.clone());
+                        let copied_image = copied_image.clone();
+                        self.handle_paste(copied_image);
                     }
                 }
             }
             Command::AbortedResizeCanvas => {
                 if self.select_state.triggered_resize {
                     if let Some(copied_image) = self.select_state.copied_image.as_ref() {
-                        self.handle_paste(copied_image.clone());
+                        let copied_image = copied_image.clone();
+                        self.handle_paste(copied_image);
                     }
                 }
             }

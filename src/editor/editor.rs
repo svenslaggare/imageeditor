@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use image::{GenericImage, FilterType};
 
@@ -13,23 +13,29 @@ pub enum LayerState {
 }
 
 #[derive(Clone, Debug)]
-pub struct LayeredImage {
+pub struct EditorImage {
+    path: Option<PathBuf>,
     width: u32,
     height: u32,
     layers: Vec<(LayerState, Image)>
 }
 
-impl LayeredImage {
-    pub fn new(image: Image) -> LayeredImage {
-        LayeredImage {
+impl EditorImage {
+    pub fn new(path: Option<PathBuf>, image: Image) -> EditorImage {
+        EditorImage {
+            path,
             width: image.width(),
             height: image.height(),
             layers: vec![(LayerState::Visible, image)]
         }
     }
 
-    pub fn from_rgba(image: image::RgbaImage) -> LayeredImage {
-        LayeredImage::new(Image::new(image))
+    pub fn from_rgba(path: Option<PathBuf>, image: image::RgbaImage) -> EditorImage {
+        EditorImage::new(path, Image::new(image))
+    }
+
+    pub fn path(&self) -> Option<&Path> {
+        self.path.as_ref().map(|path| path.as_path())
     }
 
     pub fn width(&self) -> u32 {
@@ -130,7 +136,7 @@ pub enum EditorOperation {
     Sequential(Vec<EditorOperation>),
     SetLayerState(usize, LayerState),
     SetActiveLayer(usize),
-    SetImage(LayeredImage),
+    SetImage(EditorImage),
     ImageOp(usize, ImageOperation)
 }
 
@@ -151,27 +157,27 @@ impl EditorOperation {
 }
 
 pub struct Editor {
-    image: LayeredImage,
+    image: EditorImage,
     active_layer_index: usize,
     undo_stack: Vec<(EditorOperation, EditorOperation)>,
     redo_stack: Vec<EditorOperation>,
 }
 
 impl Editor {
-    pub fn new(image: Image) -> Editor {
+    pub fn new(image: EditorImage) -> Editor {
         Editor {
-            image: LayeredImage::new(image),
+            image,
             active_layer_index: 0,
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
         }
     }
 
-    pub fn image(&self) -> &LayeredImage {
+    pub fn image(&self) -> &EditorImage {
         &self.image
     }
 
-    pub fn image_mut(&mut self) -> &mut LayeredImage {
+    pub fn image_mut(&mut self) -> &mut EditorImage {
         &mut self.image
     }
 

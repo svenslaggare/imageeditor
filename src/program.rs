@@ -22,7 +22,7 @@ use crate::rendering::font::Font;
 use crate::rendering::rectangle_render::RectangleRender;
 use crate::editor::editor::{LayerState, EditorOperation};
 use crate::ui::layers::LayersManager;
-use crate::editor::LayeredImage;
+use crate::editor::EditorImage;
 
 pub const LEFT_SIDE_PANEL_WIDTH: u32 = 70;
 pub const RIGHT_SIDE_PANEL_WIDTH: u32 = 150;
@@ -158,11 +158,11 @@ impl Program {
             match command {
                 Command::NewImage(width, height) => {
                     let image = image::RgbaImage::new(width, height);
-                    self.editor.apply_editor_op(EditorOperation::SetImage(LayeredImage::from_rgba(image)));
+                    self.editor.apply_editor_op(EditorOperation::SetImage(EditorImage::from_rgba(None, image)));
                     self.image_size_changed();
                 }
-                Command::SwitchImage(image) => {
-                    self.editor.apply_editor_op(EditorOperation::SetImage(LayeredImage::from_rgba(image)));
+                Command::SwitchImage(path, image) => {
+                    self.editor.apply_editor_op(EditorOperation::SetImage(EditorImage::from_rgba(Some(path), image)));
                     self.image_size_changed();
                 }
                 Command::SetTool(tool) => {

@@ -5,6 +5,7 @@ use glfw::{Context, Key, Action, Glfw, Window, WindowEvent};
 use crate::program::{Program, TOP_PANEL_HEIGHT, SIDE_PANELS_WIDTH};
 use crate::{editor, ui};
 use crate::editor::tools::EditorWindow;
+use std::path::Path;
 
 pub fn main() {
     let args = std::env::args().collect::<Vec<_>>();
@@ -13,18 +14,11 @@ pub fn main() {
         return;
     }
 
+    let path = Path::new(&args[1]);
     let image_to_edit = image::open(&args[1]).unwrap().into_rgba();
-    // let image_to_edit = image::open("/home/antjans/Bilder/TestImage.JPG").unwrap().into_rgba();
     let width = image_to_edit.width();
     let height = image_to_edit.height();
 
-    // let width = 1280;
-    // let height = 800;
-    // let mut image_to_edit: image::RgbaImage = image::RgbaImage::new(width, height);
-
-    // let image_to_edit = image::open("/home/antjans/Bilder/TestImage.JPG").unwrap().into_rgba();
-    // let width = 1280;
-    // let height = 800;
 
     let width = width + SIDE_PANELS_WIDTH;
     let height = height + TOP_PANEL_HEIGHT;
@@ -33,7 +27,7 @@ pub fn main() {
     let mut program = Program::new(
         width,
         height,
-        editor::Editor::new(editor::Image::new(image_to_edit)),
+        editor::Editor::new(editor::EditorImage::from_rgba(Some(path.to_path_buf()), image_to_edit)),
         ui::create(),
     );
 
