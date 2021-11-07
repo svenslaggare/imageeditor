@@ -23,8 +23,14 @@ pub fn main() {
 
     application.connect_activate(|app| {
         let program_args = std::env::args().collect::<Vec<_>>();
-        let image_to_edit_path = Path::new(&program_args[1]).to_path_buf();
-        let image_to_edit = image::open(&image_to_edit_path).unwrap().into_rgba();
+
+        let (image_to_edit_path, image_to_edit) = if program_args.len() >= 2 {
+            let image_to_edit_path = Path::new(&program_args[1]).to_path_buf();
+            let image_to_edit = image::open(&image_to_edit_path).unwrap().into_rgba();
+            (Some(image_to_edit_path), image_to_edit)
+        } else {
+            (None, image::RgbaImage::new(1280, 800))
+        };
 
         let width = (image_to_edit.width() + SIDE_PANELS_WIDTH) as i32;
         let height = (image_to_edit.height() + TOP_PANEL_HEIGHT + 27) as i32;
@@ -65,7 +71,7 @@ pub fn main() {
                 width as u32,
                 height as u32,
                 EditorImage::from_rgba(
-                    Some(image_to_edit_path.to_path_buf()),
+                    image_to_edit_path.clone(),
                     image_to_edit.borrow_mut().take().unwrap()
                 )
             );
