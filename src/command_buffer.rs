@@ -11,6 +11,7 @@ pub enum Command {
     SwitchImage(PathBuf, image::RgbaImage),
     SetTool(Tools),
     SwitchToPrevTool,
+    SwitchedTool(Tools),
     SetColor(image::Rgba<u8>),
     SetAlternativeColor(image::Rgba<u8>),
     ApplyImageOp(ImageOperation),

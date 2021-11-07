@@ -5,7 +5,7 @@ use gl::types::*;
 use cgmath::Matrix4;
 
 use crate::rendering::shader::Shader;
-use crate::rendering::prelude::{Color4};
+use crate::rendering::prelude::{Color4, Rectangle};
 
 const FLOATS_PER_VERTEX: i32 = 6;
 const NUM_VERTICES: i32 = 6;
@@ -56,8 +56,7 @@ impl SolidRectangleRender {
     pub fn render(&self,
                   shader: &Shader,
                   transform: &Matrix4<f32>,
-                  position: cgmath::Point2<f32>,
-                  size: cgmath::Point2<f32>,
+                  rectangle: &Rectangle,
                   color: Color4) {
         unsafe {
             shader.activate();
@@ -66,8 +65,9 @@ impl SolidRectangleRender {
             gl::BindVertexArray(self.vertex_array);
             gl::BindBuffer(gl::ARRAY_BUFFER, self.vertex_buffer);
 
-            let width = size.x;
-            let height = size.y;
+            let position = rectangle.position;
+            let width = rectangle.size.x;
+            let height = rectangle.size.y;
 
             let color = [
                 color.x as f32 / 255.0,

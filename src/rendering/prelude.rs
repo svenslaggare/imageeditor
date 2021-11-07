@@ -7,8 +7,8 @@ pub type Size = cgmath::Point2<f32>;
 
 #[derive(Clone, Debug)]
 pub struct Rectangle {
-    pub position: cgmath::Point2<f32>,
-    pub size: cgmath::Point2<f32>
+    pub position: Position,
+    pub size: Size
 }
 
 impl Rectangle {
@@ -16,6 +16,13 @@ impl Rectangle {
         Rectangle {
             position: cgmath::Point2::new(position_x, position_y),
             size: cgmath::Point2::new(width, height),
+        }
+    }
+
+    pub fn from_position_and_size(position: Position, size: Size) -> Rectangle {
+        Rectangle {
+            position,
+            size
         }
     }
 

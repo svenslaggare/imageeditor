@@ -1,10 +1,10 @@
 use std::ops::DerefMut;
 
 use glfw::{Action};
-use cgmath::Matrix4;
+use cgmath::{EuclideanSpace, Matrix4};
 
 use crate::rendering::texture::Texture;
-use crate::rendering::prelude::{Position, Rectangle};
+use crate::rendering::prelude::{Position, Rectangle, Color4};
 use crate::rendering::prelude::Color as RenderingColor;
 use crate::rendering::prelude::Color4 as RenderingColor4;
 use crate::command_buffer::{CommandBuffer, Command};
@@ -25,6 +25,7 @@ pub trait GenericButton<T> {
 
 pub struct TextureButton<T=CommandBuffer> {
     texture: Texture,
+    background: Option<(Rectangle, Color4, Color4)>,
     position: Position,
     left_click_action: Option<ButtonAction<T>>,
     right_click_action: Option<ButtonAction<T>>,
@@ -39,11 +40,16 @@ impl<T> TextureButton<T> {
                command_action: Option<CommandAction<Self>>) -> TextureButton<T> {
         TextureButton {
             texture: Texture::from_image(image),
+            background: None,
             position,
             left_click_action,
             right_click_action,
             command_action
         }
+    }
+
+    pub fn background_mut(&mut self) -> &mut Option<(Rectangle, Color4, Color4)> {
+        &mut self.background
     }
 }
 
@@ -86,6 +92,25 @@ impl<T> GenericButton<T> for TextureButton<T> {
     }
 
     fn render(&self, renders: &Renders, transform: &Matrix4<f32>) {
+        if let Some((background_rectangle, background_color, border_color)) = self.background.as_ref() {
+            let mut rectangle = background_rectangle.clone();
+            rectangle.position += self.position.to_vec();
+
+            renders.solid_rectangle_render.render(
+                renders.solid_rectangle_render.shader(),
+                &transform,
+                &rectangle,
+                *background_color
+            );
+
+            renders.rectangle_render.render(
+                renders.rectangle_render.shader(),
+                &transform,
+                &rectangle,
+                *border_color
+            );
+        }
+
         renders.texture_render.render(
             renders.texture_render.shader(),
             &transform,
@@ -158,8 +183,10 @@ impl<T> GenericButton<T> for SolidColorButton<T> {
         renders.solid_rectangle_render.render(
             renders.solid_rectangle_render.shader(),
             &transform,
-            self.rectangle.position,
-            self.rectangle.size,
+            &Rectangle::from_position_and_size(
+                self.rectangle.position,
+                self.rectangle.size,
+            ),
             RenderingColor4::new(self.color[0], self.color[1], self.color[2], 255)
         );
     }

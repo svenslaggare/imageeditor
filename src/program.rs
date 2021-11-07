@@ -97,6 +97,7 @@ impl Program {
         program.command_buffer.push(Command::SetImageSize(width, height));
         program.command_buffer.push(Command::SetColor(image::Rgba([255, 0, 0, 255])));
         program.command_buffer.push(Command::SetAlternativeColor(image::Rgba([0, 0, 0, 255])));
+        program.command_buffer.push(Command::SwitchedTool(program.active_tool));
 
         program
     }
@@ -167,10 +168,12 @@ impl Program {
                 }
                 Command::SetTool(tool) => {
                     self.switch_tool(window, tool);
+                    self.command_buffer.push(Command::SwitchedTool(self.active_tool));
                 }
                 Command::SwitchToPrevTool => {
                     if let Some(tool) = self.prev_tool.take() {
                         self.switch_tool(window, tool);
+                        self.command_buffer.push(Command::SwitchedTool(self.active_tool));
                     }
                 },
                 Command::ApplyImageOp(op) => {
@@ -203,6 +206,7 @@ impl Program {
                     match command {
                         Command::SelectAll => {
                             self.switch_tool(window, Tools::Selection(SelectionSubTool::Select));
+                            self.command_buffer.push(Command::SwitchedTool(self.active_tool));
                         }
                         Command::ResizeImage(new_width, new_height) => {
                             let mut image = self.editor.image().clone();
@@ -231,7 +235,9 @@ impl Program {
         }
     }
 
-    fn switch_tool(&mut self, window: &mut dyn EditorWindow, tool: Tools) {
+    fn switch_tool(&mut self,
+                   window: &mut dyn EditorWindow,
+                   tool: Tools) {
         if tool.index() != self.active_tool.index() {
             self.prev_tool = Some(self.active_tool);
 
@@ -462,24 +468,30 @@ impl Program {
         self.renders.solid_rectangle_render.render(
             self.renders.solid_rectangle_render.shader(),
             transform,
-            Position::new(0.0, 0.0),
-            Size::new(LEFT_SIDE_PANEL_WIDTH as f32, self.window_height as f32),
+            &Rectangle::from_position_and_size(
+                Position::new(0.0, 0.0),
+                Size::new(LEFT_SIDE_PANEL_WIDTH as f32, self.window_height as f32)
+            ),
             menu_color
         );
 
         self.renders.solid_rectangle_render.render(
             self.renders.solid_rectangle_render.shader(),
             transform,
-            Position::new(0.0, 0.0),
-            Size::new(self.window_width as f32, TOP_PANEL_HEIGHT as f32),
+            &Rectangle::from_position_and_size(
+                Position::new(0.0, 0.0),
+                Size::new(self.window_width as f32, TOP_PANEL_HEIGHT as f32)
+            ),
             menu_color
         );
 
         self.renders.solid_rectangle_render.render(
             self.renders.solid_rectangle_render.shader(),
             transform,
-            Position::new(self.window_width as f32 - RIGHT_SIDE_PANEL_WIDTH as f32, 0.0),
-            Size::new(RIGHT_SIDE_PANEL_WIDTH as f32, self.window_height as f32),
+            &Rectangle::from_position_and_size(
+                Position::new(self.window_width as f32 - RIGHT_SIDE_PANEL_WIDTH as f32, 0.0),
+                Size::new(RIGHT_SIDE_PANEL_WIDTH as f32, self.window_height as f32)
+            ),
             menu_color
         );
 

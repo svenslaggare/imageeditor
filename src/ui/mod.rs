@@ -10,7 +10,7 @@ pub use manager::Manager;
 pub use button::TextureButton;
 
 use crate::command_buffer::{Command, CommandBuffer};
-use crate::rendering::prelude::{Position, Rectangle};
+use crate::rendering::prelude::{Position, Rectangle, Color4};
 use crate::editor::tools::{Tools, SelectionSubTool, ColorWheelMode};
 use crate::editor::image_operation_helpers::hsv_to_rgb;
 use crate::ui::button::{SolidColorButton};
@@ -34,157 +34,46 @@ fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
         13
     );
 
-    buttons.push(
-        Box::new(TextureButton::<CommandBuffer>::new(
-            &image::open("content/ui/pencil.png").unwrap().into_rgba(),
-            layout.next().unwrap(),
-            Some(Box::new(|command_buffer| {
-                command_buffer.push(Command::SetTool(Tools::Pencil));
-            })),
-            None,
-            None
-        ))
-    );
+    let mut add_tool_button = |tool: Tools, texture_path: &str| {
+        buttons.push(
+            Box::new(TextureButton::<CommandBuffer>::new(
+                &image::open(texture_path).unwrap().into_rgba(),
+                layout.next().unwrap(),
+                Some(Box::new(move |command_buffer| {
+                    command_buffer.push(Command::SetTool(tool));
+                })),
+                None,
+                Some(Box::new(move |button, command| {
+                    match command {
+                        Command::SwitchedTool(current_tool) if current_tool == &tool => {
+                            *button.background_mut() = Some((
+                                Rectangle::new(-3.0, -3.0, 16.0 + 3.0 * 2.0, 16.0 + 3.0 * 2.0),
+                                Color4::new(188, 183, 164, 64),
+                                Color4::new(188, 183, 164, 255)
+                            ));
+                        }
+                        _ => {
+                            *button.background_mut() = None;
+                        }
+                    }
+                }))
+            ))
+        );
+    };
 
-    buttons.push(
-        Box::new(TextureButton::<CommandBuffer>::new(
-            &image::open("content/ui/block_pencil.png").unwrap().into_rgba(),
-            layout.next().unwrap(),
-            Some(Box::new(|command_buffer| {
-                command_buffer.push(Command::SetTool(Tools::BlockPencil));
-            })),
-            None,
-            None
-        ))
-    );
-
-    buttons.push(
-        Box::new(TextureButton::<CommandBuffer>::new(
-            &image::open("content/ui/eraser.png").unwrap().into_rgba(),
-            layout.next().unwrap(),
-            Some(Box::new(|command_buffer| {
-                command_buffer.push(Command::SetTool(Tools::Eraser));
-            })),
-            None,
-            None
-        ))
-    );
-
-    buttons.push(
-        Box::new(TextureButton::<CommandBuffer>::new(
-            &image::open("content/ui/line.png").unwrap().into_rgba(),
-            layout.next().unwrap(),
-            Some(Box::new(|command_buffer| {
-                command_buffer.push(Command::SetTool(Tools::Line));
-            })),
-            None,
-            None
-        ))
-    );
-
-    buttons.push(
-        Box::new(TextureButton::<CommandBuffer>::new(
-            &image::open("content/ui/rectangle.png").unwrap().into_rgba(),
-            layout.next().unwrap(),
-            Some(Box::new(|command_buffer| {
-                command_buffer.push(Command::SetTool(Tools::Rectangle));
-            })),
-            None,
-            None
-        ))
-    );
-
-    buttons.push(
-        Box::new(TextureButton::<CommandBuffer>::new(
-            &image::open("content/ui/circle.png").unwrap().into_rgba(),
-            layout.next().unwrap(),
-            Some(Box::new(|command_buffer| {
-                command_buffer.push(Command::SetTool(Tools::Circle));
-            })),
-            None,
-            None
-        ))
-    );
-
-    buttons.push(
-        Box::new(TextureButton::<CommandBuffer>::new(
-            &image::open("content/ui/fill.png").unwrap().into_rgba(),
-            layout.next().unwrap(),
-            Some(Box::new(|command_buffer| {
-                command_buffer.push(Command::SetTool(Tools::BucketFill));
-            })),
-            None,
-            None
-        ))
-    );
-
-    buttons.push(
-        Box::new(TextureButton::<CommandBuffer>::new(
-            &image::open("content/ui/color_picker.png").unwrap().into_rgba(),
-            layout.next().unwrap(),
-            Some(Box::new(|command_buffer| {
-                command_buffer.push(Command::SetTool(Tools::ColorPicker));
-            })),
-            None,
-            None
-        ))
-    );
-
-    buttons.push(
-        Box::new(TextureButton::<CommandBuffer>::new(
-            &image::open("content/ui/color_gradient.png").unwrap().into_rgba(),
-            layout.next().unwrap(),
-            Some(Box::new(|command_buffer| {
-                command_buffer.push(Command::SetTool(Tools::ColorGradient));
-            })),
-            None,
-            None
-        ))
-    );
-
-    buttons.push(
-        Box::new(TextureButton::<CommandBuffer>::new(
-            &image::open("content/ui/selection.png").unwrap().into_rgba(),
-            layout.next().unwrap(),
-            Some(Box::new(|command_buffer| {
-                command_buffer.push(Command::SetTool(Tools::Selection(SelectionSubTool::Select)));
-            })),
-            None,
-            None
-        ))
-    );
-
-    buttons.push(
-        Box::new(TextureButton::<CommandBuffer>::new(
-            &image::open("content/ui/move.png").unwrap().into_rgba(),
-            layout.next().unwrap(),
-            Some(Box::new(|command_buffer| {
-                command_buffer.push(Command::SetTool(Tools::Selection(SelectionSubTool::MovePixels)));
-            })),
-            None,
-            None
-        ))
-    );
-
-    buttons.push(Box::new(TextureButton::<CommandBuffer>::new(
-        &image::open("content/ui/resize.png").unwrap().into_rgba(),
-        layout.next().unwrap(),
-        Some(Box::new(|command_buffer| {
-            command_buffer.push(Command::SetTool(Tools::Selection(SelectionSubTool::ResizePixels)));
-        })),
-        None,
-        None
-    )));
-
-    buttons.push(Box::new(TextureButton::<CommandBuffer>::new(
-        &image::open("content/ui/rotate.png").unwrap().into_rgba(),
-        layout.next().unwrap(),
-        Some(Box::new(|command_buffer| {
-            command_buffer.push(Command::SetTool(Tools::Selection(SelectionSubTool::RotatePixels)));
-        })),
-        None,
-        None
-    )));
+    add_tool_button(Tools::Pencil, "content/ui/pencil.png");
+    add_tool_button(Tools::BlockPencil, "content/ui/block_pencil.png");
+    add_tool_button(Tools::Eraser, "content/ui/eraser.png");
+    add_tool_button(Tools::Line, "content/ui/line.png");
+    add_tool_button(Tools::Rectangle, "content/ui/rectangle.png");
+    add_tool_button(Tools::Circle, "content/ui/circle.png");
+    add_tool_button(Tools::BucketFill, "content/ui/fill.png");
+    add_tool_button(Tools::ColorPicker, "content/ui/color_picker.png");
+    add_tool_button(Tools::ColorGradient, "content/ui/color_gradient.png");
+    add_tool_button(Tools::Selection(SelectionSubTool::Select), "content/ui/selection.png");
+    add_tool_button(Tools::Selection(SelectionSubTool::MovePixels), "content/ui/move.png");
+    add_tool_button(Tools::Selection(SelectionSubTool::ResizePixels), "content/ui/resize.png");
+    add_tool_button(Tools::Selection(SelectionSubTool::RotatePixels), "content/ui/rotate.png");
 }
 
 fn generate_color_palette(buttons: &mut Vec<BoxGenericButton>) {

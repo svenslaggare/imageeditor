@@ -168,8 +168,10 @@ impl GenericButton<CommandBuffer> for ColorWheel {
         renders.solid_rectangle_render.render(
             renders.solid_rectangle_render.shader(),
             transform,
-            background_start,
-            background_size,
+            &Rectangle::from_position_and_size(
+                background_start,
+                background_size,
+            ),
             RenderingColor4::new(214, 214, 214, 255)
         );
 

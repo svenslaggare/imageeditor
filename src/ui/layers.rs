@@ -120,8 +120,10 @@ impl LayersManager {
                     renders.solid_rectangle_render.render(
                         renders.solid_rectangle_render.shader(),
                         transform,
-                        Position::new(position.x - LAYER_BUFFER, position.y - LAYER_BUFFER),
-                        Size::new(layer_width + LAYER_BUFFER, layer_height + LAYER_BUFFER * 2.0),
+                        &Rectangle::from_position_and_size(
+                            Position::new(position.x - LAYER_BUFFER, position.y - LAYER_BUFFER),
+                            Size::new(layer_width + LAYER_BUFFER, layer_height + LAYER_BUFFER * 2.0),
+                        ),
                         layer_color
                     );
                 }

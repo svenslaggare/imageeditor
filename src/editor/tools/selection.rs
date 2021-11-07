@@ -758,8 +758,10 @@ impl Tool for SelectionTool {
             renders.solid_rectangle_render.render(
                 renders.solid_rectangle_render.shader(),
                 &(transform * image_area_transform),
-                selection.start_position(),
-                selection.size(),
+                &Rectangle::from_position_and_size(
+                    selection.start_position(),
+                    selection.size(),
+                ),
                 Color4::new(0, 148, 255, 64)
             );
 
