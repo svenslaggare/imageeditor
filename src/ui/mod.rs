@@ -15,7 +15,7 @@ use crate::editor::tools::{Tools, SelectionSubTool, ColorWheelMode};
 use crate::editor::image_operation_helpers::hsv_to_rgb;
 use crate::ui::button::{SolidColorButton};
 use crate::ui::manager::BoxGenericButton;
-use crate::program::LEFT_SIDE_PANEL_WIDTH;
+use crate::program::{LEFT_SIDE_PANEL_WIDTH, TOP_PANEL_HEIGHT};
 
 pub fn create() -> Manager {
     let mut buttons = Vec::<BoxGenericButton>::new();
@@ -28,7 +28,7 @@ pub fn create() -> Manager {
 
 fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
     let mut layout = layout::adaptive_rows(
-        Position::new(10.0, 10.0),
+        Position::new(10.0, TOP_PANEL_HEIGHT as f32),
         (35.0, 35.0),
         LEFT_SIDE_PANEL_WIDTH as f32,
         13
@@ -207,7 +207,7 @@ fn generate_color_palette(buttons: &mut Vec<BoxGenericButton>) {
     }
 
     let start_x = 10.0;
-    let start_y = 280.0;
+    let start_y = 300.0;
     let selected_color_width = 32.0;
     let selected_color_height = 32.0;
 
