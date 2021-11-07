@@ -5,9 +5,15 @@ use crate::editor::image_operation::ImageOperation;
 use crate::editor::tools::Tools;
 
 #[derive(Debug)]
+pub enum BackgroundType {
+    Transparent,
+    Color(image::Rgba<u8>)
+}
+
+#[derive(Debug)]
 pub enum Command {
     SetImageSize(u32, u32),
-    NewImage(u32, u32),
+    NewImage(u32, u32, BackgroundType),
     SwitchImage(PathBuf, image::RgbaImage),
     SetTool(Tools),
     SwitchToPrevTool,

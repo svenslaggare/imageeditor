@@ -8,7 +8,7 @@ use gtk::{GLArea, gio, Application, ApplicationWindow, glib, FileChooserAction, 
 
 use crate::gtk_app::{GTKProgram, GTKProgramRef};
 use crate::gtk_app::helpers::{create_entry, create_file_dialog};
-use crate::command_buffer::Command;
+use crate::command_buffer::{Command, BackgroundType};
 use crate::program::{ProgramAction, ProgramActionData};
 
 pub fn add(app: &Application,
@@ -32,47 +32,8 @@ fn add_program_menu(app: &Application,
                     gtk_program: GTKProgramRef,
                     gl_area: Rc<GLArea>,
                     menu: &gio::Menu) {
-    menu.append(Some("New"), Some("app.new_image"));
-    let new_image = gio::SimpleAction::new("new_image", None);
-
-    let new_image_dialog = create_dialog(window, "New image");
-
-    new_image_dialog.add_buttons(&[
-        ("Cancel", gtk::ResponseType::Cancel),
-        ("Create", gtk::ResponseType::Ok)
-    ]);
-
-    let entry_width = create_entry(&new_image_dialog.content_area(), "Width: ", "1280");
-    let entry_height = create_entry(&new_image_dialog.content_area(), "Height:", "800");
-
-    let new_file_dialog = Rc::new(new_image_dialog);
-
-    let new_file_dialog_clone = new_file_dialog.clone();
-    new_image.connect_activate(glib::clone!(@weak window => move |_, _| {
-        new_file_dialog_clone.show_all();
-    }));
-
-    let gtk_program_clone = gtk_program.clone();
-    new_file_dialog.connect_response(move |dialog, response| {
-        match response {
-            ResponseType::Ok => {
-                match (u32::from_str(entry_width.text().as_ref()), u32::from_str(entry_height.text().as_ref())) {
-                    (Ok(width), Ok(height)) => {
-                        if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
-                            program.command_buffer.push(Command::NewImage(width, height));
-                        }
-
-                        dialog.hide();
-                    }
-                    _ => {}
-                }
-            }
-            _ => {
-                dialog.hide();
-            }
-        }
-    });
-    app.add_action(&new_image);
+    // New
+    add_new_image_dialog(app, window, gtk_program.clone(), gl_area.clone(), menu);
 
     // Open
     menu.append(Some("Open"), Some("app.open_file"));
@@ -167,6 +128,83 @@ fn add_program_menu(app: &Application,
         window.close();
     }));
     app.add_action(&quit);
+}
+
+fn add_new_image_dialog(app: &Application,
+                        window: &ApplicationWindow,
+                        gtk_program: GTKProgramRef,
+                        gl_area: Rc<GLArea>,
+                        menu: &gio::Menu) {
+    menu.append(Some("New"), Some("app.new_image"));
+    let new_image = gio::SimpleAction::new("new_image", None);
+
+    let new_image_dialog = create_dialog(window, "New image");
+
+    new_image_dialog.add_buttons(&[
+        ("Cancel", gtk::ResponseType::Cancel),
+        ("Create", gtk::ResponseType::Ok)
+    ]);
+
+    let entry_width = create_entry(&new_image_dialog.content_area(), "Width: ", "1280");
+    let entry_height = create_entry(&new_image_dialog.content_area(), "Height:", "800");
+
+    let background_group = gtk::Box::new(gtk::Orientation::Vertical, 2);
+
+    let background_label = gtk::LabelBuilder::new()
+        .label("Background:")
+        .build();
+
+    background_label.set_xalign(0.0);
+    background_group.add(&background_label);
+
+    let background_transparent = gtk::RadioButtonBuilder::new()
+        .label("Transparent")
+        .build();
+    background_group.add(&background_transparent);
+
+    let background_white = gtk::RadioButtonBuilder::new()
+        .label("White")
+        .build();
+    background_group.add(&background_white);
+    background_white.join_group(Some(&background_transparent));
+    new_image_dialog.content_area().add(&background_group);
+
+    let new_file_dialog = Rc::new(new_image_dialog);
+
+    let new_file_dialog_clone = new_file_dialog.clone();
+    new_image.connect_activate(glib::clone!(@weak window => move |_, _| {
+        new_file_dialog_clone.show_all();
+    }));
+
+    let gtk_program_clone = gtk_program.clone();
+    new_file_dialog.connect_response(move |dialog, response| {
+        match response {
+            ResponseType::Ok => {
+                match (u32::from_str(entry_width.text().as_ref()), u32::from_str(entry_height.text().as_ref())) {
+                    (Ok(width), Ok(height)) => {
+                        let background = if background_transparent.is_active() {
+                            BackgroundType::Transparent
+                        } else if background_white.is_active() {
+                            BackgroundType::Color(image::Rgba([255, 255, 255, 255]))
+                        } else {
+                            BackgroundType::Transparent
+                        };
+
+                        if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
+                            program.command_buffer.push(Command::NewImage(width, height, background));
+                        }
+
+                        dialog.hide();
+                    }
+                    _ => {}
+                }
+            }
+            _ => {
+                dialog.hide();
+            }
+        }
+    });
+    app.add_action(&new_image);
 }
 
 fn add_edit_menu(app: &Application,

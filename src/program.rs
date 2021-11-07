@@ -8,7 +8,7 @@ use cgmath::{Matrix3, Matrix4, Matrix, SquareMatrix};
 
 use glfw::{Key, Action, Modifiers};
 
-use crate::command_buffer::{CommandBuffer, Command};
+use crate::command_buffer::{CommandBuffer, Command, BackgroundType};
 use crate::{editor, ui};
 use crate::rendering::shader::Shader;
 use crate::rendering::prelude::{Position, Rectangle, Color, Color4, Size};
@@ -157,8 +157,17 @@ impl Program {
     fn handle_commands(&mut self, window: &mut dyn EditorWindow) {
         while let Some(command) = self.command_buffer.pop() {
             match command {
-                Command::NewImage(width, height) => {
-                    let image = image::RgbaImage::new(width, height);
+                Command::NewImage(width, height, background) => {
+                    let mut image: image::RgbaImage = image::RgbaImage::new(width, height);
+                    match background {
+                        BackgroundType::Transparent => {}
+                        BackgroundType::Color(color) => {
+                            for pixel in image.pixels_mut() {
+                                *pixel = color;
+                            }
+                        }
+                    }
+
                     self.editor.apply_editor_op(EditorOperation::SetImage(EditorImage::from_rgba(None, image)));
                     self.image_size_changed();
                 }
