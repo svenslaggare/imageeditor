@@ -133,7 +133,7 @@ fn add_program_menu(app: &Application,
 fn add_new_image_dialog(app: &Application,
                         window: &ApplicationWindow,
                         gtk_program: GTKProgramRef,
-                        gl_area: Rc<GLArea>,
+                        _gl_area: Rc<GLArea>,
                         menu: &gio::Menu) {
     menu.append(Some("New"), Some("app.new_image"));
     let new_image = gio::SimpleAction::new("new_image", None);

@@ -502,6 +502,7 @@ impl SelectionTool {
                 return if !self.skip_erase_original_selection {
                     Some(
                         ImageOperation::Sequential(
+                            Some("Move pixels".to_owned()),
                             vec![
                                 self.create_erased_area(&original_selection, preview),
                                 set_image
@@ -531,10 +532,13 @@ impl SelectionTool {
 
                 return if !self.skip_erase_original_selection {
                     Some(
-                        ImageOperation::Sequential(vec![
-                            self.create_erased_area(&original_selection, preview),
-                            set_image
-                        ])
+                        ImageOperation::Sequential(
+                            Some("Scale pixels".to_owned()),
+                            vec![
+                                self.create_erased_area(&original_selection, preview),
+                                set_image
+                            ]
+                        )
                     )
                 } else {
                     Some(set_image)
@@ -560,10 +564,13 @@ impl SelectionTool {
 
                 return if !self.skip_erase_original_selection {
                     Some(
-                        ImageOperation::Sequential(vec![
-                            self.create_erased_area(&original_selection, preview),
-                            set_image
-                        ])
+                        ImageOperation::Sequential(
+                            Some("Rotate pixels".to_owned()),
+                            vec![
+                                self.create_erased_area(&original_selection, preview),
+                                set_image
+                            ]
+                        )
                     )
                 } else {
                     Some(set_image)
@@ -591,24 +598,27 @@ impl SelectionTool {
     }
 
     fn create_selection_gui(&self, selection: &Selection) -> ImageOperation {
-        ImageOperation::Sequential(vec![
-            ImageOperation::FillRectangle {
-                start_x: selection.start_x,
-                start_y: selection.start_y,
-                end_x: selection.end_x,
-                end_y: selection.end_y,
-                color: image::Rgba([0, 148, 255, 64]),
-                blend: true
-            },
-            ImageOperation::Rectangle {
-                start_x: selection.start_x,
-                start_y: selection.start_y,
-                end_x: selection.end_x,
-                end_y: selection.end_y,
-                border_half_width: 0,
-                color: image::Rgba([0, 0, 0, 255])
-            }
-        ])
+        ImageOperation::Sequential(
+            None,
+            vec![
+                ImageOperation::FillRectangle {
+                    start_x: selection.start_x,
+                    start_y: selection.start_y,
+                    end_x: selection.end_x,
+                    end_y: selection.end_y,
+                    color: image::Rgba([0, 148, 255, 64]),
+                    blend: true
+                },
+                ImageOperation::Rectangle {
+                    start_x: selection.start_x,
+                    start_y: selection.start_y,
+                    end_x: selection.end_x,
+                    end_y: selection.end_y,
+                    border_half_width: 0,
+                    color: image::Rgba([0, 0, 0, 255])
+                }
+            ]
+        )
     }
 
     fn select_all(&mut self, image: &editor::Image) {

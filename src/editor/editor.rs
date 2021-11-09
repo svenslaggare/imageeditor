@@ -1,4 +1,7 @@
 use std::path::{Path, PathBuf};
+use std::fmt::{Display};
+
+use itertools::Itertools;
 
 use image::{GenericImage, FilterType};
 
@@ -164,6 +167,23 @@ impl EditorOperation {
     }
 }
 
+impl Display for EditorOperation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            EditorOperation::Sequential(ops) => write!(f, "{}", ops.iter().map(|op| format!("{}", op)).join(", ")),
+            EditorOperation::SetLayerState(_, _) => write!(f, "Set layer state"),
+            EditorOperation::SetActiveLayer(_) => write!(f, "Set active layer"),
+            EditorOperation::SetImage(image) => {
+                match &image.path {
+                    Some(_) => write!(f, "Open image"),
+                    None => write!(f, "New image")
+                }
+            }
+            EditorOperation::ImageOp(_, op) => write!(f, "{}", op),
+        }
+    }
+}
+
 pub struct Editor {
     image: EditorImage,
     active_layer_index: usize,
@@ -225,6 +245,10 @@ impl Editor {
         }
     }
 
+    pub fn history(&self) -> impl Iterator<Item=&EditorOperation> {
+        self.undo_stack.iter().map(|(op, _)| op)
+    }
+
     pub fn active_layer(&self) -> &Image {
         self.image.get_layer(self.active_layer_index).unwrap()
     }
@@ -267,6 +291,8 @@ impl Editor {
                 EditorOperation::ImageOp(op_layer, op) => {
                     let op_layer = *op_layer;
                     if op.is_marker(ImageOperationMarker::BeginDraw) {
+                        let first_marker_message = op.get_first_marker_message().cloned();
+
                         let max_index = self.undo_stack
                             .iter()
                             .enumerate()
@@ -282,8 +308,8 @@ impl Editor {
 
                         undo_ops.reverse();
                         self.undo_stack.push((
-                            EditorOperation::ImageOp(op_layer, ImageOperation::Sequential(ops).remove_markers()),
-                            EditorOperation::ImageOp(op_layer, ImageOperation::Sequential(undo_ops))
+                            EditorOperation::ImageOp(op_layer, ImageOperation::Sequential(first_marker_message.clone(), ops).remove_markers()),
+                            EditorOperation::ImageOp(op_layer, ImageOperation::Sequential(first_marker_message, undo_ops))
                         ));
                         break;
                     }

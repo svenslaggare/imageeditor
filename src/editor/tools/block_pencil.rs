@@ -67,8 +67,9 @@ impl Tool for BlockPencilDrawTool {
         let create_begin_draw = |this: &Self, mouse_position: Position, color: editor::Color| {
             Some(
                 ImageOperation::Sequential(
+                    None,
                     vec![
-                        ImageOperation::Marker(ImageOperationMarker::BeginDraw),
+                        ImageOperation::Marker(ImageOperationMarker::BeginDraw, Some("Block pencil".to_owned())),
                         ImageOperation::Block {
                             x: mouse_position.x as i32,
                             y: mouse_position.y as i32,
@@ -111,7 +112,7 @@ impl Tool for BlockPencilDrawTool {
                     self.is_drawing = None;
                     self.prev_mouse_position = None;
                     self.prev_prev_mouse_position = None;
-                    op = Some(ImageOperation::Marker(ImageOperationMarker::EndDraw));
+                    op = Some(ImageOperation::Marker(ImageOperationMarker::EndDraw, None));
                 }
             }
             glfw::WindowEvent::CursorPos(raw_mouse_x, raw_mouse_y) => {

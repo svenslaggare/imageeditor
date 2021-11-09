@@ -78,8 +78,9 @@ impl Tool for PencilDrawTool {
             if this.anti_aliasing_checkbox.checked {
                 Some(
                     ImageOperation::Sequential(
+                        Some("Pencil stroke".to_owned()),
                         vec![
-                            ImageOperation::Marker(ImageOperationMarker::BeginDraw),
+                            ImageOperation::Marker(ImageOperationMarker::BeginDraw, Some("Pencil stroke".to_owned())),
                             ImageOperation::FillCircle {
                                 center_x: mouse_position.x as i32,
                                 center_y: mouse_position.y as i32,
@@ -100,8 +101,9 @@ impl Tool for PencilDrawTool {
             } else {
                 Some(
                     ImageOperation::Sequential(
+                        Some("Pencil stroke".to_owned()),
                         vec![
-                            ImageOperation::Marker(ImageOperationMarker::BeginDraw),
+                            ImageOperation::Marker(ImageOperationMarker::BeginDraw, Some("Pencil stroke".to_owned())),
                             ImageOperation::FillCircle {
                                 center_x: mouse_position.x as i32,
                                 center_y: mouse_position.y as i32,
@@ -118,13 +120,14 @@ impl Tool for PencilDrawTool {
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
                 let (mouse_x, mouse_y) = window.get_cursor_pos();
-                let mouse_position = Position::new(mouse_x as f32, mouse_y as f32);
-                if image_area_rectangle.contains(&mouse_position) {
+                if image_area_rectangle.contains(&Position::new(mouse_x as f32, mouse_y as f32)) {
                     let already_drawing = self.is_drawing.is_some();
                     self.is_drawing = Some(self.color);
 
                     if !already_drawing {
-                        op = create_begin_draw(self, get_transformed_mouse_position(window, image_area_transform), self.color);
+                        let mouse_position = get_transformed_mouse_position(window, image_area_transform);
+                        op = create_begin_draw(self, mouse_position, self.color);
+                        self.prev_mouse_position = Some(mouse_position);
                     }
                 }
             }
@@ -145,7 +148,7 @@ impl Tool for PencilDrawTool {
                     self.is_drawing = None;
                     self.prev_mouse_position = None;
                     self.prev_prev_mouse_position = None;
-                    op = Some(ImageOperation::Marker(ImageOperationMarker::EndDraw));
+                    op = Some(ImageOperation::Marker(ImageOperationMarker::EndDraw, None));
                 }
             }
             glfw::WindowEvent::CursorPos(raw_mouse_x, raw_mouse_y) => {
@@ -191,7 +194,7 @@ impl Tool for PencilDrawTool {
                             }
                         );
 
-                        op = Some(ImageOperation::Sequential(ops));
+                        op = Some(ImageOperation::Sequential(Some("Pencil stroke".to_owned()), ops));
                     }
 
                     self.prev_prev_mouse_position = self.prev_mouse_position;

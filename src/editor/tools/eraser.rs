@@ -43,31 +43,40 @@ impl Tool for EraserDrawTool {
                          window: &mut dyn EditorWindow,
                          event: &WindowEvent,
                          image_area_transform: &Matrix3<f32>,
-                         _image_area_rectangle: &Rectangle,
+                         image_area_rectangle: &Rectangle,
                          _command_buffer: &mut CommandBuffer,
                          _image: &editor::Image) -> Option<ImageOperation> {
         let create_begin_draw = |this: &Self, mouse_position: Position| {
-            Some(ImageOperation::Sequential(vec![
-                ImageOperation::Marker(ImageOperationMarker::BeginDraw),
-                ImageOperation::Block {
-                    x: mouse_position.x as i32,
-                    y: mouse_position.y as i32,
-                    color: image::Rgba([0, 0, 0, 0]),
-                    side_half_width: this.side_half_width
-                }
-            ]))
+            Some(
+                ImageOperation::Sequential(
+                    None,
+                    vec![
+                        ImageOperation::Marker(ImageOperationMarker::BeginDraw, Some("Eraser".to_owned())),
+                        ImageOperation::Block {
+                            x: mouse_position.x as i32,
+                            y: mouse_position.y as i32,
+                            color: image::Rgba([0, 0, 0, 0]),
+                            side_half_width: this.side_half_width
+                        }
+                    ]
+                )
+            )
         };
 
         let mut op = None;
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
                 self.is_drawing = true;
-                op = create_begin_draw(self, get_transformed_mouse_position(window, image_area_transform));
+
+                let mouse_position = get_transformed_mouse_position(window, image_area_transform);
+                if image_area_rectangle.contains(&mouse_position) {
+                    op = create_begin_draw(self, mouse_position);
+                }
             }
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1 | glfw::MouseButton::Button2, Action::Release, _) => {
                 self.is_drawing = false;
                 self.prev_mouse_position = None;
-                op = Some(ImageOperation::Marker(ImageOperationMarker::EndDraw));
+                op = Some(ImageOperation::Marker(ImageOperationMarker::EndDraw, None));
             }
             glfw::WindowEvent::CursorPos(raw_mouse_x, raw_mouse_y) => {
                 if self.is_drawing {

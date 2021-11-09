@@ -357,10 +357,15 @@ pub fn pencil_stroke_anti_aliased<T: ImageOperationSource>(update_op: &mut T,
         let y2 = y2 as f32;
 
         let (dx, dy) = calculate_gradient(x1, y1, x2, y2);
-        let (prev_dx, prev_dy) = match (prev_x1, prev_y1) {
+        let (mut prev_dx, mut prev_dy) = match (prev_x1, prev_y1) {
             (Some(prev_x1), Some(prev_y1)) => calculate_gradient(prev_x1 as f32, prev_y1 as f32, x1, y1),
             _ => (dx, dy)
         };
+
+        if prev_dx == 0.0 && prev_dy == 0.0 {
+            prev_dx = dx;
+            prev_dy = dy;
+        }
 
         let dx_perp = dy;
         let dy_perp = -dx;

@@ -65,7 +65,6 @@ impl RectangleDrawTool {
             }
         ];
 
-
         if self.border_checkbox.checked {
             ops.push(
                 ImageOperation::Rectangle {
@@ -79,7 +78,7 @@ impl RectangleDrawTool {
             );
         }
 
-        ImageOperation::Sequential(ops)
+        ImageOperation::Sequential(Some("Rectangle".to_owned()), ops)
     }
 }
 

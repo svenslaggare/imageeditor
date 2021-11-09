@@ -514,13 +514,15 @@ impl Program {
             TextAlignment::Top
         );
 
-        self.layers_manager.render(
+        let last_layer_position_y = self.layers_manager.render(
             transform,
             &self.renders,
             &self.editor,
             self.window_width - SIDE_PANELS_WIDTH,
             &self.transparent_background_texture,
         );
+
+        self.render_history(transform, last_layer_position_y);
 
         self.ui_manager.render(&self.renders, &transform);
 
@@ -530,6 +532,44 @@ impl Program {
             &image_area_transform_full,
             self.editor.active_layer()
         );
+    }
+
+    fn render_history(&self, transform: &Matrix4<f32>, last_layer_position_y: f32) {
+        let mut history_position_y = last_layer_position_y + 20.0;
+        self.renders.text_render.draw_line(
+            &self.renders.text_render.shader(),
+            transform,
+            self.renders.ui_font.borrow_mut().deref_mut(),
+            "History".chars().map(|c| (c, Color::new(0, 0, 0))),
+            Position::new(
+                (self.window_width - SIDE_PANELS_WIDTH) as f32 + LEFT_SIDE_PANEL_WIDTH as f32 + 5.0,
+                history_position_y
+            ),
+            TextAlignment::Top
+        );
+        history_position_y += self.renders.ui_font.borrow_mut().line_height();
+
+        for action in self.editor.history() {
+            if let EditorOperation::ImageOp(_, op) = action {
+                if op.is_any_marker() {
+                    break;
+                }
+            }
+
+            self.renders.text_render.draw_line(
+                &self.renders.text_render.shader(),
+                transform,
+                self.renders.ui_font_small.borrow_mut().deref_mut(),
+                format!("{}", action).chars().map(|c| (c, Color::new(0, 0, 0))),
+                Position::new(
+                    (self.window_width - SIDE_PANELS_WIDTH) as f32 + LEFT_SIDE_PANEL_WIDTH as f32 + 5.0,
+                    history_position_y
+                ),
+                TextAlignment::Top
+            );
+
+            history_position_y += self.renders.ui_font_small.borrow_mut().line_height();
+        }
     }
 
     fn calculate_transparent_background_rectangle(&self) -> (Position, f32, f32) {
@@ -683,6 +723,7 @@ pub struct Renders {
     pub solid_rectangle_render: ShaderAndRender<SolidRectangleRender>,
     pub text_render: ShaderAndRender<TextRender>,
     pub ui_font: Rc<RefCell<Font>>,
+    pub ui_font_small: Rc<RefCell<Font>>,
 }
 
 impl Renders {
@@ -704,7 +745,8 @@ impl Renders {
                 Shader::new("content/shaders/text.vs", "content/shaders/text.fs", None).unwrap(),
                 TextRender::new()
             ),
-            ui_font: Rc::new(RefCell::new(Font::new("content/fonts/NotoMono-Regular.ttf", 16).unwrap()))
+            ui_font: Rc::new(RefCell::new(Font::new("content/fonts/NotoMono-Regular.ttf", 16).unwrap())),
+            ui_font_small: Rc::new(RefCell::new(Font::new("content/fonts/NotoMono-Regular.ttf", 14).unwrap()))
         }
     }
 }

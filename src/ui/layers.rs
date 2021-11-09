@@ -90,7 +90,7 @@ impl LayersManager {
                   renders: &Renders,
                   editor: &Editor,
                   view_width: u32,
-                  background_transparent_texture: &Texture) {
+                  background_transparent_texture: &Texture) -> f32 {
         let mut layer_offset = LAYER_BUFFER;
         let layer_width = RIGHT_SIDE_PANEL_WIDTH as f32 - LAYER_BUFFER;
 
@@ -158,5 +158,7 @@ impl LayersManager {
                 layer_offset += layer_height + LAYER_SPACING;
             }
         }
+
+        layer_offset + TOP_PANEL_HEIGHT as f32
     }
 }

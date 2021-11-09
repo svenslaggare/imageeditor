@@ -1,11 +1,14 @@
 use std::collections::HashMap;
+use std::fmt::Display;
+
+use itertools::Itertools;
 
 use image::{Pixel, FilterType};
 
 use crate::editor::image::{Color};
 use crate::editor::image_operation_helpers::{sub_image, draw_block, draw_line, draw_circle, fill_rectangle, bucket_fill, draw_line_anti_aliased_thick, draw_circle_anti_aliased_thick, color_gradient, pencil_stroke_anti_aliased, rotate_image};
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum ImageOperationMarker {
     BeginDraw,
     EndDraw
@@ -20,8 +23,8 @@ pub enum ColorGradientType {
 #[derive(Debug, Clone)]
 pub enum ImageOperation {
     Empty,
-    Marker(ImageOperationMarker),
-    Sequential(Vec<ImageOperation>),
+    Marker(ImageOperationMarker, Option<String>),
+    Sequential(Option<String>, Vec<ImageOperation>),
     SetImage { start_x: i32, start_y: i32, image: image::RgbaImage, blend: bool },
     SetSparseImage { image: SparseImage },
     SetOptionalImage { image: OptionalImage },
@@ -61,10 +64,10 @@ impl ImageOperation {
             ImageOperation::Empty => {
                 None
             }
-            ImageOperation::Marker(_) => {
+            ImageOperation::Marker(_, _) => {
                 None
             }
-            ImageOperation::Sequential(ops) => {
+            ImageOperation::Sequential(message, ops) => {
                 let mut undo_ops = Vec::new();
 
                 for op in ops {
@@ -75,7 +78,7 @@ impl ImageOperation {
 
                 if !undo_ops.is_empty() {
                     undo_ops.reverse();
-                    Some(ImageOperation::Sequential(undo_ops))
+                    Some(ImageOperation::Sequential(message.clone(), undo_ops))
                 } else {
                     None
                 }
@@ -349,7 +352,7 @@ impl ImageOperation {
                 let mut undo_ops = undo_ops.into_iter().flatten().collect::<Vec<_>>();
                 if !undo_ops.is_empty() {
                     undo_ops.reverse();
-                    Some(ImageOperation::Sequential(undo_ops))
+                    Some(ImageOperation::Sequential(None, undo_ops))
                 } else {
                     None
                 }
@@ -457,21 +460,67 @@ impl ImageOperation {
 
     pub fn is_marker(&self, compare_marker: ImageOperationMarker) -> bool {
         return match self {
-            ImageOperation::Marker(marker) => { marker == &compare_marker },
-            ImageOperation::Sequential(ops) => { ops.iter().any(|x| x.is_marker(compare_marker)) },
+            ImageOperation::Marker(marker, _) => { marker == &compare_marker },
+            ImageOperation::Sequential(_, ops) => { ops.iter().any(|x| x.is_marker(compare_marker.clone())) },
             _ => { false }
+        }
+    }
+
+    pub fn is_any_marker(&self) -> bool {
+        return match self {
+            ImageOperation::Marker(_, _) => true,
+            ImageOperation::Sequential(_, ops) => { ops.iter().any(|x| x.is_any_marker()) },
+            _ => { false }
+        }
+    }
+
+    pub fn get_first_marker_message(&self) -> Option<&String> {
+        match self {
+            ImageOperation::Marker(_, message) => message.as_ref(),
+            ImageOperation::Sequential(_, ops) => ops.iter().map(|op| op.get_first_marker_message()).flatten().next(),
+            _ => None
         }
     }
 
     pub fn remove_markers(self) -> Self {
         match self {
-            ImageOperation::Marker(_) => {
+            ImageOperation::Marker(_, _) => {
                 ImageOperation::Empty
             },
-            ImageOperation::Sequential(ops) => {
-                ImageOperation::Sequential(ops.into_iter().map(|x| x.remove_markers()).collect())
+            ImageOperation::Sequential(message, ops) => {
+                ImageOperation::Sequential(message, ops.into_iter().map(|x| x.remove_markers()).collect())
             },
             _ => self
+        }
+    }
+}
+
+impl Display for ImageOperation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ImageOperation::Empty => write!(f, ""),
+            ImageOperation::Marker(_, message) => write!(f, "{}", message.as_ref().unwrap_or(&String::new())),
+            ImageOperation::Sequential(message, ops) => {
+                match message {
+                    Some(message) => write!(f, "{}", message),
+                    None => write!(f, "{}", ops.iter().map(|op| format!("{}", op)).filter(|x| !x.is_empty()).join(", ")),
+                }
+            }
+            ImageOperation::SetImage { .. } => write!(f, "Set image"),
+            ImageOperation::SetSparseImage { .. } => write!(f, "Set image"),
+            ImageOperation::SetOptionalImage { .. } => write!(f, "Set image"),
+            ImageOperation::SetScaledImage { .. } => write!(f, "Scale pixels"),
+            ImageOperation::SetRotatedImage { .. } => write!(f, "Rotate pixels"),
+            ImageOperation::SetPixel { .. } => write!(f, "Set pixel"),
+            ImageOperation::Block { .. } => write!(f, "Block"),
+            ImageOperation::Line { .. } => write!(f, "Line"),
+            ImageOperation::PencilStroke { .. } => write!(f, "Pencil stroke"),
+            ImageOperation::Rectangle { .. } => write!(f, "Rectangle"),
+            ImageOperation::FillRectangle { .. } => write!(f, "Rectangle"),
+            ImageOperation::Circle { .. } => write!(f, "Circle"),
+            ImageOperation::FillCircle { .. } => write!(f, "Circle"),
+            ImageOperation::BucketFill { .. } => write!(f, "Bucket fill"),
+            ImageOperation::ColorGradient { .. } => write!(f, "Color gradient"),
         }
     }
 }
@@ -514,13 +563,13 @@ impl OptionalImage {
 pub fn add_op_sequential(op: &mut Option<ImageOperation>, new_op: Option<ImageOperation>) {
     if let Some(new_op) = new_op {
         match op {
-            Some(ImageOperation::Sequential(ops)) => {
+            Some(ImageOperation::Sequential(_, ops)) => {
                 ops.push(new_op);
             }
             Some(current_op) => {
                 let mut current_op_stolen = ImageOperation::Empty;
                 std::mem::swap(&mut current_op_stolen, current_op);
-                *current_op = ImageOperation::Sequential(vec![current_op_stolen, new_op]);
+                *current_op = ImageOperation::Sequential(None, vec![current_op_stolen, new_op]);
             }
             None => {
                 *op = Some(new_op);

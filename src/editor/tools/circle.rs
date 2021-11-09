@@ -69,39 +69,45 @@ impl CircleDrawTool {
         let radius = (((end_x - start_x).pow(2) + (end_y - start_y).pow(2)) as f64).sqrt() as i32;
 
         if self.border_checkbox.checked {
-            ImageOperation::Sequential(vec![
-                ImageOperation::FillCircle {
-                    center_x: start_x,
-                    center_y: start_y,
-                    radius,
-                    color: self.fill_color,
-                },
-                ImageOperation::Circle {
-                    center_x: start_x,
-                    center_y: start_y,
-                    radius,
-                    border_half_width: self.border_half_width,
-                    color: self.border_color,
-                    anti_aliased: Some(self.anti_aliasing_checkbox.checked)
-                }
-            ])
+            ImageOperation::Sequential(
+                Some("Circle".to_owned()),
+                vec![
+                    ImageOperation::FillCircle {
+                        center_x: start_x,
+                        center_y: start_y,
+                        radius,
+                        color: self.fill_color,
+                    },
+                    ImageOperation::Circle {
+                        center_x: start_x,
+                        center_y: start_y,
+                        radius,
+                        border_half_width: self.border_half_width,
+                        color: self.border_color,
+                        anti_aliased: Some(self.anti_aliasing_checkbox.checked)
+                    }
+                ]
+            )
         } else {
-            ImageOperation::Sequential(vec![
-                ImageOperation::FillCircle {
-                    center_x: start_x,
-                    center_y: start_y,
-                    radius: radius - 4,
-                    color: self.fill_color,
-                },
-                ImageOperation::Circle {
-                    center_x: start_x,
-                    center_y: start_y,
-                    radius: radius - 4,
-                    border_half_width: 2,
-                    color: self.fill_color,
-                    anti_aliased: Some(self.anti_aliasing_checkbox.checked)
-                }
-            ])
+            ImageOperation::Sequential(
+                Some("Circle".to_owned()),
+                vec![
+                    ImageOperation::FillCircle {
+                        center_x: start_x,
+                        center_y: start_y,
+                        radius: radius - 4,
+                        color: self.fill_color,
+                    },
+                    ImageOperation::Circle {
+                        center_x: start_x,
+                        center_y: start_y,
+                        radius: radius - 4,
+                        border_half_width: 2,
+                        color: self.fill_color,
+                        anti_aliased: Some(self.anti_aliasing_checkbox.checked)
+                    }
+                ]
+            )
         }
     }
 }
