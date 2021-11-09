@@ -12,6 +12,7 @@ use crate::program::Renders;
 pub struct ColorGradientDrawTool {
     start_position: Option<Position>,
     end_position: Option<Position>,
+    is_alternative_mode: bool,
     first_color: editor::Color,
     second_color: editor::Color,
     gradient_type: ColorGradientType,
@@ -24,6 +25,7 @@ impl ColorGradientDrawTool {
         ColorGradientDrawTool {
             start_position: None,
             end_position: None,
+            is_alternative_mode: false,
             first_color: image::Rgba([0, 0, 0, 255]),
             second_color: image::Rgba([0, 0, 0, 255]),
             gradient_type: ColorGradientType::Linear,
@@ -50,14 +52,18 @@ impl ColorGradientDrawTool {
         }
     }
 
-    fn create_op(&self, start_position: &Position, end_position: &Position) -> ImageOperation {
+    fn create_op(&self,
+                 start_position: &Position,
+                 end_position: &Position,
+                 first_color: editor::Color,
+                 second_color: editor::Color) -> ImageOperation {
         ImageOperation::ColorGradient {
             start_x: start_position.x as i32,
             start_y: start_position.y as i32,
             end_x: end_position.x as i32,
             end_y: end_position.y as i32,
-            first_color: self.first_color,
-            second_color: self.second_color,
+            first_color,
+            second_color,
             gradient_type: self.gradient_type.clone()
         }
     }
@@ -89,10 +95,24 @@ impl Tool for ColorGradientDrawTool {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
                 self.start_position = Some(get_transformed_mouse_position(window, image_area_transform));
                 self.end_position = None;
+                self.is_alternative_mode = false;
             }
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Release, _) => {
                 if let (Some(start_position), Some(end_position)) = (self.start_position.as_ref(), self.end_position.as_ref()) {
-                    op = Some(self.create_op(&start_position, &end_position));
+                    op = Some(self.create_op(&start_position, &end_position, self.first_color, self.second_color));
+                }
+
+                self.start_position = None;
+                self.end_position = None;
+            }
+            glfw::WindowEvent::MouseButton(glfw::MouseButton::Button2, Action::Press, _) => {
+                self.start_position = Some(get_transformed_mouse_position(window, image_area_transform));
+                self.end_position = None;
+                self.is_alternative_mode = true;
+            }
+            glfw::WindowEvent::MouseButton(glfw::MouseButton::Button2, Action::Release, _) => {
+                if let (Some(start_position), Some(end_position)) = (self.start_position.as_ref(), self.end_position.as_ref()) {
+                    op = Some(self.create_op(&start_position, &end_position, self.second_color, self.first_color));
                 }
 
                 self.start_position = None;
@@ -117,7 +137,13 @@ impl Tool for ColorGradientDrawTool {
                _transparent_area: &mut Option<Rectangle>) -> bool {
         let mut update_op = preview_image.update_operation();
         if let (Some(start_position), Some(end_position)) = (self.start_position.as_ref(), self.end_position.as_ref()) {
-            self.create_op(&start_position, &end_position).apply(&mut update_op, false);
+            let (first_color, second_color) = if !self.is_alternative_mode {
+                (self.first_color, self.second_color)
+            } else {
+                (self.second_color, self.first_color)
+            };
+
+            self.create_op(&start_position, &end_position, first_color, second_color).apply(&mut update_op, false);
         }
 
         return true;

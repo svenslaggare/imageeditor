@@ -12,6 +12,7 @@ use crate::program::Renders;
 pub struct RectangleDrawTool {
     start_position: Option<Position>,
     end_position: Option<Position>,
+    is_alternative_mode: bool,
     border_color: editor::Color,
     fill_color: editor::Color,
     border_half_width: i32,
@@ -24,6 +25,7 @@ impl RectangleDrawTool {
         RectangleDrawTool {
             start_position: None,
             end_position: None,
+            is_alternative_mode: false,
             border_color: image::Rgba([0, 0, 0, 255]),
             fill_color: image::Rgba([255, 0, 0, 255]),
             border_half_width: 0,
@@ -51,7 +53,11 @@ impl RectangleDrawTool {
         }
     }
 
-    fn create_op(&self, start_position: &Position, end_position: &Position) -> ImageOperation {
+    fn create_op(&self,
+                 start_position: &Position,
+                 end_position: &Position,
+                 fill_color: editor::Color,
+                 border_color: editor::Color) -> ImageOperation {
         let (start_x, start_y, end_x, end_y) = get_valid_rectangle_as_int(start_position, end_position);
 
         let mut ops = vec![
@@ -60,7 +66,7 @@ impl RectangleDrawTool {
                 start_y,
                 end_x,
                 end_y,
-                color: self.fill_color,
+                color: fill_color,
                 blend: false
             }
         ];
@@ -72,7 +78,7 @@ impl RectangleDrawTool {
                     start_y,
                     end_x,
                     end_y,
-                    color: self.border_color,
+                    color: border_color,
                     border_half_width: self.border_half_width
                 }
             );
@@ -107,10 +113,24 @@ impl Tool for RectangleDrawTool {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
                 self.start_position = Some(get_transformed_mouse_position(window, image_area_transform));
                 self.end_position = None;
+                self.is_alternative_mode = false;
             }
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Release, _) => {
                 if let (Some(start_position), Some(end_position)) = (self.start_position.as_ref(), self.end_position.as_ref()) {
-                    op = Some(self.create_op(start_position, end_position));
+                    op = Some(self.create_op(start_position, end_position, self.fill_color, self.border_color));
+                }
+
+                self.start_position = None;
+                self.end_position = None;
+            }
+            glfw::WindowEvent::MouseButton(glfw::MouseButton::Button2, Action::Press, _) => {
+                self.start_position = Some(get_transformed_mouse_position(window, image_area_transform));
+                self.end_position = None;
+                self.is_alternative_mode = true;
+            }
+            glfw::WindowEvent::MouseButton(glfw::MouseButton::Button2, Action::Release, _) => {
+                if let (Some(start_position), Some(end_position)) = (self.start_position.as_ref(), self.end_position.as_ref()) {
+                    op = Some(self.create_op(start_position, end_position, self.border_color, self.fill_color));
                 }
 
                 self.start_position = None;
@@ -135,7 +155,13 @@ impl Tool for RectangleDrawTool {
                _transparent_area: &mut Option<Rectangle>) -> bool {
         let mut update_op = preview_image.update_operation();
         if let (Some(start_position), Some(end_position)) = (self.start_position.as_ref(), self.end_position.as_ref()) {
-            self.create_op(start_position, end_position).apply(&mut update_op, false);
+            let (fill_color, border_color) = if !self.is_alternative_mode {
+                (self.fill_color, self.border_color)
+            } else {
+                (self.border_color, self.fill_color)
+            };
+
+            self.create_op(start_position, end_position, fill_color, border_color).apply(&mut update_op, false);
         }
 
         return true;
