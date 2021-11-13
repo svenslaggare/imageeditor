@@ -195,8 +195,8 @@ impl SelectionTool {
                         self.rotate_pixels_state.clear();
                     }
 
-                    self.start_position = Some(get_transformed_mouse_position(window, image_area_transform));
-                    self.end_position = None;
+                    self.set_start_position(Some(get_transformed_mouse_position(window, image_area_transform)));
+                    self.set_end_position(None);
                     self.select_state.is_selecting = true;
                 }
             }
@@ -209,9 +209,9 @@ impl SelectionTool {
                     if window.is_shift_down() {
                         let start_position = self.start_position.unwrap();
                         let distance = (mouse_position.x - start_position.x).max(mouse_position.y - start_position.y);
-                        self.end_position = Some(Position::new(start_position.x + distance, start_position.y + distance))
+                        self.set_end_position(Some(Position::new(start_position.x + distance, start_position.y + distance)));
                     } else {
-                        self.end_position = Some(mouse_position);
+                        self.set_end_position(Some(mouse_position));
                     }
                 }
             }
@@ -231,8 +231,8 @@ impl SelectionTool {
                         }
                     );
 
-                    self.start_position = None;
-                    self.end_position = None;
+                    self.set_start_position(None);
+                    self.set_end_position(None);
                 }
             }
             glfw::WindowEvent::Key(Key::C, _, Action::Press, Modifiers::Control) => {
@@ -241,8 +241,8 @@ impl SelectionTool {
                         sub_image(image, selection.start_x, selection.start_y, selection.end_x, selection.end_y)
                     );
 
-                    self.start_position = None;
-                    self.end_position = None;
+                    self.set_start_position(None);
+                    self.set_end_position(None);
                 }
             }
             glfw::WindowEvent::Key(Key::V, _, Action::Press, Modifiers::Control) => {
@@ -273,8 +273,8 @@ impl SelectionTool {
                         sub_image(image, selection.start_x, selection.start_y, selection.end_x, selection.end_y)
                     );
 
-                    self.start_position = None;
-                    self.end_position = None;
+                    self.set_start_position(None);
+                    self.set_end_position(None);
                 }
             }
             _ => {}
@@ -327,14 +327,14 @@ impl SelectionTool {
                     let offset = Position::new(end_x, end_y) - Position::new(start_x, start_y);
                     let new_start_position = mouse_position + self.move_pixels_state.move_offset;
 
-                    self.start_position = Some(new_start_position);
-                    self.end_position = Some(new_start_position + offset);
+                    self.set_start_position(Some(new_start_position));
+                    self.set_end_position(Some(new_start_position + offset));
                 }
             }
             glfw::WindowEvent::Key(Key::Escape, _, Action::Release, _ ) => {
                 if let Some(original_selection) = self.original_selection() {
-                    self.start_position = Some(original_selection.start_position());
-                    self.end_position = Some(original_selection.end_position());
+                    self.set_start_position(Some(original_selection.start_position()));
+                    self.set_end_position(Some(original_selection.end_position()));
                 }
 
                 self.clear_states();
@@ -391,16 +391,16 @@ impl SelectionTool {
                     if window.is_shift_down() {
                         let start_position = self.start_position.unwrap();
                         let distance = (mouse_position.x - start_position.x).max(mouse_position.y - start_position.y);
-                        self.end_position = Some(Position::new(start_position.x + distance, start_position.y + distance))
+                        self.set_end_position(Some(Position::new(start_position.x + distance, start_position.y + distance)));
                     } else {
-                        self.end_position = Some(mouse_position);
+                        self.set_end_position(Some(mouse_position));
                     }
                 }
             }
             glfw::WindowEvent::Key(Key::Escape, _, Action::Release, _ ) => {
                 if let Some(original_selection) = self.original_selection() {
-                    self.start_position = Some(original_selection.start_position());
-                    self.end_position = Some(original_selection.end_position());
+                    self.set_start_position(Some(original_selection.start_position()));
+                    self.set_end_position(Some(original_selection.end_position()));
                 }
 
                 self.clear_states();
@@ -467,8 +467,8 @@ impl SelectionTool {
             }
             glfw::WindowEvent::Key(Key::Escape, _, Action::Release, _ ) => {
                 if let Some(original_selection) = self.original_selection() {
-                    self.start_position = Some(original_selection.start_position());
-                    self.end_position = Some(original_selection.end_position());
+                    self.set_start_position(Some(original_selection.start_position()));
+                    self.set_end_position(Some(original_selection.end_position()));
                 }
 
                 self.clear_states();
@@ -480,8 +480,8 @@ impl SelectionTool {
     }
 
     fn handle_paste(&mut self, copied_image: image::RgbaImage) {
-        self.start_position = Some(Position::new(0.0, 0.0));
-        self.end_position = Some(Position::new(copied_image.width() as f32, copied_image.height() as f32));
+        self.set_start_position(Some(Position::new(0.0, 0.0)));
+        self.set_end_position(Some(Position::new(copied_image.width() as f32, copied_image.height() as f32)));
 
         self.move_pixels_state.original_selection = self.selection();
         self.move_pixels_state.moved_pixels_image = Some(copied_image);
@@ -597,33 +597,17 @@ impl SelectionTool {
         }
     }
 
-    fn create_selection_gui(&self, selection: &Selection) -> ImageOperation {
-        ImageOperation::Sequential(
-            None,
-            vec![
-                ImageOperation::FillRectangle {
-                    start_x: selection.start_x,
-                    start_y: selection.start_y,
-                    end_x: selection.end_x,
-                    end_y: selection.end_y,
-                    color: image::Rgba([0, 148, 255, 64]),
-                    blend: true
-                },
-                ImageOperation::Rectangle {
-                    start_x: selection.start_x,
-                    start_y: selection.start_y,
-                    end_x: selection.end_x,
-                    end_y: selection.end_y,
-                    border_half_width: 0,
-                    color: image::Rgba([0, 0, 0, 255])
-                }
-            ]
-        )
+    fn select_all(&mut self, image: &editor::Image) {
+        self.set_start_position(Some(Position::new(0.0, 0.0)));
+        self.set_end_position(Some(Position::new(image.width() as f32, image.height() as f32)));
     }
 
-    fn select_all(&mut self, image: &editor::Image) {
-        self.start_position = Some(Position::new(0.0, 0.0));
-        self.end_position = Some(Position::new(image.width() as f32, image.height() as f32));
+    fn set_start_position(&mut self, position: Option<Position>) {
+        self.start_position = position;
+    }
+
+    fn set_end_position(&mut self, position: Option<Position>) {
+        self.end_position = position;
     }
 
     fn clear_states(&mut self) {
@@ -663,8 +647,8 @@ impl Tool for SelectionTool {
         }
 
         if op.is_some() {
-            self.start_position = None;
-            self.end_position = None;
+            self.set_start_position(None);
+            self.set_end_position(None);
         }
 
         op
@@ -695,8 +679,8 @@ impl Tool for SelectionTool {
                     ])
                 );
 
-                self.start_position = None;
-                self.end_position = None;
+                self.set_start_position(None);
+                self.set_end_position(None);
 
                 self.clear_states();
                 self.tool = SelectionSubTool::Select;

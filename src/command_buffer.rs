@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use crate::editor::image_operation::ImageOperation;
 use crate::editor::tools::Tools;
+use crate::editor::tools::selection::Selection;
 
 #[derive(Debug)]
 pub enum BackgroundType {
@@ -20,6 +21,7 @@ pub enum Command {
     SwitchedTool(Tools),
     SetColor(image::Rgba<u8>),
     SetAlternativeColor(image::Rgba<u8>),
+    SetSelection(Option<Selection>),
     ApplyImageOp(ImageOperation),
     UndoImageOp,
     RedoImageOp,
