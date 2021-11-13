@@ -6,7 +6,7 @@ use itertools::Itertools;
 use image::{GenericImage, FilterType};
 
 use crate::editor::image_operation::{ImageOperation, ImageOperationMarker, ImageSource};
-use crate::editor::Image;
+use crate::editor::{Image, Region};
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum LayerState {
@@ -189,6 +189,7 @@ pub struct Editor {
     active_layer_index: usize,
     undo_stack: Vec<(EditorOperation, EditorOperation)>,
     redo_stack: Vec<EditorOperation>,
+    valid_region: Option<Region>
 }
 
 impl Editor {
@@ -198,6 +199,7 @@ impl Editor {
             active_layer_index: 0,
             undo_stack: Vec::new(),
             redo_stack: Vec::new(),
+            valid_region: None
         }
     }
 
@@ -207,6 +209,10 @@ impl Editor {
 
     pub fn image_mut(&mut self) -> &mut EditorImage {
         &mut self.image
+    }
+
+    pub fn set_valid_region(&mut self, region: Option<Region>) {
+        self.valid_region = region;
     }
 
     pub fn new_image_same(&self) -> Image {
@@ -227,7 +233,7 @@ impl Editor {
             match orig_op {
                 EditorOperation::ImageOp(orig_op_layer, orig_op) => {
                     let undo = undo.extract_image_op().unwrap();
-                    let mut update_op = self.image.get_layer_mut(undo.0).unwrap().update_operation();
+                    let mut update_op = self.image.get_layer_mut(undo.0).unwrap().update_operation_with_region(self.valid_region.clone());
                     undo.1.apply(&mut update_op, false);
                     self.redo_stack.push(EditorOperation::ImageOp(orig_op_layer, orig_op));
                 }
@@ -323,10 +329,12 @@ impl Editor {
         match op {
             EditorOperation::ImageOp(op_layer, op) => {
                 if !op.is_marker(ImageOperationMarker::EndDraw) {
-                    let mut update_op = self.image.get_layer_mut(op_layer).unwrap().update_operation();
+                    let mut update_op = self.image.get_layer_mut(op_layer).unwrap().update_operation_with_region(self.valid_region.clone());
                     if let Some(undo_op) = op.apply(&mut update_op, true) {
-                        self.undo_stack.push((EditorOperation::ImageOp(op_layer, op),
-                                              EditorOperation::ImageOp(op_layer, undo_op)));
+                        self.undo_stack.push((
+                            EditorOperation::ImageOp(op_layer, op),
+                            EditorOperation::ImageOp(op_layer, undo_op)
+                        ));
                     }
                 } else {
                     self.merge_draw_operations();

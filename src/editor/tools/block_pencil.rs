@@ -45,7 +45,7 @@ impl BlockPencilDrawTool {
 }
 
 impl Tool for BlockPencilDrawTool {
-    fn handle_command(&mut self, _image: &editor::Image, command: &Command) {
+    fn handle_command(&mut self, _command_buffer: &mut CommandBuffer, _image: &editor::Image, command: &Command) {
         match command {
             Command::SetColor(color) => {
                 self.color = *color;

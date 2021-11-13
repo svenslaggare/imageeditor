@@ -2,6 +2,7 @@ use image::{Rgba};
 
 use crate::rendering::texture::Texture;
 use crate::editor::image_operation::{ImageOperationSource, ImageSource};
+use crate::editor::Region;
 
 pub type Color = Rgba<u8>;
 
@@ -34,7 +35,11 @@ impl Image {
     }
 
     pub fn update_operation(&mut self) -> ImageUpdateOperation {
-        ImageUpdateOperation::new(self)
+        ImageUpdateOperation::new(self, None)
+    }
+
+    pub fn update_operation_with_region(&mut self, valid_region: Option<Region>) -> ImageUpdateOperation {
+        ImageUpdateOperation::new(self, valid_region)
     }
 
     pub fn clear_cpu(&mut self) {
@@ -65,13 +70,15 @@ impl ImageSource for Image {
 }
 
 pub struct ImageUpdateOperation<'a> {
-    image: &'a mut Image
+    image: &'a mut Image,
+    valid_region: Option<Region>
 }
 
 impl<'a> ImageUpdateOperation<'a> {
-    pub fn new(image: &'a mut Image) -> ImageUpdateOperation<'a> {
+    pub fn new(image: &'a mut Image, valid_region: Option<Region>) -> ImageUpdateOperation<'a> {
         ImageUpdateOperation {
-            image
+            image,
+            valid_region
         }
     }
 
@@ -104,7 +111,13 @@ impl<'a> ImageSource for ImageUpdateOperation<'a> {
 
 impl<'a> ImageOperationSource for ImageUpdateOperation<'a> {
     fn put_pixel(&mut self, x: u32, y: u32, pixel: Color) {
-        self.image.underlying_image.put_pixel(x, y, pixel);
+        if let Some(valid_region) = self.valid_region.as_ref() {
+            if valid_region.contains(x as i32, y as i32) {
+                self.image.underlying_image.put_pixel(x, y, pixel);
+            }
+        } else {
+            self.image.underlying_image.put_pixel(x, y, pixel);
+        }
     }
 }
 

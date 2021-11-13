@@ -8,10 +8,12 @@ use crate::editor::tools::{Tool, get_transformed_mouse_position, EditorWindow};
 use crate::editor::image_operation::{ImageOperation, ColorGradientType};
 use crate::ui::button::{TextButton, GenericButton};
 use crate::program::Renders;
+use crate::editor::tools::selection::Selection;
 
 pub struct ColorGradientDrawTool {
     start_position: Option<Position>,
     end_position: Option<Position>,
+    selection: Option<Selection>,
     is_alternative_mode: bool,
     first_color: editor::Color,
     second_color: editor::Color,
@@ -25,6 +27,7 @@ impl ColorGradientDrawTool {
         ColorGradientDrawTool {
             start_position: None,
             end_position: None,
+            selection: None,
             is_alternative_mode: false,
             first_color: image::Rgba([0, 0, 0, 255]),
             second_color: image::Rgba([0, 0, 0, 255]),
@@ -70,13 +73,16 @@ impl ColorGradientDrawTool {
 }
 
 impl Tool for ColorGradientDrawTool {
-    fn handle_command(&mut self, _image: &editor::Image, command: &Command) {
+    fn handle_command(&mut self, _command_buffer: &mut CommandBuffer, _image: &editor::Image, command: &Command) {
         match command {
             Command::SetColor(color) => {
                 self.first_color = *color;
             }
             Command::SetAlternativeColor(color) => {
                 self.second_color = *color;
+            }
+            Command::SetSelection(selection) => {
+                self.selection = selection.clone();
             }
             _ => {}
         }
@@ -135,7 +141,8 @@ impl Tool for ColorGradientDrawTool {
                _image: &editor::Image,
                preview_image: &mut editor::Image,
                _transparent_area: &mut Option<Rectangle>) -> bool {
-        let mut update_op = preview_image.update_operation();
+        let mut update_op = preview_image.update_operation_with_region(self.selection.as_ref().map(|selection| selection.region()));
+
         if let (Some(start_position), Some(end_position)) = (self.start_position.as_ref(), self.end_position.as_ref()) {
             let (first_color, second_color) = if !self.is_alternative_mode {
                 (self.first_color, self.second_color)

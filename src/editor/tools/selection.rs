@@ -8,6 +8,7 @@ use crate::editor::tools::{Tool, get_valid_rectangle, SelectionSubTool, Tools, g
 use crate::editor::image_operation::{ImageOperation, ImageSource, add_op_sequential, select_latest};
 use crate::editor::image_operation_helpers::sub_image;
 use crate::program::Renders;
+use crate::editor::Region;
 
 #[derive(Debug, Clone)]
 pub struct Selection {
@@ -36,6 +37,15 @@ impl Selection {
             self.start_y as f32,
             (self.end_x - self.start_x) as f32,
             (self.end_y - self.start_y) as f32
+        )
+    }
+
+    pub fn region(&self) -> Region {
+        Region::new(
+            self.start_x as i32,
+            self.start_y as i32,
+            (self.end_x - self.start_x) as i32,
+            (self.end_y - self.start_y) as i32
         )
     }
 }
@@ -92,6 +102,7 @@ impl RotatePixelsState {
 
 pub struct SelectionTool {
     tool: SelectionSubTool,
+    changed_selection: bool,
     start_position: Option<Position>,
     end_position: Option<Position>,
     skip_erase_original_selection: bool,
@@ -105,6 +116,7 @@ impl SelectionTool {
     pub fn new() -> SelectionTool {
         SelectionTool {
             tool: SelectionSubTool::Select,
+            changed_selection: false,
             start_position: None,
             end_position: None,
             // start_position: Some(Position::new(243.0, 325.0)),
@@ -604,10 +616,23 @@ impl SelectionTool {
 
     fn set_start_position(&mut self, position: Option<Position>) {
         self.start_position = position;
+        self.changed_selection = true;
     }
 
     fn set_end_position(&mut self, position: Option<Position>) {
         self.end_position = position;
+        self.changed_selection = true;
+    }
+
+    fn before_change_selection(&mut self) {
+        self.changed_selection = false;
+    }
+
+    fn after_change_selection(&mut self, command_buffer: &mut CommandBuffer) {
+        if self.changed_selection {
+            command_buffer.push(Command::SetSelection(self.selection()));
+            self.changed_selection = false;
+        }
     }
 
     fn clear_states(&mut self) {
@@ -627,7 +652,9 @@ impl Tool for SelectionTool {
         None
     }
 
-    fn on_deactivate(&mut self, _command_buffer: &mut CommandBuffer) -> Option<ImageOperation> {
+    fn on_deactivate(&mut self, command_buffer: &mut CommandBuffer) -> Option<ImageOperation> {
+        self.before_change_selection();
+
         let op = select_latest([
             self.create_move(false),
             self.create_resize(false),
@@ -651,6 +678,8 @@ impl Tool for SelectionTool {
             self.set_end_position(None);
         }
 
+        self.after_change_selection(command_buffer);
+
         op
     }
 
@@ -661,6 +690,8 @@ impl Tool for SelectionTool {
                          image_area_rectangle: &Rectangle,
                          command_buffer: &mut CommandBuffer,
                          image: &editor::Image) -> Option<ImageOperation> {
+        self.before_change_selection();
+
         let mut op = match self.tool {
             SelectionSubTool::Select => self.process_event_select(window, event, image_area_transform, image_area_rectangle, command_buffer, image),
             SelectionSubTool::MovePixels => self.process_event_move_pixels(window, event, image_area_transform, image_area_rectangle, command_buffer, image),
@@ -688,10 +719,14 @@ impl Tool for SelectionTool {
             _ => {}
         }
 
+        self.after_change_selection(command_buffer);
+
         op
     }
 
-    fn handle_command(&mut self, image: &editor::Image, command: &Command) {
+    fn handle_command(&mut self, command_buffer: &mut CommandBuffer, image: &editor::Image, command: &Command) {
+        self.before_change_selection();
+
         match command {
             Command::SelectAll => {
                 self.select_all(image);
@@ -714,6 +749,8 @@ impl Tool for SelectionTool {
             }
             _ => {}
         }
+
+        self.after_change_selection(command_buffer);
     }
 
     fn preview(&mut self,
@@ -766,5 +803,14 @@ impl Tool for SelectionTool {
                 Color4::new(0, 0, 0, 255)
             )
         }
+    }
+
+    fn render_image_area_inactive(&mut self, renders: &Renders, transform: &Matrix4<f32>, image_area_transform: &Matrix4<f32>, image: &editor::Image) {
+        self.render_image_area(
+            renders,
+            transform,
+            image_area_transform,
+            image,
+        );
     }
 }

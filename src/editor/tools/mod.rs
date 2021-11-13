@@ -52,7 +52,7 @@ pub trait Tool {
 
     }
 
-    fn handle_command(&mut self, _image: &editor::Image, _command: &Command) {
+    fn handle_command(&mut self, _command_buffer: &mut CommandBuffer, _image: &editor::Image, _command: &Command) {
 
     }
 
@@ -84,6 +84,14 @@ pub trait Tool {
                          _transform: &Matrix4<f32>,
                          _image_area_transform: &Matrix4<f32>,
                          _image: &editor::Image) {
+
+    }
+
+    fn render_image_area_inactive(&mut self,
+                                  _renders: &Renders,
+                                  _transform: &Matrix4<f32>,
+                                  _image_area_transform: &Matrix4<f32>,
+                                  _image: &editor::Image) {
 
     }
 }

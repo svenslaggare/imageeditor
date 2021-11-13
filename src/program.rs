@@ -231,11 +231,14 @@ impl Program {
                             self.editor.apply_editor_op(EditorOperation::SetImage(image));
                             self.image_size_changed();
                         }
+                        Command::SetSelection(ref selection) => {
+                            self.editor.set_valid_region(selection.as_ref().map(|selection| selection.region()));
+                        }
                         _ => {}
                     }
 
                     for draw_tool in &mut self.tools {
-                        draw_tool.handle_command(self.editor.active_layer(), &command);
+                        draw_tool.handle_command(&mut self.command_buffer, self.editor.active_layer(), &command);
                     }
 
                     self.ui_manager.process_command(&command);
@@ -455,6 +458,17 @@ impl Program {
             &image_area_transform_full,
             self.editor.active_layer()
         );
+
+        for (index, tool) in self.tools.iter_mut().enumerate() {
+            if index != self.active_tool.index() {
+                tool.render_image_area_inactive(
+                    &self.renders,
+                    &transform,
+                    &image_area_transform_full,
+                    self.editor.active_layer()
+                );
+            }
+        }
 
         self.renders.rectangle_render.render(
             self.renders.rectangle_render.shader(),
