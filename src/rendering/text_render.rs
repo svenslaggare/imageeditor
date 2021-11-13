@@ -70,13 +70,13 @@ impl TextRender {
         }
     }
 
-    pub fn draw_line<'b, TextIterator>(&self,
-                                       shader: &Shader,
-                                       transform: &Matrix4<f32>,
-                                       font: &mut Font,
-                                       text: TextIterator,
-                                       position: Position,
-                                       alignment: TextAlignment) -> f32
+    pub fn render_line<'b, TextIterator>(&self,
+                                         shader: &Shader,
+                                         transform: &Matrix4<f32>,
+                                         font: &mut Font,
+                                         text: TextIterator,
+                                         position: Position,
+                                         alignment: TextAlignment) -> f32
         where TextIterator: Iterator<Item=DrawChar> {
 
         struct BatchRender {

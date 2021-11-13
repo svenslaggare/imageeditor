@@ -505,7 +505,7 @@ impl Program {
         );
 
         let mouse_position = get_transformed_mouse_position(window, &self.image_area_transform(false).invert().unwrap());
-        self.renders.text_render.draw_line(
+        self.renders.text_render.render_line(
             self.renders.text_render.shader(),
             transform,
             self.renders.ui_font.borrow_mut().deref_mut(),
@@ -535,16 +535,27 @@ impl Program {
     }
 
     fn render_history(&self, transform: &Matrix4<f32>, last_layer_position_y: f32) {
-        let mut history_position_y = last_layer_position_y + 20.0;
-        self.renders.text_render.draw_line(
+        let history_position_x = (self.window_width - SIDE_PANELS_WIDTH) as f32 + LEFT_SIDE_PANEL_WIDTH as f32;
+        let mut history_position_y = last_layer_position_y + 10.0;
+
+        self.renders.solid_rectangle_render.render(
+            self.renders.solid_rectangle_render.shader(),
+            transform,
+            &Rectangle::from_position_and_size(
+                Position::new(history_position_x, history_position_y),
+                Size::new(RIGHT_SIDE_PANEL_WIDTH as f32, 1.0)
+            ),
+            Color4::new(0, 0, 0, 255)
+        );
+
+        history_position_y += 5.0;
+
+        self.renders.text_render.render_line(
             &self.renders.text_render.shader(),
             transform,
             self.renders.ui_font.borrow_mut().deref_mut(),
             "History".chars().map(|c| (c, Color::new(0, 0, 0))),
-            Position::new(
-                (self.window_width - SIDE_PANELS_WIDTH) as f32 + LEFT_SIDE_PANEL_WIDTH as f32 + 5.0,
-                history_position_y
-            ),
+            Position::new(history_position_x + 5.0, history_position_y),
             TextAlignment::Top
         );
         history_position_y += self.renders.ui_font.borrow_mut().line_height();
@@ -556,15 +567,12 @@ impl Program {
                 }
             }
 
-            self.renders.text_render.draw_line(
+            self.renders.text_render.render_line(
                 &self.renders.text_render.shader(),
                 transform,
                 self.renders.ui_font_small.borrow_mut().deref_mut(),
                 format!("{}", action).chars().map(|c| (c, Color::new(0, 0, 0))),
-                Position::new(
-                    (self.window_width - SIDE_PANELS_WIDTH) as f32 + LEFT_SIDE_PANEL_WIDTH as f32 + 5.0,
-                    history_position_y
-                ),
+                Position::new(history_position_x + 5.0, history_position_y),
                 TextAlignment::Top
             );
 

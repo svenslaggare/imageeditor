@@ -277,7 +277,7 @@ impl<T> GenericButton<T> for TextButton<T> {
         //     RenderingColor::new(255, 0, 0)
         // );
 
-        renders.text_render.draw_line(
+        renders.text_render.render_line(
             renders.text_render.shader(),
             transform,
             self.font.borrow_mut().deref_mut(),
@@ -363,7 +363,7 @@ impl<T> GenericButton<T> for Checkbox<T> {
             );
         }
 
-        renders.text_render.draw_line(
+        renders.text_render.render_line(
             renders.text_render.shader(),
             transform,
             self.font.borrow_mut().deref_mut(),
