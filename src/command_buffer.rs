@@ -22,6 +22,8 @@ pub enum Command {
     SetColor(image::Rgba<u8>),
     SetAlternativeColor(image::Rgba<u8>),
     SetSelection(Option<Selection>),
+    SetClipboard(image::RgbaImage),
+    SetCopiedImage(image::RgbaImage),
     ApplyImageOp(ImageOperation),
     UndoImageOp,
     RedoImageOp,

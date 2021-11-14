@@ -43,20 +43,23 @@ fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
                     command_buffer.push(Command::SetTool(tool));
                 })),
                 None,
-                Some(Box::new(move |button, command| {
-                    match command {
-                        Command::SwitchedTool(current_tool) if current_tool == &tool => {
-                            *button.background_mut() = Some((
-                                Rectangle::new(-3.0, -3.0, 16.0 + 3.0 * 2.0, 16.0 + 3.0 * 2.0),
-                                Color4::new(188, 183, 164, 64),
-                                Color4::new(188, 183, 164, 255)
-                            ));
+                Some(
+                    Box::new(move |button, command| {
+                        match command {
+                            Command::SwitchedTool(current_tool) if current_tool == &tool => {
+                                *button.background_mut() = Some((
+                                    Rectangle::new(-3.0, -3.0, 16.0 + 3.0 * 2.0, 16.0 + 3.0 * 2.0),
+                                    Color4::new(188, 183, 164, 64),
+                                    Color4::new(188, 183, 164, 255)
+                                ));
+                            }
+                            Command::SwitchedTool(_) => {
+                                *button.background_mut() = None;
+                            }
+                            _ => {}
                         }
-                        _ => {
-                            *button.background_mut() = None;
-                        }
-                    }
-                }))
+                    })
+                )
             ))
         );
     };

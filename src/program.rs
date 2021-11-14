@@ -211,6 +211,9 @@ impl Program {
                         ProgramActionData::Size(new_width, new_height)
                     );
                 }
+                Command::SetCopiedImage(image) => {
+                    self.actions.trigger_with_data(ProgramAction::SetCopiedImage, ProgramActionData::Image(image));
+                }
                 command => {
                     match command {
                         Command::SelectAll => {
@@ -699,14 +702,25 @@ pub enum ProgramAction {
     OpenImage,
     SaveImageAs,
     ResizeImage,
-    ResizeCanvas
+    ResizeCanvas,
+    SetCopiedImage
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone)]
 pub enum ProgramActionData {
     None,
     Triggered,
-    Size(u32, u32)
+    Size(u32, u32),
+    Image(image::RgbaImage)
+}
+
+impl ProgramActionData {
+    pub fn is_triggered(&self) -> bool {
+        match self {
+            ProgramActionData::None => false,
+            _ => true
+        }
+    }
 }
 
 pub struct ProgramActionsManager {

@@ -249,9 +249,9 @@ impl SelectionTool {
             }
             glfw::WindowEvent::Key(Key::C, _, Action::Press, Modifiers::Control) => {
                 if let Some(selection) = self.selection() {
-                    self.select_state.copied_image = Some(
-                        sub_image(image, selection.start_x, selection.start_y, selection.end_x, selection.end_y)
-                    );
+                    let copied_image = sub_image(image, selection.start_x, selection.start_y, selection.end_x, selection.end_y);
+                    command_buffer.push(Command::SetCopiedImage(copied_image.clone()));
+                    self.select_state.copied_image = Some(copied_image);
 
                     self.set_start_position(None);
                     self.set_end_position(None);
@@ -714,7 +714,7 @@ impl Tool for SelectionTool {
                 self.set_end_position(None);
 
                 self.clear_states();
-                self.tool = SelectionSubTool::Select;
+                command_buffer.push(Command::SetTool(Tools::Selection(SelectionSubTool::Select)));
             }
             _ => {}
         }
@@ -746,6 +746,9 @@ impl Tool for SelectionTool {
                         self.handle_paste(copied_image);
                     }
                 }
+            }
+            Command::SetClipboard(image) => {
+                self.select_state.copied_image = Some(image.clone());
             }
             _ => {}
         }
