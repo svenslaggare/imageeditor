@@ -2,17 +2,18 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use std::ops::{Deref, DerefMut};
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 use gtk::prelude::*;
 use gtk::{Application, ApplicationWindow, GLArea, Orientation, EventBox, gdk, gdk_pixbuf};
 use gtk::gio::ApplicationFlags;
+use gtk::gdk_pixbuf::Colorspace;
 
-use crate::gtk_app::{GTKProgram, menu, input_support};
+use crate::gtk_app::{GTKProgram, menu, input_support, GTKProgramRef};
 use crate::program::{SIDE_PANELS_WIDTH, TOP_PANEL_HEIGHT, ProgramActionData, ProgramAction};
 use crate::editor::EditorImage;
 use crate::command_buffer::Command;
-use gtk::gdk_pixbuf::Colorspace;
-
 
 pub fn main() {
     let application = Application::builder()
@@ -81,19 +82,27 @@ pub fn main() {
                 )
             );
 
-            let gtk_program_clone = gtk_program_clone.clone();
-            clipboard_clone.request_contents(
-                &gdk::Atom::intern("image/png"),
-                move |_, data| {
-                    if data.data_type().name() == "image/png" {
-                        let image = image::load_from_memory_with_format(data.data().as_slice(), image::ImageFormat::PNG).unwrap().into_rgba();
-                        if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
-                            program.command_buffer.push(Command::SetClipboard(image));
-                        }
-                    }
-                }
-            );
+            get_clipboard_image(gtk_program_clone.clone(), clipboard_clone.as_ref());
         });
+
+        let clipboard_change = Arc::new(AtomicBool::new(false));
+        let clipboard_change_clone = clipboard_change.clone();
+        let self_change = Arc::new(AtomicBool::new(false));
+        let self_change_clone = self_change.clone();
+        clipboard.connect(
+            "owner-change",
+            false,
+            move |data| {
+                match self_change_clone.compare_exchange(true, false, Ordering::SeqCst, Ordering::SeqCst) {
+                    Ok(true) => {},
+                    _ => {
+                        clipboard_change_clone.store(true, Ordering::SeqCst);
+                    }
+                };
+
+                None
+            }
+        ).unwrap();
 
         let clipboard_clone = clipboard.clone();
         gtk_program.actions.borrow_mut().insert(
@@ -115,6 +124,7 @@ pub fn main() {
                         }
                     }
 
+                    self_change.store(true, Ordering::SeqCst);
                     clipboard_clone.set_image(&gtk_image);
                 }
             })
@@ -124,6 +134,13 @@ pub fn main() {
         let window_clone = window.clone();
 
         gl_area.connect_render(move |area, context| {
+            match clipboard_change.compare_exchange(true, false, Ordering::SeqCst, Ordering::SeqCst) {
+                Ok(true) => {
+                    get_clipboard_image(gtk_program.clone(), &clipboard);
+                }
+                _ => {}
+            }
+
             context.make_current();
 
             unsafe {
@@ -176,4 +193,18 @@ pub fn main() {
     });
 
     application.run();
+}
+
+fn get_clipboard_image(gtk_program: GTKProgramRef, clipboard: &gtk::Clipboard) {
+    clipboard.request_contents(
+        &gdk::Atom::intern("image/png"),
+        move |_, data| {
+            if data.data_type().name() == "image/png" {
+                let image = image::load_from_memory_with_format(data.data().as_slice(), image::ImageFormat::PNG).unwrap().into_rgba();
+                if let Some(program) = gtk_program.program.borrow_mut().as_mut() {
+                    program.command_buffer.push(Command::SetClipboard(image));
+                }
+            }
+        }
+    );
 }
