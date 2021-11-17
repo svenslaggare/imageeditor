@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::path::Path;
 use std::ops::DerefMut;
 use std::collections::HashMap;
 
@@ -279,12 +278,9 @@ impl Program {
                 self.command_buffer.push(Command::RedoImageOp);
             }
             glfw::WindowEvent::Key(Key::S, _, Action::Press, Modifiers::Control) => {
-                match self.editor.image().save(Path::new("output.png")) {
-                    Ok(()) => {
-                        println!("Saved image.");
-                    }
-                    Err(err) => {
-                        println!("Failed to save due to: {}.", err);
+                if let (Some(path), Some(image_format)) = (self.editor.image().path(), self.editor.image().image_format()) {
+                    if let Err(err) = self.editor.image().save(path, &image_format) {
+                        println!("Failed to save file due to: {:?}.", err);
                     }
                 }
             }

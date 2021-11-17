@@ -92,7 +92,7 @@ pub fn main() {
         clipboard.connect(
             "owner-change",
             false,
-            move |data| {
+            move |_| {
                 match self_change_clone.compare_exchange(true, false, Ordering::SeqCst, Ordering::SeqCst) {
                     Ok(true) => {},
                     _ => {

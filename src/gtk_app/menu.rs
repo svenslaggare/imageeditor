@@ -2,14 +2,19 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::iter::FromIterator;
 use std::ops::{ Deref};
+use std::cell::RefCell;
+use std::path::PathBuf;
 
 use gtk::prelude::*;
-use gtk::{GLArea, gio, Application, ApplicationWindow, glib, FileChooserAction, ResponseType};
+use gtk::{GLArea, gio, Application, ApplicationWindow, glib, FileChooserAction, ResponseType, Orientation};
+use gtk::glib::translate::{from_glib_none};
 
 use crate::gtk_app::{GTKProgram, GTKProgramRef};
 use crate::gtk_app::helpers::{create_entry, create_file_dialog};
 use crate::command_buffer::{Command, BackgroundType};
 use crate::program::{ProgramAction, ProgramActionData};
+use crate::editor::editor::ImageFormat;
+
 
 pub fn add(app: &Application,
            window: &ApplicationWindow,
@@ -57,6 +62,8 @@ fn add_program_menu(app: &Application,
                     println!("Failed to open file due to: {:?}.", err);
                 }
             }
+
+            true
         }
     );
 
@@ -80,8 +87,8 @@ fn add_program_menu(app: &Application,
     let gtk_program_clone = gtk_program.clone();
     save_file.connect_activate(glib::clone!(@weak window => move |_, _| {
         if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
-            if let Some(path) = program.editor.image().path() {
-               if let Err(err) = program.editor.image().save(path) {
+            if let (Some(path), Some(image_format)) = (program.editor.image().path(), program.editor.image().image_format()) {
+               if let Err(err) = program.editor.image().save(path, &image_format) {
                     println!("Failed to save file due to: {:?}.", err);
                }
             }
@@ -93,17 +100,88 @@ fn add_program_menu(app: &Application,
     menu.append(Some("Save as"), Some("app.save_file_as"));
     let save_file_as = gio::SimpleAction::new("save_file_as", None);
 
+    let jpeg_quality_dialog = create_dialog(window, "JPEG Quality");
+    jpeg_quality_dialog.content_area().set_spacing(4);
+    jpeg_quality_dialog.set_width_request(200);
+
+    jpeg_quality_dialog.add_buttons(&[
+        ("Ok", gtk::ResponseType::Ok)
+    ]);
+
+    let jpeg_quality_label = gtk::Label::new(Some("Quality:"));
+    jpeg_quality_label.set_xalign(0.0);
+    jpeg_quality_dialog.content_area().add(&jpeg_quality_label);
+
+    let jpeg_quality_scale = gtk::Scale::with_range(
+        Orientation::Horizontal,
+        1.0,
+        100.0,
+        1.0
+    );
+    jpeg_quality_dialog.content_area().add(&jpeg_quality_scale);
+
+    let action_area: gtk::Box = unsafe {
+        from_glib_none(gtk::ffi::gtk_dialog_get_action_area(jpeg_quality_dialog.as_ptr()))
+    };
+    action_area.set_property("halign", gtk::Align::Center).unwrap();
+
+    let current_save_path = Rc::new(RefCell::new(Option::<PathBuf>::None));
+
+    let gtk_program_clone = gtk_program.clone();
+    let current_save_path_clone = current_save_path.clone();
+    let jpeg_quality_scale_clone = jpeg_quality_scale.clone();
+    jpeg_quality_dialog.connect_response(move |dialog, response| {
+        match response {
+            ResponseType::Ok => {
+                if let Some(path) = current_save_path_clone.borrow_mut().clone() {
+                    if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
+                        if let Err(err) = program.editor.image_mut().save_as(&path, &ImageFormat::Jpeg(jpeg_quality_scale_clone.value() as u8)) {
+                            println!("Failed to save file due to: {:?}.", err);
+                        }
+                    }
+                }
+
+                dialog.hide();
+            }
+            _ => {
+                dialog.hide();
+            }
+        }
+    });
+
+    let current_save_path_clone = current_save_path.clone();
     let save_file_as_dialog = create_file_dialog(
         window,
         gtk_program.clone(),
         "Save as",
         FileChooserAction::Save,
-        |gtk_program, path| {
+        move |gtk_program, path| {
             if let Some(program) = gtk_program.program.borrow_mut().as_mut() {
-                if let Err(err) = program.editor.image_mut().save_as(&path) {
-                    println!("Failed to save file due to: {:?}.", err);
+                *current_save_path_clone.borrow_mut() = Some(path.clone());
+
+                let image_format = path
+                    .extension()
+                    .map(|ext| ext.to_str()).flatten()
+                    .map(|extension| ImageFormat::from_extension(extension)).flatten();
+
+                if let Some(image_format) = image_format {
+                    match image_format {
+                        ImageFormat::Jpeg(quality) => {
+                            jpeg_quality_scale.set_value(quality as f64);
+                            jpeg_quality_dialog.show_all();
+                        }
+                        image_format => {
+                            if let Err(err) = program.editor.image_mut().save_as(&path, &image_format) {
+                                println!("Failed to save file due to: {:?}.", err);
+                            }
+                        }
+                    }
+                } else {
+                    return false;
                 }
             }
+
+            true
         }
     );
 

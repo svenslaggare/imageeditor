@@ -7,11 +7,11 @@ use gtk::{FileChooserAction, ApplicationWindow, Inhibit, Orientation, ResponseTy
 
 use crate::gtk_app::{GTKProgram, GTKProgramRef};
 
-pub fn create_file_dialog<F: Fn(&GTKProgram, PathBuf) + 'static>(window: &ApplicationWindow,
-                                                                 gtk_program: GTKProgramRef,
-                                                                 title: &str,
-                                                                 action: FileChooserAction,
-                                                                 on_file: F) -> Rc<gtk::FileChooserDialog> {
+pub fn create_file_dialog<F: Fn(&GTKProgram, PathBuf) -> bool + 'static>(window: &ApplicationWindow,
+                                                                         gtk_program: GTKProgramRef,
+                                                                         title: &str,
+                                                                         action: FileChooserAction,
+                                                                         on_file: F) -> Rc<gtk::FileChooserDialog> {
     let file_dialog = gtk::FileChooserDialogBuilder::new()
         .transient_for(window)
         .title(title)
@@ -43,11 +43,15 @@ pub fn create_file_dialog<F: Fn(&GTKProgram, PathBuf) + 'static>(window: &Applic
     file_dialog.connect_response(move |dialog, response| {
         match response {
             ResponseType::Ok => {
-                if let Some(path) = file_dialog_clone.filename() {
-                    on_file(gtk_program_clone.deref(), path);
-                }
+                let hide = if let Some(path) = file_dialog_clone.filename() {
+                    on_file(gtk_program_clone.deref(), path)
+                } else {
+                    true
+                };
 
-                dialog.hide();
+                if hide {
+                    dialog.hide();
+                }
             }
             _ => {
                 dialog.hide();

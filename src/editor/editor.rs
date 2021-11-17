@@ -8,6 +8,24 @@ use image::{GenericImage, FilterType};
 use crate::editor::image_operation::{ImageOperation, ImageOperationMarker, ImageSource};
 use crate::editor::{Image, Region};
 
+#[derive(Debug, Clone)]
+pub enum ImageFormat {
+    Png,
+    Jpeg(u8),
+    Bmp
+}
+
+impl ImageFormat {
+    pub fn from_extension(extension: &str) -> Option<ImageFormat> {
+        match extension {
+            "png" => Some(ImageFormat::Png),
+            "jpg" | "jpeg" => Some(ImageFormat::Jpeg(80)),
+            "bmp" => Some(ImageFormat::Bmp),
+            _ => None
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub enum LayerState {
     Visible,
@@ -18,6 +36,7 @@ pub enum LayerState {
 #[derive(Clone, Debug)]
 pub struct EditorImage {
     path: Option<PathBuf>,
+    image_format: Option<ImageFormat>,
     width: u32,
     height: u32,
     layers: Vec<(LayerState, Image)>
@@ -25,8 +44,14 @@ pub struct EditorImage {
 
 impl EditorImage {
     pub fn new(path: Option<PathBuf>, image: Image) -> EditorImage {
+        let image_format = path
+            .as_ref().map(|path| path.extension()).flatten()
+            .map(|extension| extension.to_str()).flatten()
+            .map(|extension| ImageFormat::from_extension(extension)).flatten();
+
         EditorImage {
             path,
+            image_format,
             width: image.width(),
             height: image.height(),
             layers: vec![(LayerState::Visible, image)]
@@ -39,6 +64,10 @@ impl EditorImage {
 
     pub fn path(&self) -> Option<&Path> {
         self.path.as_ref().map(|path| path.as_path())
+    }
+
+    pub fn image_format(&self) -> Option<&ImageFormat> {
+        self.image_format.as_ref()
     }
 
     pub fn width(&self) -> u32 {
@@ -75,11 +104,7 @@ impl EditorImage {
         self.layers.push((LayerState::Visible, Image::new(image)));
     }
 
-    pub fn save(&self, path: &Path) -> std::io::Result<()> {
-        let file = std::fs::File::create(path)?;
-
-        let writer = std::io::BufWriter::new(file);
-        let encoder = image::png::PNGEncoder::new(writer);
+    pub fn save(&self, path: &Path, format: &ImageFormat) -> std::io::Result<()> {
         let mut image: image::RgbaImage = image::RgbaImage::new(self.width(), self.height());
         for (state, layer) in &self.layers {
             if state == &LayerState::Visible {
@@ -93,19 +118,45 @@ impl EditorImage {
             }
         }
 
-        encoder.encode(
-            &image,
-            image.width(),
-            image.height(),
-            image::ColorType::RGBA(8)
-        )?;
+        let mut writer = std::io::BufWriter::new(std::fs::File::create(path)?);
+
+        match format {
+            ImageFormat::Png => {
+                let encoder = image::png::PNGEncoder::new(writer);
+                encoder.encode(
+                    &image,
+                    image.width(),
+                    image.height(),
+                    image::ColorType::RGBA(8)
+                )?;
+            }
+            ImageFormat::Jpeg(quality) => {
+                let mut encoder = image::jpeg::JPEGEncoder::new_with_quality(&mut writer, *quality);
+                encoder.encode(
+                    &image,
+                    image.width(),
+                    image.height(),
+                    image::ColorType::RGBA(8)
+                )?;
+            }
+            ImageFormat::Bmp => {
+                let mut encoder = image::bmp::BMPEncoder::new(&mut writer);
+                encoder.encode(
+                    &image,
+                    image.width(),
+                    image.height(),
+                    image::ColorType::RGBA(8)
+                )?;
+            }
+        }
 
         Ok(())
     }
 
-    pub fn save_as(&mut self, path: &Path) -> std::io::Result<()> {
-        self.save(path)?;
+    pub fn save_as(&mut self, path: &Path, format: &ImageFormat) -> std::io::Result<()> {
+        self.save(path, format)?;
         self.path = Some(path.to_path_buf());
+        self.image_format = Some(format.clone());
         Ok(())
     }
 
