@@ -458,6 +458,7 @@ impl Editor {
             EditorOperation::SetImage(image) => {
                 let mut current_image = image;
                 std::mem::swap(&mut current_image, &mut self.image);
+                self.active_layer_index = 0;
 
                 if push_undo {
                     self.undo_stack.push((
