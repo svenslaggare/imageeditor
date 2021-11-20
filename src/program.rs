@@ -207,7 +207,7 @@ impl Program {
                 Command::RequestResizeCanvas(new_width, new_height) => {
                     self.actions.trigger_with_data(
                         ProgramAction::ResizeCanvas,
-                        ProgramActionData::Size(new_width, new_height)
+                        ProgramActionData::Size(new_width, new_height, Some("Canvas too small - resize needed".to_owned()))
                     );
                 }
                 Command::SetCopiedImage(image) => {
@@ -549,7 +549,7 @@ impl Program {
 
     fn render_history(&self, transform: &Matrix4<f32>, last_layer_position_y: f32) {
         let history_position_x = (self.window_width - SIDE_PANELS_WIDTH) as f32 + LEFT_SIDE_PANEL_WIDTH as f32;
-        let mut history_position_y = last_layer_position_y + 10.0;
+        let mut history_position_y = last_layer_position_y;
 
         self.renders.solid_rectangle_render.render(
             self.renders.solid_rectangle_render.shader(),
@@ -706,7 +706,7 @@ pub enum ProgramAction {
 pub enum ProgramActionData {
     None,
     Triggered,
-    Size(u32, u32),
+    Size(u32, u32, Option<String>),
     Image(image::RgbaImage)
 }
 

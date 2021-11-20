@@ -12,7 +12,8 @@ use crate::editor::{Image, Region};
 pub enum ImageFormat {
     Png,
     Jpeg(u8),
-    Bmp
+    Bmp,
+    Tiff
 }
 
 impl ImageFormat {
@@ -21,6 +22,7 @@ impl ImageFormat {
             "png" => Some(ImageFormat::Png),
             "jpg" | "jpeg" => Some(ImageFormat::Jpeg(80)),
             "bmp" => Some(ImageFormat::Bmp),
+            "tif" | "tiff" => Some(ImageFormat::Tiff),
             _ => None
         }
     }
@@ -147,6 +149,15 @@ impl EditorImage {
                     image.height(),
                     image::ColorType::RGBA(8)
                 )?;
+            }
+            ImageFormat::Tiff => {
+                let mut encoder = image::tiff::TiffEncoder::new(&mut writer);
+                encoder.encode(
+                    &image,
+                    image.width(),
+                    image.height(),
+                    image::ColorType::RGBA(8)
+                ).map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, "decode error"))?;
             }
         }
 

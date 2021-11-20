@@ -1,14 +1,17 @@
+use std::ops::DerefMut;
+
 use glfw::{Action, Key, Modifiers, MouseButton};
 
 use cgmath::{Matrix4};
 
 use crate::editor::editor::{EditorOperation, LayerState};
 use crate::program::{RIGHT_SIDE_PANEL_WIDTH, LAYER_BUFFER, LAYER_SPACING, Renders, LEFT_SIDE_PANEL_WIDTH, TOP_PANEL_HEIGHT};
-use crate::rendering::prelude::{Position, Rectangle, Color4, blend, Size};
+use crate::rendering::prelude::{Position, Rectangle, Color4, blend, Size, Color};
 use crate::editor::Editor;
 use crate::editor::tools::EditorWindow;
 use crate::editor::image_operation::ImageSource;
 use crate::rendering::texture::Texture;
+use crate::rendering::text_render::TextAlignment;
 
 pub struct LayersManager {
 
@@ -97,7 +100,10 @@ impl LayersManager {
         let active_layer_index = editor.active_layer_index();
         for (layer_index, (state, image)) in editor.image().layers().iter().enumerate() {
             if state != &LayerState::Deleted {
-                let position = Position::new(view_width as f32 + LAYER_BUFFER + LEFT_SIDE_PANEL_WIDTH as f32, layer_offset + TOP_PANEL_HEIGHT as f32);
+                let position = Position::new(
+                    view_width as f32 + LAYER_BUFFER + LEFT_SIDE_PANEL_WIDTH as f32,
+                    layer_offset + TOP_PANEL_HEIGHT as f32
+                );
                 let layer_height = layer_width * (image.height() as f32 / image.width() as f32);
 
                 let mut layer_color = None;

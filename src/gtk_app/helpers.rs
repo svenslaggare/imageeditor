@@ -12,11 +12,21 @@ pub fn create_file_dialog<F: Fn(&GTKProgram, PathBuf) -> bool + 'static>(window:
                                                                          title: &str,
                                                                          action: FileChooserAction,
                                                                          on_file: F) -> Rc<gtk::FileChooserDialog> {
+    let file_filter = gtk::FileFilter::new();
+    file_filter.add_pattern("*.png");
+    file_filter.add_pattern("*.jpg");
+    file_filter.add_pattern("*.jpeg");
+    file_filter.add_pattern("*.bmp");
+    file_filter.add_pattern("*.tif");
+    file_filter.add_pattern("*.tiff");
+    file_filter.add_pattern("*.gif");
+
     let file_dialog = gtk::FileChooserDialogBuilder::new()
         .transient_for(window)
         .title(title)
         .modal(true)
         .action(action)
+        .filter(&file_filter)
         .build();
 
     let action_name = match action {

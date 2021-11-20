@@ -38,7 +38,7 @@ fn add_program_menu(app: &Application,
                     gl_area: Rc<GLArea>,
                     menu: &gio::Menu) {
     // New
-    add_new_image_dialog(app, window, gtk_program.clone(), gl_area.clone(), menu);
+    add_new_image_dialog(app, window, gtk_program.clone(), menu);
 
     // Open
     menu.append(Some("Open"), Some("app.open_file"));
@@ -97,107 +97,7 @@ fn add_program_menu(app: &Application,
     app.add_action(&save_file);
 
     // Save as
-    menu.append(Some("Save as"), Some("app.save_file_as"));
-    let save_file_as = gio::SimpleAction::new("save_file_as", None);
-
-    let jpeg_quality_dialog = create_dialog(window, "JPEG Quality");
-    jpeg_quality_dialog.content_area().set_spacing(4);
-    jpeg_quality_dialog.set_width_request(200);
-
-    jpeg_quality_dialog.add_buttons(&[
-        ("Ok", gtk::ResponseType::Ok)
-    ]);
-
-    let jpeg_quality_label = gtk::Label::new(Some("Quality:"));
-    jpeg_quality_label.set_xalign(0.0);
-    jpeg_quality_dialog.content_area().add(&jpeg_quality_label);
-
-    let jpeg_quality_scale = gtk::Scale::with_range(
-        Orientation::Horizontal,
-        1.0,
-        100.0,
-        1.0
-    );
-    jpeg_quality_dialog.content_area().add(&jpeg_quality_scale);
-
-    let action_area: gtk::Box = unsafe {
-        from_glib_none(gtk::ffi::gtk_dialog_get_action_area(jpeg_quality_dialog.as_ptr()))
-    };
-    action_area.set_property("halign", gtk::Align::Center).unwrap();
-
-    let current_save_path = Rc::new(RefCell::new(Option::<PathBuf>::None));
-
-    let gtk_program_clone = gtk_program.clone();
-    let current_save_path_clone = current_save_path.clone();
-    let jpeg_quality_scale_clone = jpeg_quality_scale.clone();
-    jpeg_quality_dialog.connect_response(move |dialog, response| {
-        match response {
-            ResponseType::Ok => {
-                if let Some(path) = current_save_path_clone.borrow_mut().clone() {
-                    if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
-                        if let Err(err) = program.editor.image_mut().save_as(&path, &ImageFormat::Jpeg(jpeg_quality_scale_clone.value() as u8)) {
-                            println!("Failed to save file due to: {:?}.", err);
-                        }
-                    }
-                }
-
-                dialog.hide();
-            }
-            _ => {
-                dialog.hide();
-            }
-        }
-    });
-
-    let current_save_path_clone = current_save_path.clone();
-    let save_file_as_dialog = create_file_dialog(
-        window,
-        gtk_program.clone(),
-        "Save as",
-        FileChooserAction::Save,
-        move |gtk_program, path| {
-            if let Some(program) = gtk_program.program.borrow_mut().as_mut() {
-                *current_save_path_clone.borrow_mut() = Some(path.clone());
-
-                let image_format = path
-                    .extension()
-                    .map(|ext| ext.to_str()).flatten()
-                    .map(|extension| ImageFormat::from_extension(extension)).flatten();
-
-                if let Some(image_format) = image_format {
-                    match image_format {
-                        ImageFormat::Jpeg(quality) => {
-                            jpeg_quality_scale.set_value(quality as f64);
-                            jpeg_quality_dialog.show_all();
-                        }
-                        image_format => {
-                            if let Err(err) = program.editor.image_mut().save_as(&path, &image_format) {
-                                println!("Failed to save file due to: {:?}.", err);
-                            }
-                        }
-                    }
-                } else {
-                    return false;
-                }
-            }
-
-            true
-        }
-    );
-
-    let save_file_as_dialog_clone = save_file_as_dialog.clone();
-    gtk_program.actions.borrow_mut().insert(
-        ProgramAction::SaveImageAs,
-        Box::new(move |_| {
-            save_file_as_dialog_clone.show();
-        })
-    );
-
-    let save_file_as_dialog_clone = save_file_as_dialog.clone();
-    save_file_as.connect_activate(glib::clone!(@weak window => move |_, _| {
-        save_file_as_dialog_clone.show();
-    }));
-    app.add_action(&save_file_as);
+    add_save_as_dialog(app, window, gtk_program.clone(), menu);;
 
     // Quit
     menu.append(Some("Quit"), Some("app.quit"));
@@ -211,16 +111,16 @@ fn add_program_menu(app: &Application,
 fn add_new_image_dialog(app: &Application,
                         window: &ApplicationWindow,
                         gtk_program: GTKProgramRef,
-                        _gl_area: Rc<GLArea>,
                         menu: &gio::Menu) {
     menu.append(Some("New"), Some("app.new_image"));
     let new_image = gio::SimpleAction::new("new_image", None);
 
     let new_image_dialog = create_dialog(window, "New image");
+    get_action_area(&new_image_dialog).set_property("halign", gtk::Align::Center).unwrap();
 
     new_image_dialog.add_buttons(&[
-        ("Cancel", gtk::ResponseType::Cancel),
-        ("Create", gtk::ResponseType::Ok)
+        ("Create", gtk::ResponseType::Ok),
+        ("Cancel", gtk::ResponseType::Cancel)
     ]);
 
     let entry_width = create_entry(&new_image_dialog.content_area(), "Width: ", "1280");
@@ -285,6 +185,112 @@ fn add_new_image_dialog(app: &Application,
     app.add_action(&new_image);
 }
 
+fn add_save_as_dialog(app: &Application,
+                      window: &ApplicationWindow,
+                      gtk_program: GTKProgramRef,
+                      menu: &gio::Menu) {
+    menu.append(Some("Save as"), Some("app.save_file_as"));
+    let save_file_as = gio::SimpleAction::new("save_file_as", None);
+
+    // JPEG quality dialog
+    let jpeg_quality_dialog = create_dialog(window, "JPEG Quality");
+    jpeg_quality_dialog.content_area().set_spacing(4);
+    jpeg_quality_dialog.set_width_request(200);
+
+    jpeg_quality_dialog.add_buttons(&[
+        ("Ok", gtk::ResponseType::Ok)
+    ]);
+
+    let jpeg_quality_label = gtk::Label::new(Some("Quality:"));
+    jpeg_quality_label.set_xalign(0.0);
+    jpeg_quality_dialog.content_area().add(&jpeg_quality_label);
+
+    let jpeg_quality_scale = gtk::Scale::with_range(
+        Orientation::Horizontal,
+        1.0,
+        100.0,
+        1.0
+    );
+    jpeg_quality_dialog.content_area().add(&jpeg_quality_scale);
+
+    get_action_area(&jpeg_quality_dialog).set_property("halign", gtk::Align::Center).unwrap();
+
+    let current_save_path = Rc::new(RefCell::new(Option::<PathBuf>::None));
+
+    let gtk_program_clone = gtk_program.clone();
+    let current_save_path_clone = current_save_path.clone();
+    let jpeg_quality_scale_clone = jpeg_quality_scale.clone();
+    jpeg_quality_dialog.connect_response(move |dialog, response| {
+        match response {
+            ResponseType::Ok => {
+                if let Some(path) = current_save_path_clone.borrow_mut().clone() {
+                    if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
+                        if let Err(err) = program.editor.image_mut().save_as(&path, &ImageFormat::Jpeg(jpeg_quality_scale_clone.value() as u8)) {
+                            println!("Failed to save file due to: {:?}.", err);
+                        }
+                    }
+                }
+
+                dialog.hide();
+            }
+            _ => {
+                dialog.hide();
+            }
+        }
+    });
+
+    // Main save as dialog
+    let current_save_path_clone = current_save_path.clone();
+    let save_file_as_dialog = create_file_dialog(
+        window,
+        gtk_program.clone(),
+        "Save as",
+        FileChooserAction::Save,
+        move |gtk_program, path| {
+            if let Some(program) = gtk_program.program.borrow_mut().as_mut() {
+                *current_save_path_clone.borrow_mut() = Some(path.clone());
+
+                let image_format = path
+                    .extension()
+                    .map(|ext| ext.to_str()).flatten()
+                    .map(|extension| ImageFormat::from_extension(extension)).flatten();
+
+                if let Some(image_format) = image_format {
+                    match image_format {
+                        ImageFormat::Jpeg(quality) => {
+                            jpeg_quality_scale.set_value(quality as f64);
+                            jpeg_quality_dialog.show_all();
+                        }
+                        image_format => {
+                            if let Err(err) = program.editor.image_mut().save_as(&path, &image_format) {
+                                println!("Failed to save file due to: {:?}.", err);
+                            }
+                        }
+                    }
+                } else {
+                    return false;
+                }
+            }
+
+            true
+        }
+    );
+
+    let save_file_as_dialog_clone = save_file_as_dialog.clone();
+    gtk_program.actions.borrow_mut().insert(
+        ProgramAction::SaveImageAs,
+        Box::new(move |_| {
+            save_file_as_dialog_clone.show();
+        })
+    );
+
+    let save_file_as_dialog_clone = save_file_as_dialog.clone();
+    save_file_as.connect_activate(glib::clone!(@weak window => move |_, _| {
+        save_file_as_dialog_clone.show();
+    }));
+    app.add_action(&save_file_as);
+}
+
 fn add_edit_menu(app: &Application,
                  window: &ApplicationWindow,
                  gtk_program: GTKProgramRef,
@@ -338,9 +344,11 @@ fn add_image_menu(app: &Application,
     let resize_image = gio::SimpleAction::new("resize_image", None);
     let resize_image_dialog = create_dialog(window, "Resize image");
 
+    get_action_area(&resize_image_dialog).set_property("halign", gtk::Align::Center).unwrap();
+
     resize_image_dialog.add_buttons(&[
+        ("Ok", gtk::ResponseType::Ok),
         ("Cancel", gtk::ResponseType::Cancel),
-        ("Ok", gtk::ResponseType::Ok)
     ]);
 
     let entry_width = Rc::new(create_entry(&resize_image_dialog.content_area(), "New width: ", "0"));
@@ -368,7 +376,7 @@ fn add_image_menu(app: &Application,
         Box::new(move |requested_size| {
             if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
                 let (width, height) = match requested_size {
-                    ProgramActionData::Size(width, height) => (width, height),
+                    ProgramActionData::Size(width, height, _) => (width, height),
                     _ => (program.editor.image().width(), program.editor.image().height())
                 };
 
@@ -408,9 +416,12 @@ fn add_image_menu(app: &Application,
     let resize_canvas = gio::SimpleAction::new("resize_canvas", None);
     let resize_canvas_dialog = create_dialog(window, "Resize canvas");
 
+    resize_canvas_dialog.set_width_request(200);
+    get_action_area(&resize_canvas_dialog).set_property("halign", gtk::Align::Center).unwrap();
+
     resize_canvas_dialog.add_buttons(&[
+        ("Ok", gtk::ResponseType::Ok),
         ("Cancel", gtk::ResponseType::Cancel),
-        ("Ok", gtk::ResponseType::Ok)
     ]);
 
     let entry_width = Rc::new(create_entry(&resize_canvas_dialog.content_area(), "New width: ", "0"));
@@ -426,6 +437,7 @@ fn add_image_menu(app: &Application,
         if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
             entry_width_clone.set_text(&format!("{}", program.editor.image().width()));
             entry_height_clone.set_text(&format!("{}", program.editor.image().height()));
+            resize_canvas_dialog_clone.set_title("Resize canvas");
             resize_canvas_dialog_clone.show_all();
         }
     }));
@@ -438,13 +450,19 @@ fn add_image_menu(app: &Application,
         ProgramAction::ResizeCanvas,
         Box::new(move |requested_size| {
             if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
-                let (width, height) = match requested_size {
-                    ProgramActionData::Size(width, height) => (width, height),
-                    _ => (program.editor.image().width(), program.editor.image().height())
+                let (width, height, message) = match requested_size {
+                    ProgramActionData::Size(width, height, message) => (width, height, message),
+                    _ => (program.editor.image().width(), program.editor.image().height(), None)
                 };
 
                 entry_width_clone.set_text(&format!("{}", width));
                 entry_height_clone.set_text(&format!("{}", height));
+                if let Some(message) = message {
+                    resize_canvas_dialog_clone.set_title(&message);
+                } else {
+                    resize_canvas_dialog_clone.set_title("Resize canvas");
+                }
+
                 resize_canvas_dialog_clone.show_all();
             }
         })
@@ -567,5 +585,11 @@ fn parse_new_size(gtk_program: &GTKProgram, entry_width: &gtk::Entry, entry_heig
         }
     } else {
         None
+    }
+}
+
+fn get_action_area(dialog: &gtk::Dialog) -> gtk::Box {
+    unsafe {
+        from_glib_none(gtk::ffi::gtk_dialog_get_action_area(dialog.as_ptr()))
     }
 }
