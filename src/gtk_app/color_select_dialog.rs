@@ -49,9 +49,7 @@ pub fn add(_app: &Application,
     let color_selector_container = gtk::Box::new(Orientation::Vertical, 6);
     container.add(&color_selector_container);
 
-    let red_color_selector = Rc::new(create_spin_button(&color_selector_container, "Red:", 0.0, 255.0, 1.0));
-    let green_color_selector = Rc::new(create_spin_button(&color_selector_container, "Green:", 0.0, 255.0, 1.0));
-    let blue_color_selector = Rc::new(create_spin_button(&color_selector_container, "Blue:", 0.0, 255.0, 1.0));
+    let mut color_selector = ColorSelector::new(&color_selector_container);
 
     color_selector_container.add(&gtk::Separator::new(Orientation::Horizontal));
 
@@ -73,100 +71,35 @@ pub fn add(_app: &Application,
 
     let current_color_box = gtk::Box::new(Orientation::Horizontal, 5);
 
-    let color_code_entry = gtk::Entry::builder()
+    let color_code = gtk::Entry::builder()
         .text("#000000")
         .build();
 
     current_color_box.add(&gtk::Label::new(Some("Color:")));
-    current_color_box.add(&color_code_entry);
-
-    fn generate_current_color(color_str: &str) -> String {
-        format!("<span font='14' background='{}'>             </span>", color_str)
-    }
+    current_color_box.add(&color_code);
 
     let current_color_view = gtk::Label::new(None);
-    current_color_view.set_markup(&generate_current_color(color_code_entry.text().as_str()));
+    current_color_view.set_markup(&generate_current_color(color_code.text().as_str()));
     current_color_box.add(&current_color_view);
-    let current_color_view = Rc::new(current_color_view);
 
     color_selector_container.add(&current_color_box);
-    let color_code_entry = Rc::new(color_code_entry);
 
-    let suppress_color_code_change = Rc::new(RefCell::new(false));
-    fn update_color_code(red_color_selector: &gtk::SpinButton,
-                         green_color_selector: &gtk::SpinButton,
-                         blue_color_selector: &gtk::SpinButton,
-                         color_code_entry: &gtk::Entry,
-                         current_color_view: &gtk::Label,
-                         suppress_color_code_change: &RefCell<bool>) {
-        let red = red_color_selector.value() as u8;
-        let green = green_color_selector.value() as u8;
-        let blue = blue_color_selector.value() as u8;
-        *suppress_color_code_change.borrow_mut() = true;
+    color_selector.initialize(opacity_scale, color_code, current_color_view);
+    let color_selector = Rc::new(color_selector);
 
-        let color_str = format!("#{:02X}{:02X}{:02X}", red, green, blue);
-        color_code_entry.set_text(&color_str);
-        current_color_view.set_markup(&generate_current_color(&color_str));
-    }
+    let color_selector_clone = color_selector.clone();
+    color_selector.red_selector.connect_changed(move |selector| color_selector_clone.update());
 
-    let red_color_selector_clone = red_color_selector.clone();
-    let green_color_selector_clone = green_color_selector.clone();
-    let blue_color_selector_clone = blue_color_selector.clone();
-    let color_code_entry_clone = color_code_entry.clone();
-    let current_color_view_clone = current_color_view.clone();
-    let suppress_color_code_change_clone = suppress_color_code_change.clone();
-    red_color_selector.connect_changed(move |selector| {
-        update_color_code(
-            red_color_selector_clone.deref(),
-            green_color_selector_clone.deref(),
-            blue_color_selector_clone.deref(),
-            color_code_entry_clone.deref(),
-            current_color_view_clone.deref(),
-            suppress_color_code_change_clone.deref()
-        );
-    });
+    let color_selector_clone = color_selector.clone();
+    color_selector.blue_selector.connect_changed(move |selector| color_selector_clone.update());
 
-    let red_color_selector_clone = red_color_selector.clone();
-    let green_color_selector_clone = green_color_selector.clone();
-    let blue_color_selector_clone = blue_color_selector.clone();
-    let color_code_entry_clone = color_code_entry.clone();
-    let current_color_view_clone = current_color_view.clone();
-    let suppress_color_code_change_clone = suppress_color_code_change.clone();
-    green_color_selector.connect_changed(move |selector| {
-        update_color_code(
-            red_color_selector_clone.deref(),
-            green_color_selector_clone.deref(),
-            blue_color_selector_clone.deref(),
-            color_code_entry_clone.deref(),
-            current_color_view_clone.deref(),
-            suppress_color_code_change_clone.deref()
-        );
-    });
+    let color_selector_clone = color_selector.clone();
+    color_selector.blue_selector.connect_changed(move |selector| color_selector_clone.update());
 
-    let red_color_selector_clone = red_color_selector.clone();
-    let green_color_selector_clone = green_color_selector.clone();
-    let blue_color_selector_clone = blue_color_selector.clone();
-    let color_code_entry_clone = color_code_entry.clone();
-    let current_color_view_clone = current_color_view.clone();
-    let suppress_color_code_change_clone = suppress_color_code_change.clone();
-    blue_color_selector.connect_changed(move |selector| {
-        update_color_code(
-            red_color_selector_clone.deref(),
-            green_color_selector_clone.deref(),
-            blue_color_selector_clone.deref(),
-            color_code_entry_clone.deref(),
-            current_color_view_clone.deref(),
-            suppress_color_code_change_clone.deref()
-        );
-    });
-
-    let red_color_selector_clone = red_color_selector.clone();
-    let green_color_selector_clone = green_color_selector.clone();
-    let blue_color_selector_clone = blue_color_selector.clone();
-    let suppress_color_code_change_clone = suppress_color_code_change.clone();
-    color_code_entry.connect_changed(move |entry| {
-        if *suppress_color_code_change_clone.borrow_mut() {
-            *suppress_color_code_change_clone.borrow_mut() = false;
+    let color_selector_clone = color_selector.clone();
+    color_selector.color_code.as_ref().unwrap().connect_changed(move |entry| {
+        if *color_selector_clone.suppress_color_code_change.borrow_mut() {
+            *color_selector_clone.suppress_color_code_change.borrow_mut() = false;
             return;
         }
 
@@ -179,9 +112,7 @@ pub fn add(_app: &Application,
 
             match (red, green, blue) {
                 (Some(red), Some(green), Some(blue)) => {
-                    red_color_selector_clone.set_value(red as f64);
-                    green_color_selector_clone.set_value(green as f64);
-                    blue_color_selector_clone.set_value(blue as f64);
+                    color_selector_clone.set_rgb(red, green, blue);
                 }
                 _ => {}
             }
@@ -189,10 +120,7 @@ pub fn add(_app: &Application,
     });
 
     let gtk_program_clone = gtk_program.clone();
-    let red_color_selector_clone = red_color_selector.clone();
-    let green_color_selector_clone = green_color_selector.clone();
-    let blue_color_selector_clone = blue_color_selector.clone();
-    let opacity_scale_clone = opacity_scale.clone();
+    let color_selector_clone = color_selector.clone();
     let dialog_clone = dialog.clone();
     let color_select_mode_clone = color_select_mode.clone();
     gtk_program.actions.borrow_mut().insert(
@@ -204,10 +132,7 @@ pub fn add(_app: &Application,
 
             if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
                 let color = program.primary_color();
-                red_color_selector_clone.set_value(color[0] as f64);
-                green_color_selector_clone.set_value(color[1] as f64);
-                blue_color_selector_clone.set_value(color[2] as f64);
-                opacity_scale_clone.set_value(color[3] as f64);
+                color_selector_clone.set_rgba(color[0], color[1], color[2], color[3]);
             }
 
             dialog_clone.set_title("Select primary color");
@@ -217,10 +142,7 @@ pub fn add(_app: &Application,
     );
 
     let gtk_program_clone = gtk_program.clone();
-    let red_color_selector_clone = red_color_selector.clone();
-    let green_color_selector_clone = green_color_selector.clone();
-    let blue_color_selector_clone = blue_color_selector.clone();
-    let opacity_scale_clone = opacity_scale.clone();
+    let color_selector_clone = color_selector.clone();
     let dialog_clone = dialog.clone();
     let color_select_mode_clone = color_select_mode.clone();
     gtk_program.actions.borrow_mut().insert(
@@ -232,10 +154,7 @@ pub fn add(_app: &Application,
 
             if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
                 let color = program.secondary_color();
-                red_color_selector_clone.set_value(color[0] as f64);
-                green_color_selector_clone.set_value(color[1] as f64);
-                blue_color_selector_clone.set_value(color[2] as f64);
-                opacity_scale_clone.set_value(color[3] as f64);
+                color_selector_clone.set_rgba(color[0], color[1], color[2], color[3]);
             }
 
             dialog_clone.set_title("Select secondary color");
@@ -244,25 +163,12 @@ pub fn add(_app: &Application,
         })
     );
 
-    let red_color_selector_clone = red_color_selector.clone();
-    let green_color_selector_clone = green_color_selector.clone();
-    let blue_color_selector_clone = blue_color_selector.clone();
-    let opacity_scale_clone = opacity_scale.clone();
+    let color_selector_clone = color_selector.clone();
     dialog.connect_response(move |dialog, response| {
         match response {
             ResponseType::Ok => {
-                let red = red_color_selector_clone.value();
-                let green = green_color_selector_clone.value();
-                let blue = blue_color_selector_clone.value();
-
                 if let Some(program) = gtk_program.program.borrow_mut().as_mut() {
-                    let color = image::Rgba([
-                        red as u8,
-                        green as u8,
-                        blue as u8,
-                        opacity_scale_clone.value() as u8
-                    ]);
-
+                    let color = color_selector_clone.selected_color();
                     match *color_select_mode.borrow_mut() {
                         SelectColorMode::PrimaryColor => {
                             program.command_buffer.push(Command::SetPrimaryColor(color));
@@ -344,9 +250,7 @@ pub fn add(_app: &Application,
         Inhibit(true)
     });
 
-    let red_color_selector_clone = red_color_selector.clone();
-    let green_color_selector_clone = green_color_selector.clone();
-    let blue_color_selector_clone = blue_color_selector.clone();
+    let color_selector_clone = color_selector.clone();
     gl_area.connect_render(move |area, context| {
         context.make_current();
 
@@ -370,15 +274,9 @@ pub fn add(_app: &Application,
         let events = std::mem::take(&mut color_select_dialog.event_queue);
         let editor_window = EditorWindowFixed::new(color_select_dialog.mouse_position, 200, 200, false);
         for event in events.into_iter() {
-            let color = color_select_dialog.color_wheel.select_color(
-                &editor_window,
-                &event,
-            );
-
+            let color = color_select_dialog.color_wheel.select_color(&editor_window, &event);
             if let Some(color) = color {
-                red_color_selector_clone.set_value(color[0] as f64);
-                green_color_selector_clone.set_value(color[1] as f64);
-                blue_color_selector_clone.set_value(color[2] as f64);
+                color_selector_clone.set_rgb(color[0], color[1], color[2]);
             }
         }
 
@@ -386,8 +284,6 @@ pub fn add(_app: &Application,
 
         Inhibit(true)
     });
-
-    // dialog.show_all();
 }
 
 struct ColorSelectDialog {
@@ -406,6 +302,90 @@ impl ColorSelectDialog {
             event_queue: VecDeque::new()
         }
     }
+}
+
+struct ColorSelector {
+    red_selector: gtk::SpinButton,
+    green_selector: gtk::SpinButton,
+    blue_selector: gtk::SpinButton,
+    opacity_selector: Option<gtk::Scale>,
+    color_code: Option<gtk::Entry>,
+    current_color_view: Option<gtk::Label>,
+    suppress_color_code_change: RefCell<bool>,
+}
+
+impl ColorSelector {
+    pub fn new(container: &gtk::Box) -> ColorSelector {
+        ColorSelector {
+            red_selector: create_spin_button(&container, "Red:", 0.0, 255.0, 1.0),
+            green_selector: create_spin_button(&container, "Green:", 0.0, 255.0, 1.0),
+            blue_selector: create_spin_button(&container, "Blue:", 0.0, 255.0, 1.0),
+            opacity_selector: None,
+            color_code: None,
+            current_color_view: None,
+            suppress_color_code_change: RefCell::new(false)
+        }
+    }
+
+    pub fn initialize(&mut self,
+                      opacity_selector: gtk::Scale,
+                      color_code: gtk::Entry,
+                      current_color_view: gtk::Label) {
+        self.opacity_selector = Some(opacity_selector);
+        self.color_code = Some(color_code);
+        self.current_color_view = Some(current_color_view);
+    }
+
+    pub fn opacity_selector(&self) -> &gtk::Scale {
+        self.opacity_selector.as_ref().unwrap()
+    }
+
+    pub fn color_code(&self) -> &gtk::Entry {
+        self.color_code.as_ref().unwrap()
+    }
+
+    pub fn current_color_view(&self) -> &gtk::Label {
+        self.current_color_view.as_ref().unwrap()
+    }
+
+    pub fn update(&self) {
+        let red = self.red_selector.value() as u8;
+        let green = self.green_selector.value() as u8;
+        let blue = self.blue_selector.value() as u8;
+        *self.suppress_color_code_change.borrow_mut() = true;
+
+        let color_str = format!("#{:02X}{:02X}{:02X}", red, green, blue);
+        self.color_code.as_ref().unwrap().set_text(&color_str);
+        self.current_color_view.as_ref().unwrap().set_markup(&generate_current_color(&color_str));
+    }
+
+    pub fn selected_color(&self) -> editor::Color {
+        let red = self.red_selector.value();
+        let green = self.green_selector.value();
+        let blue = self.blue_selector.value();
+
+        image::Rgba([
+            red as u8,
+            green as u8,
+            blue as u8,
+            self.opacity_selector().value() as u8
+        ])
+    }
+
+    pub fn set_rgb(&self, red: u8, green: u8, blue: u8) {
+        self.red_selector.set_value(red as f64);
+        self.green_selector.set_value(green as f64);
+        self.blue_selector.set_value(blue as f64);
+    }
+
+    pub fn set_rgba(&self, red: u8, green: u8, blue: u8, alpha: u8) {
+        self.set_rgb(red, green, blue);
+        self.opacity_selector().set_value(alpha as f64);
+    }
+}
+
+fn generate_current_color(color_str: &str) -> String {
+    format!("<span font='14' background='{}'>             </span>", color_str)
 }
 
 struct EditorWindowFixed {
