@@ -7,10 +7,9 @@ use std::path::PathBuf;
 
 use gtk::prelude::*;
 use gtk::{GLArea, gio, Application, ApplicationWindow, glib, FileChooserAction, ResponseType, Orientation};
-use gtk::glib::translate::{from_glib_none};
 
 use crate::gtk_app::{GTKProgram, GTKProgramRef};
-use crate::gtk_app::helpers::{create_entry, create_file_dialog};
+use crate::gtk_app::helpers::{create_entry, create_file_dialog, create_dialog, get_action_area};
 use crate::command_buffer::{Command, BackgroundType};
 use crate::program::{ProgramAction, ProgramActionData};
 use crate::editor::editor::ImageFormat;
@@ -97,7 +96,7 @@ fn add_program_menu(app: &Application,
     app.add_action(&save_file);
 
     // Save as
-    add_save_as_dialog(app, window, gtk_program.clone(), menu);;
+    add_save_as_dialog(app, window, gtk_program.clone(), menu);
 
     // Quit
     menu.append(Some("Quit"), Some("app.quit"));
@@ -545,22 +544,6 @@ fn add_layers_menu(app: &Application,
     app.add_action(&delete_layer);
 }
 
-fn create_dialog(window: &ApplicationWindow, title: &str) -> gtk::Dialog {
-    let dialog = gtk::DialogBuilder::new()
-        .transient_for(window)
-        .title(title)
-        .resizable(false)
-        .modal(true)
-        .build();
-
-    dialog.connect_delete_event(|_, _| {
-        Inhibit(true)
-    });
-
-    dialog.content_area().set_spacing(8);
-    dialog
-}
-
 fn parse_new_size(gtk_program: &GTKProgram, entry_width: &gtk::Entry, entry_height: &gtk::Entry) -> Option<(u32, u32)> {
     let parse_entry = |entry: &gtk::Entry, current: u32| {
         let text = entry.text();
@@ -585,11 +568,5 @@ fn parse_new_size(gtk_program: &GTKProgram, entry_width: &gtk::Entry, entry_heig
         }
     } else {
         None
-    }
-}
-
-fn get_action_area(dialog: &gtk::Dialog) -> gtk::Box {
-    unsafe {
-        from_glib_none(gtk::ffi::gtk_dialog_get_action_area(dialog.as_ptr()))
     }
 }

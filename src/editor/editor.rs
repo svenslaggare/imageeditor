@@ -151,13 +151,13 @@ impl EditorImage {
                 )?;
             }
             ImageFormat::Tiff => {
-                let mut encoder = image::tiff::TiffEncoder::new(&mut writer);
+                let encoder = image::tiff::TiffEncoder::new(&mut writer);
                 encoder.encode(
                     &image,
                     image.width(),
                     image.height(),
                     image::ColorType::RGBA(8)
-                ).map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, "decode error"))?;
+                ).map_err(|_| std::io::Error::new(std::io::ErrorKind::Other, "decode error"))?;
             }
         }
 

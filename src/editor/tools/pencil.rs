@@ -57,10 +57,10 @@ impl PencilDrawTool {
 impl Tool for PencilDrawTool {
     fn handle_command(&mut self, _command_buffer: &mut CommandBuffer, _image: &editor::Image, command: &Command) {
         match command {
-            Command::SetColor(color) => {
+            Command::SetPrimaryColor(color) => {
                 self.color = *color;
             }
-            Command::SetAlternativeColor(color) => {
+            Command::SetSecondaryColor(color) => {
                 self.alternative_color = *color;
             }
             _ => {}

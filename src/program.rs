@@ -49,6 +49,8 @@ pub struct Program {
     view_height: u32,
     view_x: f32,
     view_y: f32,
+    primary_color: editor::Color,
+    secondary_color: editor::Color,
     pub actions: ProgramActionsManager
 }
 
@@ -90,15 +92,25 @@ impl Program {
             view_height: view_height - TOP_PANEL_HEIGHT,
             view_x: 0.0,
             view_y: 0.0,
+            primary_color: image::Rgba([0, 0, 0, 0]),
+            secondary_color: image::Rgba([0, 0, 0, 0]),
             actions: ProgramActionsManager::new()
         };
 
         program.command_buffer.push(Command::SetImageSize(width, height));
-        program.command_buffer.push(Command::SetColor(image::Rgba([255, 0, 0, 255])));
-        program.command_buffer.push(Command::SetAlternativeColor(image::Rgba([0, 0, 0, 255])));
+        program.command_buffer.push(Command::SetPrimaryColor(image::Rgba([255, 0, 0, 255])));
+        program.command_buffer.push(Command::SetSecondaryColor(image::Rgba([0, 0, 0, 255])));
         program.command_buffer.push(Command::SwitchedTool(program.active_tool));
 
         program
+    }
+
+    pub fn primary_color(&self) -> editor::Color {
+        self.primary_color
+    }
+
+    pub fn secondary_color(&self) -> editor::Color {
+        self.secondary_color
     }
 
     pub fn update(&mut self,
@@ -213,6 +225,9 @@ impl Program {
                 Command::SetCopiedImage(image) => {
                     self.actions.trigger_with_data(ProgramAction::SetCopiedImage, ProgramActionData::Image(image));
                 }
+                Command::TriggerProgramAction(action, data) => {
+                    self.actions.trigger_with_data(action, data);
+                }
                 command => {
                     match command {
                         Command::SelectAll => {
@@ -235,6 +250,12 @@ impl Program {
                         }
                         Command::SetSelection(ref selection) => {
                             self.editor.set_valid_region(selection.as_ref().map(|selection| selection.region()));
+                        }
+                        Command::SetPrimaryColor(color) => {
+                            self.primary_color = color;
+                        }
+                        Command::SetSecondaryColor(color) => {
+                            self.secondary_color = color;
                         }
                         _ => {}
                     }
@@ -693,16 +714,18 @@ impl Program {
     }
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum ProgramAction {
     OpenImage,
     SaveImageAs,
     ResizeImage,
     ResizeCanvas,
-    SetCopiedImage
+    SetCopiedImage,
+    OpenSelectPrimaryColorDialog,
+    OpenSelectSecondaryColorDialog
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum ProgramActionData {
     None,
     Triggered,

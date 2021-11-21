@@ -10,7 +10,7 @@ use gtk::{Application, ApplicationWindow, GLArea, Orientation, EventBox, gdk, gd
 use gtk::gio::ApplicationFlags;
 use gtk::gdk_pixbuf::Colorspace;
 
-use crate::gtk_app::{GTKProgram, menu, input_support, GTKProgramRef};
+use crate::gtk_app::{GTKProgram, menu, input_support, GTKProgramRef, color_select_dialog};
 use crate::program::{SIDE_PANELS_WIDTH, TOP_PANEL_HEIGHT, ProgramActionData, ProgramAction};
 use crate::editor::EditorImage;
 use crate::command_buffer::Command;
@@ -53,6 +53,9 @@ pub fn main() {
         window.add(&layout);
 
         let gl_area = Rc::new(GLArea::new());
+        gl_loader::init_gl();
+        gl::load_with(|symbol| gl_loader::get_proc_address(symbol) as *const _);
+
         let gtk_program_clone = gtk_program.clone();
         gl_area.connect_resize(move |_, width, height| {
             gtk_program_clone.change_size(width as u32, height as u32);
@@ -64,9 +67,7 @@ pub fn main() {
 
         menu::add(app, &window, gtk_program.clone(), gl_area.clone());
         input_support::add(gtk_program.clone(), gl_area.clone(), event_box.clone());
-
-        gl_loader::init_gl();
-        gl::load_with(|symbol| gl_loader::get_proc_address(symbol) as *const _);
+        color_select_dialog::add(app, &window, gtk_program.clone());
 
         let gtk_program_clone = gtk_program.clone();
         let image_to_edit = Rc::new(RefCell::new(Some(image_to_edit)));

@@ -107,7 +107,7 @@ pub enum Tools {
     BucketFill,
     ColorPicker,
     ColorGradient,
-    ColorWheel(ColorWheelMode),
+    ColorWheel(SelectColorMode),
     BlockPencil
 }
 
@@ -138,9 +138,9 @@ pub enum SelectionSubTool {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ColorWheelMode {
-    SelectColor,
-    SelectAlternativeColor
+pub enum SelectColorMode {
+    PrimaryColor,
+    SecondaryColor
 }
 
 pub fn create_tools(renders: &Renders) -> Vec<Box<dyn Tool>> {

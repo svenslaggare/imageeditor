@@ -11,11 +11,11 @@ pub use button::TextureButton;
 
 use crate::command_buffer::{Command, CommandBuffer};
 use crate::rendering::prelude::{Position, Rectangle, Color4};
-use crate::editor::tools::{Tools, SelectionSubTool, ColorWheelMode};
+use crate::editor::tools::{Tools, SelectionSubTool, SelectColorMode};
 use crate::editor::image_operation_helpers::hsv_to_rgb;
 use crate::ui::button::{SolidColorButton};
 use crate::ui::manager::BoxGenericButton;
-use crate::program::{LEFT_SIDE_PANEL_WIDTH, TOP_PANEL_HEIGHT};
+use crate::program::{LEFT_SIDE_PANEL_WIDTH, TOP_PANEL_HEIGHT, ProgramAction, ProgramActionData};
 
 pub fn create() -> Manager {
     let mut buttons = Vec::<BoxGenericButton>::new();
@@ -113,11 +113,15 @@ fn generate_color_palette(buttons: &mut Vec<BoxGenericButton>) {
                 selected_color_height
             ),
             Some(Box::new(move |command_buffer| {
-                command_buffer.push(Command::SetTool(Tools::ColorWheel(ColorWheelMode::SelectAlternativeColor)));
+                // command_buffer.push(Command::SetTool(Tools::ColorWheel(ColorWheelMode::SelectAlternativeColor)));
+                command_buffer.push(Command::TriggerProgramAction(
+                    ProgramAction::OpenSelectSecondaryColorDialog,
+                    ProgramActionData::Triggered
+                ));
             })),
             None,
             Some(Box::new(move |button, command| {
-                if let Command::SetAlternativeColor(color) = command {
+                if let Command::SetSecondaryColor(color) = command {
                     button.set_color(*color);
                 }
             }))
@@ -129,11 +133,15 @@ fn generate_color_palette(buttons: &mut Vec<BoxGenericButton>) {
             image::Rgba([255, 0, 0, 255]),
             Rectangle::new(start_x, start_y, selected_color_width, selected_color_height),
             Some(Box::new(move |command_buffer| {
-                command_buffer.push(Command::SetTool(Tools::ColorWheel(ColorWheelMode::SelectColor)));
+                // command_buffer.push(Command::SetTool(Tools::ColorWheel(ColorWheelMode::SelectColor)));
+                command_buffer.push(Command::TriggerProgramAction(
+                    ProgramAction::OpenSelectPrimaryColorDialog,
+                    ProgramActionData::Triggered
+                ));
             })),
             None,
             Some(Box::new(move |button, command| {
-                if let Command::SetColor(color) = command {
+                if let Command::SetPrimaryColor(color) = command {
                     button.set_color(*color);
                 }
             }))
@@ -162,10 +170,10 @@ fn generate_color_palette(buttons: &mut Vec<BoxGenericButton>) {
                 &image,
                 position,
                 Some(Box::new(move |command_buffer| {
-                    command_buffer.push(Command::SetColor(color));
+                    command_buffer.push(Command::SetPrimaryColor(color));
                 })),
                 Some(Box::new(move |command_buffer| {
-                    command_buffer.push(Command::SetAlternativeColor(color));
+                    command_buffer.push(Command::SetSecondaryColor(color));
                 })),
                 None
             ))

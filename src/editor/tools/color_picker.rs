@@ -35,12 +35,12 @@ impl ColorPickerTool {
             }
             ColorPickerMode::Color => {
                 if let Some(color) = self.select_color(window, image_area_transform, image) {
-                    command_buffer.push(Command::SetColor(color))
+                    command_buffer.push(Command::SetPrimaryColor(color))
                 }
             }
             ColorPickerMode::AlternativeColor => {
                 if let Some(color) = self.select_color(window, image_area_transform, image) {
-                    command_buffer.push(Command::SetAlternativeColor(color))
+                    command_buffer.push(Command::SetSecondaryColor(color))
                 }
             }
         }

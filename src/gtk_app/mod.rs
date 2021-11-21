@@ -11,6 +11,7 @@ pub mod app;
 pub mod helpers;
 pub mod input_support;
 pub mod menu;
+pub mod color_select_dialog;
 
 pub type GTKProgramRef = Rc<GTKProgram>;
 

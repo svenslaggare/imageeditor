@@ -1,17 +1,14 @@
-use std::ops::DerefMut;
-
 use glfw::{Action, Key, Modifiers, MouseButton};
 
 use cgmath::{Matrix4};
 
 use crate::editor::editor::{EditorOperation, LayerState};
 use crate::program::{RIGHT_SIDE_PANEL_WIDTH, LAYER_BUFFER, LAYER_SPACING, Renders, LEFT_SIDE_PANEL_WIDTH, TOP_PANEL_HEIGHT};
-use crate::rendering::prelude::{Position, Rectangle, Color4, blend, Size, Color};
+use crate::rendering::prelude::{Position, Rectangle, Color4, blend, Size};
 use crate::editor::Editor;
 use crate::editor::tools::EditorWindow;
 use crate::editor::image_operation::ImageSource;
 use crate::rendering::texture::Texture;
-use crate::rendering::text_render::TextAlignment;
 
 pub struct LayersManager {
 

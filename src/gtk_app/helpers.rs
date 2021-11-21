@@ -3,7 +3,8 @@ use std::path::PathBuf;
 use std::ops::{Deref};
 
 use gtk::prelude::*;
-use gtk::{FileChooserAction, ApplicationWindow, Inhibit, Orientation, ResponseType};
+use gtk::{FileChooserAction, ApplicationWindow, Inhibit, Orientation, ResponseType, Align};
+use gtk::glib::translate::from_glib_none;
 
 use crate::gtk_app::{GTKProgram, GTKProgramRef};
 
@@ -88,4 +89,44 @@ pub fn create_entry(container: &gtk::Box, label: &str, default_value: &str) -> g
 
     container.add(&box_widget);
     entry_widget
+}
+
+pub fn create_spin_button(container: &gtk::Box, label: &str, min: f64, max: f64, step: f64) -> gtk::SpinButton {
+    let box_widget = gtk::Box::new(Orientation::Horizontal, 5);
+
+    let spin_button_widget = gtk::SpinButton::with_range(min, max, step);
+
+    let label_widget = gtk::Label::builder()
+        .label(label)
+        .width_request(50)
+        .build();
+
+    box_widget.add(&label_widget);
+    box_widget.add(&spin_button_widget);
+
+    container.add(&box_widget);
+    spin_button_widget
+}
+
+
+pub fn create_dialog(window: &ApplicationWindow, title: &str) -> gtk::Dialog {
+    let dialog = gtk::DialogBuilder::new()
+        .transient_for(window)
+        .title(title)
+        .resizable(false)
+        .modal(true)
+        .build();
+
+    dialog.connect_delete_event(|_, _| {
+        Inhibit(true)
+    });
+
+    dialog.content_area().set_spacing(8);
+    dialog
+}
+
+pub fn get_action_area(dialog: &gtk::Dialog) -> gtk::Box {
+    unsafe {
+        from_glib_none(gtk::ffi::gtk_dialog_get_action_area(dialog.as_ptr()))
+    }
 }

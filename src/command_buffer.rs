@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use crate::editor::image_operation::ImageOperation;
 use crate::editor::tools::Tools;
 use crate::editor::tools::selection::Selection;
+use crate::program::{ProgramAction, ProgramActionData};
 
 #[derive(Debug)]
 pub enum BackgroundType {
@@ -19,8 +20,8 @@ pub enum Command {
     SetTool(Tools),
     SwitchToPrevTool,
     SwitchedTool(Tools),
-    SetColor(image::Rgba<u8>),
-    SetAlternativeColor(image::Rgba<u8>),
+    SetPrimaryColor(image::Rgba<u8>),
+    SetSecondaryColor(image::Rgba<u8>),
     SetSelection(Option<Selection>),
     SetClipboard(image::RgbaImage),
     SetCopiedImage(image::RgbaImage),
@@ -34,7 +35,8 @@ pub enum Command {
     ResizeImage(u32, u32),
     ResizeCanvas(u32, u32),
     RequestResizeCanvas(u32, u32),
-    AbortedResizeCanvas
+    AbortedResizeCanvas,
+    TriggerProgramAction(ProgramAction, ProgramActionData)
 }
 
 pub struct CommandBuffer {

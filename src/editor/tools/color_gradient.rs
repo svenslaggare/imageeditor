@@ -75,10 +75,10 @@ impl ColorGradientDrawTool {
 impl Tool for ColorGradientDrawTool {
     fn handle_command(&mut self, _command_buffer: &mut CommandBuffer, _image: &editor::Image, command: &Command) {
         match command {
-            Command::SetColor(color) => {
+            Command::SetPrimaryColor(color) => {
                 self.first_color = *color;
             }
-            Command::SetAlternativeColor(color) => {
+            Command::SetSecondaryColor(color) => {
                 self.second_color = *color;
             }
             Command::SetSelection(selection) => {

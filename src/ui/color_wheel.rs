@@ -8,9 +8,10 @@ use crate::rendering::texture::Texture;
 use crate::rendering::prelude::{Position, Rectangle, Size};
 use crate::rendering::prelude::Color4 as RenderingColor4;
 use crate::ui::button::{GenericButton};
-use crate::editor::tools::{EditorWindow, ColorWheelMode};
+use crate::editor::tools::{EditorWindow, SelectColorMode};
 use crate::program::Renders;
 use crate::editor::image_operation_helpers::{hsv_to_rgb, rgb_to_hsv};
+use crate::editor;
 
 pub struct ColorWheel {
     hue_wheel_texture: Texture,
@@ -19,7 +20,7 @@ pub struct ColorWheel {
     saturation_value_image: image::RgbaImage,
     position: Position,
     started_selecting_hue: bool,
-    mode: ColorWheelMode,
+    mode: SelectColorMode,
     started_selecting_color: bool
 }
 
@@ -38,25 +39,23 @@ impl ColorWheel {
             saturation_value_image,
             position: Position::new(0.0, 0.0),
             started_selecting_hue: false,
-            mode: ColorWheelMode::SelectColor,
+            mode: SelectColorMode::PrimaryColor,
             started_selecting_color: false,
         }
     }
 
-    pub fn set_mode(&mut self, mode: ColorWheelMode) {
+    pub fn set_mode(&mut self, mode: SelectColorMode) {
         self.mode = mode;
     }
 
-    pub fn update_position(&mut self, window: &mut dyn EditorWindow) {
+    pub fn update_position(&mut self, window: &dyn EditorWindow) {
         self.position = Position::new(
             0.5 * window.width() as f32 - 0.5 * self.hue_wheel_image.width() as f32,
             0.5 * window.height() as f32 - 0.5 * self.hue_wheel_image.height() as f32
         );
     }
-}
 
-impl GenericButton<CommandBuffer> for ColorWheel {
-    fn process_gui_event(&mut self, window: &mut dyn EditorWindow, event: &glfw::WindowEvent, command_buffer: &mut CommandBuffer) {
+    pub fn select_color(&mut self, window: &dyn EditorWindow, event: &glfw::WindowEvent) -> Option<editor::Color> {
         self.update_position(window);
 
         let bounding_rectangle = Rectangle::new(
@@ -98,19 +97,12 @@ impl GenericButton<CommandBuffer> for ColorWheel {
             None
         };
 
+        let mut selected_color = None;
         match event {
             glfw::WindowEvent::MouseButton(glfw::MouseButton::Button1, Action::Press, _) => {
                 let mut started_selecting_color = false;
                 if let Some(color) = select_color() {
-                    match self.mode {
-                        ColorWheelMode::SelectColor => {
-                            command_buffer.push(Command::SetColor(color));
-                        }
-                        ColorWheelMode::SelectAlternativeColor => {
-                            command_buffer.push(Command::SetAlternativeColor(color));
-                        }
-                    }
-
+                    selected_color = Some(color);
                     started_selecting_color = true;
                 }
 
@@ -130,16 +122,7 @@ impl GenericButton<CommandBuffer> for ColorWheel {
             }
             glfw::WindowEvent::CursorPos(_, _) => {
                 if self.started_selecting_color {
-                    if let Some(color) = select_color() {
-                        match self.mode {
-                            ColorWheelMode::SelectColor => {
-                                command_buffer.push(Command::SetColor(color));
-                            }
-                            ColorWheelMode::SelectAlternativeColor => {
-                                command_buffer.push(Command::SetAlternativeColor(color));
-                            }
-                        }
-                    }
+                    selected_color = select_color();
                 }
 
                 if self.started_selecting_hue {
@@ -150,6 +133,23 @@ impl GenericButton<CommandBuffer> for ColorWheel {
                 }
             }
             _ => {}
+        }
+
+        selected_color
+    }
+}
+
+impl GenericButton<CommandBuffer> for ColorWheel {
+    fn process_gui_event(&mut self, window: &dyn EditorWindow, event: &glfw::WindowEvent, command_buffer: &mut CommandBuffer) {
+        if let Some(color) = self.select_color(window, event) {
+            match self.mode {
+                SelectColorMode::PrimaryColor => {
+                    command_buffer.push(Command::SetPrimaryColor(color));
+                }
+                SelectColorMode::SecondaryColor => {
+                    command_buffer.push(Command::SetSecondaryColor(color));
+                }
+            }
         }
     }
 
