@@ -98,8 +98,7 @@ pub fn add(_app: &Application,
 
     let color_selector_clone = color_selector.clone();
     color_selector.color_code.as_ref().unwrap().connect_changed(move |entry| {
-        if *color_selector_clone.suppress_color_code_change.borrow_mut() {
-            *color_selector_clone.suppress_color_code_change.borrow_mut() = false;
+        if color_selector_clone.is_color_code_change_suppressed() {
             return;
         }
 
@@ -381,6 +380,15 @@ impl ColorSelector {
     pub fn set_rgba(&self, red: u8, green: u8, blue: u8, alpha: u8) {
         self.set_rgb(red, green, blue);
         self.opacity_selector().set_value(alpha as f64);
+    }
+
+    pub fn is_color_code_change_suppressed(&self) -> bool {
+        if *self.suppress_color_code_change.borrow_mut() {
+            *self.suppress_color_code_change.borrow_mut() = false;
+            true
+        } else {
+            false
+        }
     }
 }
 
