@@ -166,6 +166,8 @@ impl Program {
     }
 
     fn handle_commands(&mut self, window: &mut dyn EditorWindow) {
+        let mut trigger_color_dialog = None;
+
         while let Some(command) = self.command_buffer.pop() {
             match command {
                 Command::NewImage(width, height, background) => {
@@ -226,7 +228,14 @@ impl Program {
                     self.actions.trigger_with_data(ProgramAction::SetCopiedImage, ProgramActionData::Image(image));
                 }
                 Command::TriggerProgramAction(action, data) => {
-                    self.actions.trigger_with_data(action, data);
+                    match action {
+                        ProgramAction::OpenSelectPrimaryColorDialog | ProgramAction::OpenSelectSecondaryColorDialog => {
+                            trigger_color_dialog = Some((action, data));
+                        }
+                        _ => {
+                            self.actions.trigger_with_data(action, data);
+                        }
+                    }
                 }
                 command => {
                     match command {
@@ -267,6 +276,10 @@ impl Program {
                     self.ui_manager.process_command(&command);
                 }
             }
+        }
+
+        if let Some((action, data)) = trigger_color_dialog {
+            self.actions.trigger_with_data(action, data);
         }
     }
 
