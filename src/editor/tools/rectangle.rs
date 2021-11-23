@@ -59,7 +59,6 @@ impl RectangleDrawTool {
                  fill_color: editor::Color,
                  border_color: editor::Color) -> ImageOperation {
         let (start_x, start_y, end_x, end_y) = get_valid_rectangle_as_int(start_position, end_position);
-
         let mut ops = vec![
             ImageOperation::FillRectangle {
                 start_x,
@@ -67,7 +66,7 @@ impl RectangleDrawTool {
                 end_x,
                 end_y,
                 color: fill_color,
-                blend: false
+                blend: true
             }
         ];
 
@@ -79,6 +78,7 @@ impl RectangleDrawTool {
                     end_x,
                     end_y,
                     color: border_color,
+                    blend: true,
                     border_half_width: self.border_half_width
                 }
             );

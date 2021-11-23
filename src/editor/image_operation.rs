@@ -31,13 +31,13 @@ pub enum ImageOperation {
     SetScaledImage { image: image::RgbaImage, start_x: i32, start_y: i32, scale_x: f32, scale_y: f32 },
     SetRotatedImage { image: image::RgbaImage, start_x: i32, start_y: i32, end_x: i32, end_y: i32, rotation: f32 },
     SetPixel { x: i32, y: i32, color: Color },
-    Block { x: i32, y: i32, color: Color, side_half_width: i32 },
-    Line { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, anti_aliased: Option<bool>, side_half_width: i32 },
-    PencilStroke { start_x: i32, start_y: i32, end_x: i32, end_y: i32, prev_start_x: Option<i32>, prev_start_y: Option<i32>, color: Color, anti_aliased: Option<bool>, side_half_width: i32 },
-    Rectangle { start_x: i32, start_y: i32, end_x: i32, end_y: i32, border_half_width: i32, color: Color },
+    Block { x: i32, y: i32, color: Color, blend: bool, side_half_width: i32 },
+    Line { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, blend: bool, anti_aliased: Option<bool>, side_half_width: i32 },
+    PencilStroke { start_x: i32, start_y: i32, end_x: i32, end_y: i32, prev_start_x: Option<i32>, prev_start_y: Option<i32>, color: Color, blend: bool, anti_aliased: Option<bool>, side_half_width: i32 },
+    Rectangle { start_x: i32, start_y: i32, end_x: i32, end_y: i32, border_half_width: i32, color: Color, blend: bool },
     FillRectangle { start_x: i32, start_y: i32, end_x: i32, end_y: i32, color: Color, blend: bool },
-    Circle { center_x: i32, center_y: i32, radius: i32, border_half_width: i32, color: Color, anti_aliased: Option<bool> },
-    FillCircle { center_x: i32, center_y: i32, radius: i32, color: Color },
+    Circle { center_x: i32, center_y: i32, radius: i32, border_half_width: i32, color: Color, blend: bool, anti_aliased: Option<bool> },
+    FillCircle { center_x: i32, center_y: i32, radius: i32, color: Color, blend: bool },
     BucketFill { start_x: i32, start_y: i32, fill_color: Color, tolerance: f32 },
     ColorGradient { start_x: i32, start_y: i32, end_x: i32, end_y: i32, first_color: Color, second_color: Color, gradient_type: ColorGradientType }
 }
@@ -183,9 +183,9 @@ impl ImageOperation {
 
                 original_color.map(|original_color| ImageOperation::SetPixel { x: *x, y: *y, color: original_color })
             }
-            ImageOperation::Block { x, y, color, side_half_width } => {
+            ImageOperation::Block { x, y, color, blend, side_half_width } => {
                 let mut undo_image = SparseImage::new();
-                draw_block(update_op, *x, *y, *side_half_width, *color, undo, &mut undo_image);
+                draw_block(update_op, *x, *y, *side_half_width, *color, *blend, undo, &mut undo_image);
 
                 if undo {
                     Some(ImageOperation::SetSparseImage { image: undo_image })
@@ -193,7 +193,7 @@ impl ImageOperation {
                     None
                 }
             }
-            ImageOperation::Line { start_x, start_y, end_x, end_y, color, anti_aliased, side_half_width } => {
+            ImageOperation::Line { start_x, start_y, end_x, end_y, color, blend, anti_aliased, side_half_width } => {
                 let mut undo_image = SparseImage::new();
 
                 if anti_aliased.unwrap_or(true) {
@@ -215,7 +215,7 @@ impl ImageOperation {
                         *end_x,
                         *end_y,
                         |center_x: i32, center_y: i32| {
-                            draw_block(update_op, center_x, center_y, *side_half_width, *color, undo, &mut undo_image);
+                            draw_block(update_op, center_x, center_y, *side_half_width, *color, *blend, undo, &mut undo_image);
                         }
                     );
                 }
@@ -226,7 +226,7 @@ impl ImageOperation {
                     None
                 }
             }
-            ImageOperation::PencilStroke { start_x, start_y, end_x, end_y, prev_start_x, prev_start_y, color, anti_aliased, side_half_width } => {
+            ImageOperation::PencilStroke { start_x, start_y, end_x, end_y, prev_start_x, prev_start_y, color, blend, anti_aliased, side_half_width } => {
                 let mut undo_image = SparseImage::new();
 
                 if anti_aliased.unwrap_or(true) {
@@ -256,7 +256,7 @@ impl ImageOperation {
                                 *side_half_width,
                                 true,
                                 |center_x: i32, center_y: i32| {
-                                    draw_block(update_op, center_x, center_y, 0, *color, undo, &mut undo_image);
+                                    draw_block(update_op, center_x, center_y, 0, *color, *blend, undo, &mut undo_image);
                                 }
                             );
                         }
@@ -298,7 +298,7 @@ impl ImageOperation {
 
                 undo_image.map(|image| ImageOperation::SetImage { start_x: min_x, start_y: min_y, image, blend: false })
             }
-            ImageOperation::Rectangle { start_x, start_y, end_x, end_y, border_half_width: side_half_width, color } => {
+            ImageOperation::Rectangle { start_x, start_y, end_x, end_y, border_half_width: side_half_width, color, blend } => {
                 let mut undo_ops = Vec::new();
 
                 undo_ops.push(
@@ -308,6 +308,7 @@ impl ImageOperation {
                         end_x: end_x.clone(),
                         end_y: start_y.clone(),
                         color: color.clone(),
+                        blend: *blend,
                         anti_aliased: Some(false),
                         side_half_width: *side_half_width
                     }.apply(update_op, undo)
@@ -320,6 +321,7 @@ impl ImageOperation {
                         end_x: end_x.clone(),
                         end_y: end_y.clone(),
                         color: color.clone(),
+                        blend: *blend,
                         anti_aliased: Some(false),
                         side_half_width: *side_half_width
                     }.apply(update_op, undo)
@@ -332,6 +334,7 @@ impl ImageOperation {
                         end_x: start_x.clone(),
                         end_y: end_y.clone(),
                         color: color.clone(),
+                        blend: *blend,
                         anti_aliased: Some(false),
                         side_half_width: *side_half_width
                     }.apply(update_op, undo)
@@ -344,6 +347,7 @@ impl ImageOperation {
                         end_x: start_x.clone(),
                         end_y: start_y.clone(),
                         color: color.clone(),
+                        blend: *blend,
                         anti_aliased: Some(false),
                         side_half_width: *side_half_width
                     }.apply(update_op, undo)
@@ -357,7 +361,7 @@ impl ImageOperation {
                     None
                 }
             }
-            ImageOperation::Circle { center_x, center_y, radius, border_half_width, color, anti_aliased} => {
+            ImageOperation::Circle { center_x, center_y, radius, border_half_width, color, blend, anti_aliased} => {
                 let mut undo_image = SparseImage::new();
 
                 if anti_aliased.unwrap_or(true) {
@@ -378,7 +382,7 @@ impl ImageOperation {
                         *radius,
                         false,
                         |center_x: i32, center_y: i32| {
-                            draw_block(update_op, center_x, center_y, *border_half_width, *color, undo, &mut undo_image);
+                            draw_block(update_op, center_x, center_y, *border_half_width, *color, *blend, undo, &mut undo_image);
                         }
                     );
                 }
@@ -389,7 +393,7 @@ impl ImageOperation {
                     None
                 }
             }
-            ImageOperation::FillCircle { center_x, center_y, radius, color } => {
+            ImageOperation::FillCircle { center_x, center_y, radius, color, blend } => {
                 let mut undo_image = SparseImage::new();
 
                 draw_circle(
@@ -398,7 +402,7 @@ impl ImageOperation {
                     *radius,
                     true,
                     |center_x: i32, center_y: i32| {
-                        draw_block(update_op, center_x, center_y, 0, *color, undo, &mut undo_image);
+                        draw_block(update_op, center_x, center_y, 0, *color, *blend, undo, &mut undo_image);
                     }
                 );
 

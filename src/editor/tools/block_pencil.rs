@@ -13,8 +13,8 @@ pub struct BlockPencilDrawTool {
     is_drawing: Option<editor::Color>,
     prev_mouse_position: Option<Position>,
     prev_prev_mouse_position: Option<Position>,
-    color: editor::Color,
-    alternative_color: editor::Color,
+    primary_color: editor::Color,
+    secondary_color: editor::Color,
     side_half_width: i32,
     change_size_button: TextButton<i32>
 }
@@ -25,8 +25,8 @@ impl BlockPencilDrawTool {
             is_drawing: None,
             prev_mouse_position: None,
             prev_prev_mouse_position: None,
-            color: image::Rgba([0, 0, 0, 255]),
-            alternative_color: image::Rgba([0, 0, 0, 255]),
+            primary_color: image::Rgba([0, 0, 0, 255]),
+            secondary_color: image::Rgba([0, 0, 0, 255]),
             side_half_width: 1,
             change_size_button: TextButton::new(
                 renders.ui_font.clone(),
@@ -48,10 +48,10 @@ impl Tool for BlockPencilDrawTool {
     fn handle_command(&mut self, _command_buffer: &mut CommandBuffer, _image: &editor::Image, command: &Command) {
         match command {
             Command::SetPrimaryColor(color) => {
-                self.color = *color;
+                self.primary_color = *color;
             }
             Command::SetSecondaryColor(color) => {
-                self.alternative_color = *color;
+                self.secondary_color = *color;
             }
             _ => {}
         }
@@ -74,7 +74,8 @@ impl Tool for BlockPencilDrawTool {
                             x: mouse_position.x as i32,
                             y: mouse_position.y as i32,
                             side_half_width: this.side_half_width,
-                            color
+                            color,
+                            blend: false
                         }
                     ]
                 )
@@ -88,10 +89,10 @@ impl Tool for BlockPencilDrawTool {
                 let mouse_position = Position::new(mouse_x as f32, mouse_y as f32);
                 if image_area_rectangle.contains(&mouse_position) {
                     let already_drawing = self.is_drawing.is_some();
-                    self.is_drawing = Some(self.color);
+                    self.is_drawing = Some(self.primary_color);
 
                     if !already_drawing {
-                        op = create_begin_draw(self, get_transformed_mouse_position(window, image_area_transform), self.color);
+                        op = create_begin_draw(self, get_transformed_mouse_position(window, image_area_transform), self.primary_color);
                     }
                 }
             }
@@ -100,10 +101,10 @@ impl Tool for BlockPencilDrawTool {
                 let mouse_position = Position::new(mouse_x as f32, mouse_y as f32);
                 if image_area_rectangle.contains(&mouse_position) {
                     let already_drawing = self.is_drawing.is_some();
-                    self.is_drawing = Some(self.alternative_color);
+                    self.is_drawing = Some(self.secondary_color);
 
                     if !already_drawing {
-                        op = create_begin_draw(self, get_transformed_mouse_position(window, image_area_transform), self.alternative_color);
+                        op = create_begin_draw(self, get_transformed_mouse_position(window, image_area_transform), self.secondary_color);
                     }
                 }
             }
@@ -127,6 +128,7 @@ impl Tool for BlockPencilDrawTool {
                                 end_x: mouse_position.x as i32,
                                 end_y: mouse_position.y as i32,
                                 color,
+                                blend: false,
                                 anti_aliased: Some(false),
                                 side_half_width: self.side_half_width
                             }

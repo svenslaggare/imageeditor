@@ -56,6 +56,7 @@ impl LineDrawTool {
             end_x: end_position.x as i32,
             end_y: end_position.y as i32,
             color: self.color,
+            blend: false,
             anti_aliased: Some(self.anti_aliasing_checkbox.checked),
             side_half_width: self.side_half_width
         }

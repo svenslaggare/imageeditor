@@ -83,6 +83,7 @@ impl CircleDrawTool {
                         center_y: start_y,
                         radius,
                         color: fill_color,
+                        blend: true
                     },
                     ImageOperation::Circle {
                         center_x: start_x,
@@ -90,6 +91,7 @@ impl CircleDrawTool {
                         radius,
                         border_half_width: self.border_half_width,
                         color: border_color,
+                        blend: false,
                         anti_aliased: Some(self.anti_aliasing_checkbox.checked)
                     }
                 ]
@@ -103,6 +105,7 @@ impl CircleDrawTool {
                         center_y: start_y,
                         radius: radius - 4,
                         color: fill_color,
+                        blend: true,
                     },
                     ImageOperation::Circle {
                         center_x: start_x,
@@ -110,6 +113,7 @@ impl CircleDrawTool {
                         radius: radius - 4,
                         border_half_width: 2,
                         color: fill_color,
+                        blend: false,
                         anti_aliased: Some(self.anti_aliasing_checkbox.checked)
                     }
                 ]

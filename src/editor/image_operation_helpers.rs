@@ -4,12 +4,14 @@ use cgmath::{ElementWise, Vector4, Point2, Matrix3, Transform};
 
 use crate::editor::image_operation::{ImageSource, ImageOperationSource, SparseImage, OptionalImage, ColorGradientType};
 use crate::editor::Color;
+use std::collections::HashSet;
 
 pub fn draw_block<T: ImageOperationSource>(update_op: &mut T,
                                            center_x: i32,
                                            center_y: i32,
                                            side_half_width: i32,
                                            color: Color,
+                                           blend: bool,
                                            undo: bool,
                                            undo_image: &mut SparseImage) {
     for y in (center_y - side_half_width)..(center_y + side_half_width + 1) {
@@ -19,7 +21,11 @@ pub fn draw_block<T: ImageOperationSource>(update_op: &mut T,
                     undo_image.insert((x as u32, y as u32), update_op.get_pixel(x as u32, y as u32));
                 }
 
-                update_op.put_pixel(x as u32, y as u32, color);
+                if blend {
+                    update_op.put_pixel_with_blend(x as u32, y as u32, color);
+                } else {
+                    update_op.put_pixel(x as u32, y as u32, color);
+                }
             }
         }
     }
@@ -389,12 +395,19 @@ pub fn pencil_stroke_anti_aliased<T: ImageOperationSource>(update_op: &mut T,
 }
 
 pub fn draw_circle<F: FnMut(i32, i32)>(center_x: i32, center_y: i32, radius: i32, filled: bool, mut set_pixel: F) {
+    let mut line_drawn = HashSet::new();
+    let mut draw_line_guard = |set_pixel: &mut F, x1: i32, y1: i32, x2: i32, y2: i32| {
+        if line_drawn.insert(y1) {
+            draw_line(x1, y1, x2, y2, |x, y| set_pixel(x, y));
+        }
+    };
+
     let mut draw = |x: i32, y: i32| {
         if filled {
-            draw_line(center_x - x, center_y + y, center_x + x, center_y + y, |x, y| set_pixel(x, y));
-            draw_line(center_x - x, center_y - y, center_x + x, center_y - y, |x, y| set_pixel(x, y));
-            draw_line(center_x - y, center_y + x, center_x + y, center_y + x, |x, y| set_pixel(x, y));
-            draw_line(center_x - y, center_y - x, center_x + y, center_y - x, |x, y| set_pixel(x, y));
+            draw_line_guard(&mut set_pixel, center_x - x, center_y + y, center_x + x, center_y + y);
+            draw_line_guard(&mut set_pixel, center_x - x, center_y - y, center_x + x, center_y - y);
+            draw_line_guard(&mut set_pixel, center_x - y, center_y + x, center_x + y, center_y + x);
+            draw_line_guard(&mut set_pixel, center_x - y, center_y - x, center_x + y, center_y - x);
         } else {
             set_pixel(center_x - x, center_y + y);
             set_pixel(center_x + x, center_y + y);
@@ -555,7 +568,7 @@ pub fn bucket_fill<T: ImageOperationSource>(update_op: &mut T,
                 undo_image.insert((x as u32, y as u32), color);
             }
 
-            update_op.put_pixel(x as u32, y as u32, fill_color);
+            update_op.put_pixel_with_blend(x as u32, y as u32, fill_color);
             visited[(y * width + x) as usize] = true;
 
             for ny in (y - 1)..(y + 2) {
@@ -583,7 +596,6 @@ pub fn color_gradient<T: ImageOperationSource>(update_op: &mut T,
     let first_color = Vector4::new(first_color[0] as f32, first_color[1] as f32, first_color[2] as f32, first_color[3] as f32);
     let second_color = Vector4::new(second_color[0] as f32, second_color[1] as f32, second_color[2] as f32, second_color[3] as f32);
 
-
     let calc_distance = |x: i32, y: i32| {
         match gradient_type {
             ColorGradientType::Linear => {
@@ -607,7 +619,7 @@ pub fn color_gradient<T: ImageOperationSource>(update_op: &mut T,
 
             let factor = distance / max_distance;
             let color = factor * first_color + (1.0 - factor) * second_color;
-            update_op.put_pixel(
+            update_op.put_pixel_with_blend(
                 x,
                 y,
                 image::Rgba([

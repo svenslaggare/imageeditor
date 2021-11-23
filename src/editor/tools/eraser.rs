@@ -56,6 +56,7 @@ impl Tool for EraserDrawTool {
                             x: mouse_position.x as i32,
                             y: mouse_position.y as i32,
                             color: image::Rgba([0, 0, 0, 0]),
+                            blend: false,
                             side_half_width: this.side_half_width
                         }
                     ]
@@ -90,6 +91,7 @@ impl Tool for EraserDrawTool {
                                 end_x: mouse_position.x as i32,
                                 end_y: mouse_position.y as i32,
                                 color: image::Rgba([0, 0, 0, 0]),
+                                blend: false,
                                 anti_aliased: Some(false),
                                 side_half_width: self.side_half_width
                             }

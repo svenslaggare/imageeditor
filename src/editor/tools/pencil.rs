@@ -85,7 +85,8 @@ impl Tool for PencilDrawTool {
                                 center_x: mouse_position.x as i32,
                                 center_y: mouse_position.y as i32,
                                 radius: this.side_half_width,
-                                color
+                                color,
+                                blend: false
                             },
                             ImageOperation::Circle {
                                 center_x: mouse_position.x as i32,
@@ -93,6 +94,7 @@ impl Tool for PencilDrawTool {
                                 radius: this.side_half_width - 4,
                                 border_half_width: 2,
                                 color,
+                                blend: false,
                                 anti_aliased: Some(this.anti_aliasing_checkbox.checked)
                             }
                         ]
@@ -108,7 +110,8 @@ impl Tool for PencilDrawTool {
                                 center_x: mouse_position.x as i32,
                                 center_y: mouse_position.y as i32,
                                 radius: this.side_half_width,
-                                color
+                                color,
+                                blend: false
                             }
                         ]
                     )
@@ -164,7 +167,8 @@ impl Tool for PencilDrawTool {
                                     center_x: mouse_position.x as i32,
                                     center_y: mouse_position.y as i32,
                                     radius: self.side_half_width,
-                                    color
+                                    color,
+                                    blend: false
                                 }
                             );
 
@@ -175,6 +179,7 @@ impl Tool for PencilDrawTool {
                                     radius: self.side_half_width - 4,
                                     border_half_width: 2,
                                     color,
+                                    blend: false,
                                     anti_aliased: Some(self.anti_aliasing_checkbox.checked)
                                 }
                             );
@@ -189,6 +194,7 @@ impl Tool for PencilDrawTool {
                                 prev_start_x: self.prev_prev_mouse_position.map(|pos| pos.x as i32),
                                 prev_start_y: self.prev_prev_mouse_position.map(|pos| pos.y as i32),
                                 color,
+                                blend: false,
                                 anti_aliased: Some(self.anti_aliasing_checkbox.checked),
                                 side_half_width: self.side_half_width
                             }
