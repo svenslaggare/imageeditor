@@ -6,7 +6,7 @@ use itertools::Itertools;
 use image::{Pixel, FilterType};
 
 use crate::editor::image::{Color};
-use crate::editor::image_operation_helpers::{sub_image, draw_block, draw_line, draw_circle, fill_rectangle, bucket_fill, draw_line_anti_aliased_thick, draw_circle_anti_aliased_thick, color_gradient, pencil_stroke_anti_aliased, rotate_image};
+use crate::editor::image_operation_helpers::{sub_image, draw_block, draw_line, draw_circle, fill_rectangle, bucket_fill, draw_line_anti_aliased_thick, draw_circle_anti_aliased_thick, color_gradient, pencil_stroke_anti_aliased, rotate_image, draw_line_thick};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum ImageOperationMarker {
@@ -209,14 +209,17 @@ impl ImageOperation {
                         &mut undo_image
                     );
                 } else {
-                    draw_line(
+                    draw_line_thick(
+                        update_op,
                         *start_x,
                         *start_y,
                         *end_x,
                         *end_y,
-                        |center_x: i32, center_y: i32| {
-                            draw_block(update_op, center_x, center_y, *side_half_width, *color, *blend, undo, &mut undo_image);
-                        }
+                        *side_half_width,
+                        *color,
+                        *blend,
+                        undo,
+                        &mut undo_image
                     );
                 }
 
@@ -249,7 +252,7 @@ impl ImageOperation {
                         *start_y,
                         *end_x,
                         *end_y,
-                        |center_x: i32, center_y: i32| {
+                        |center_x: i32, center_y: i32, _| {
                             draw_circle(
                                 center_x,
                                 center_y,
@@ -279,7 +282,7 @@ impl ImageOperation {
                 let max_y = std::cmp::min(height, *end_y);
 
                 let undo_image = if undo {
-                    Some(sub_image(update_op, min_x, min_y, max_x, max_y))
+                    Some(sub_image(update_op, min_x, min_y, max_x + 1, max_y + 1))
                 } else {
                     None
                 };
@@ -303,10 +306,10 @@ impl ImageOperation {
 
                 undo_ops.push(
                     ImageOperation::Line {
-                        start_x: start_x.clone(),
-                        start_y: start_y.clone(),
-                        end_x: end_x.clone(),
-                        end_y: start_y.clone(),
+                        start_x: start_x.clone() - (side_half_width * 2 + 1),
+                        start_y: start_y.clone() - side_half_width - 1,
+                        end_x: end_x.clone() + (side_half_width * 2 + 1),
+                        end_y: start_y.clone() - side_half_width - 1,
                         color: color.clone(),
                         blend: *blend,
                         anti_aliased: Some(false),
@@ -316,9 +319,9 @@ impl ImageOperation {
 
                 undo_ops.push(
                     ImageOperation::Line {
-                        start_x: end_x.clone(),
+                        start_x: end_x.clone() + side_half_width + 1,
                         start_y: start_y.clone(),
-                        end_x: end_x.clone(),
+                        end_x: end_x.clone() + side_half_width + 1,
                         end_y: end_y.clone(),
                         color: color.clone(),
                         blend: *blend,
@@ -329,10 +332,10 @@ impl ImageOperation {
 
                 undo_ops.push(
                     ImageOperation::Line {
-                        start_x: end_x.clone(),
+                        start_x: start_x.clone() - side_half_width - 1,
                         start_y: end_y.clone(),
-                        end_x: start_x.clone(),
-                        end_y: end_y.clone(),
+                        end_x: start_x.clone() - side_half_width - 1,
+                        end_y: start_y.clone(),
                         color: color.clone(),
                         blend: *blend,
                         anti_aliased: Some(false),
@@ -342,10 +345,10 @@ impl ImageOperation {
 
                 undo_ops.push(
                     ImageOperation::Line {
-                        start_x: start_x.clone(),
-                        start_y: end_y.clone(),
-                        end_x: start_x.clone(),
-                        end_y: start_y.clone(),
+                        start_x: end_x.clone() + (side_half_width * 2 + 1),
+                        start_y: end_y.clone() + side_half_width + 1,
+                        end_x: start_x.clone() - (side_half_width * 2 + 1),
+                        end_y: end_y.clone() + side_half_width + 1,
                         color: color.clone(),
                         blend: *blend,
                         anti_aliased: Some(false),

@@ -22,6 +22,7 @@ use crate::rendering::rectangle_render::RectangleRender;
 use crate::editor::editor::{LayerState, EditorOperation};
 use crate::ui::layers::LayersManager;
 use crate::editor::EditorImage;
+use crate::editor::image_operation::ImageOperation;
 
 pub const LEFT_SIDE_PANEL_WIDTH: u32 = 70;
 pub const RIGHT_SIDE_PANEL_WIDTH: u32 = 150;

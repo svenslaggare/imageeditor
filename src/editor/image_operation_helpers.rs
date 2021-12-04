@@ -1,10 +1,31 @@
+use std::collections::HashSet;
+
 use image::{Pixel, FilterType};
 
 use cgmath::{ElementWise, Vector4, Point2, Matrix3, Transform};
 
 use crate::editor::image_operation::{ImageSource, ImageOperationSource, SparseImage, OptionalImage, ColorGradientType};
 use crate::editor::Color;
-use std::collections::HashSet;
+
+pub fn draw_pixel<T: ImageOperationSource>(update_op: &mut T,
+                                           x: i32,
+                                           y: i32,
+                                           color: Color,
+                                           blend: bool,
+                                           undo: bool,
+                                           undo_image: &mut SparseImage) {
+    if x >= 0 && x < update_op.width() as i32 && y >= 0 && y < update_op.height() as i32 {
+        if undo && !undo_image.contains_key(&(x as u32, y as u32)) {
+            undo_image.insert((x as u32, y as u32), update_op.get_pixel(x as u32, y as u32));
+        }
+
+        if blend {
+            update_op.put_pixel_with_blend(x as u32, y as u32, color);
+        } else {
+            update_op.put_pixel(x as u32, y as u32, color);
+        }
+    }
+}
 
 pub fn draw_block<T: ImageOperationSource>(update_op: &mut T,
                                            center_x: i32,
@@ -16,22 +37,27 @@ pub fn draw_block<T: ImageOperationSource>(update_op: &mut T,
                                            undo_image: &mut SparseImage) {
     for y in (center_y - side_half_width)..(center_y + side_half_width + 1) {
         for x in (center_x - side_half_width)..(center_x + side_half_width + 1) {
-            if x >= 0 && x < update_op.width() as i32 && y >= 0 && y < update_op.height() as i32 {
-                if undo && !undo_image.contains_key(&(x as u32, y as u32)) {
-                    undo_image.insert((x as u32, y as u32), update_op.get_pixel(x as u32, y as u32));
-                }
-
-                if blend {
-                    update_op.put_pixel_with_blend(x as u32, y as u32, color);
-                } else {
-                    update_op.put_pixel(x as u32, y as u32, color);
-                }
-            }
+            draw_pixel(
+                update_op,
+                x,
+                y,
+                color,
+                blend,
+                undo,
+                undo_image
+            );
         }
     }
 }
 
-pub fn draw_line<F: FnMut(i32, i32)>(x1: i32, y1: i32, x2: i32, y2: i32, mut set_pixel: F) {
+#[derive(Debug, PartialEq)]
+pub enum LineSegmentPart {
+    Start,
+    Middle,
+    End
+}
+
+pub fn draw_line<F: FnMut(i32, i32, LineSegmentPart)>(x1: i32, y1: i32, x2: i32, y2: i32, mut set_pixel: F) {
     // using Bresenham's algorithm
     let dx = x2 - x1;
     let dy = y2 - y1;
@@ -56,7 +82,7 @@ pub fn draw_line<F: FnMut(i32, i32)>(x1: i32, y1: i32, x2: i32, y2: i32, mut set
             end_x = x1;
         }
 
-        set_pixel(x, y);
+        set_pixel(x, y, LineSegmentPart::Start);
 
         while x < end_x {
             x += 1;
@@ -70,7 +96,8 @@ pub fn draw_line<F: FnMut(i32, i32)>(x1: i32, y1: i32, x2: i32, y2: i32, mut set
                 }
                 px += 2 * (dy1 - dx1);
             }
-            set_pixel(x, y);
+
+            set_pixel(x, y, if x < end_x {LineSegmentPart::Middle} else {LineSegmentPart::End});
         }
     } else {
         let end_y;
@@ -84,7 +111,7 @@ pub fn draw_line<F: FnMut(i32, i32)>(x1: i32, y1: i32, x2: i32, y2: i32, mut set
             end_y = y1;
         }
 
-        set_pixel(x, y);
+        set_pixel(x, y, LineSegmentPart::Start);
 
         while y < end_y {
             y += 1;
@@ -98,8 +125,88 @@ pub fn draw_line<F: FnMut(i32, i32)>(x1: i32, y1: i32, x2: i32, y2: i32, mut set
                 }
                 py += 2 * (dx1 - dy1);
             }
-            set_pixel(x, y);
+
+            set_pixel(x, y, if y < end_y {LineSegmentPart::Middle} else {LineSegmentPart::End});
         }
+    }
+}
+
+pub fn draw_line_thick<T: ImageOperationSource>(update_op: &mut T,
+                                                x1: i32, y1: i32, x2: i32, y2: i32,
+                                                side_half_width: i32,
+                                                color: Color,
+                                                blend: bool,
+                                                undo: bool,
+                                                undo_image: &mut SparseImage) {
+    if side_half_width > 0 {
+        let x1_f = x1 as f32;
+        let y1_f = y1 as f32;
+        let x2_f = x2 as f32;
+        let y2_f = y2 as f32;
+
+        let dx = x2_f - x1_f;
+        let dy = y2_f - y1_f;
+        let norm = ((dx * dx + dy * dy) as f32).sqrt();
+        let (dx, dy) = if norm > 1E-6 {
+            (dx / norm, dy / norm)
+        } else {
+            (0.0, 0.0)
+        };
+
+        let dx_perp = dy;
+        let dy_perp = -dx;
+
+        let mut pixels_draw = HashSet::new();
+        let mut draw_pixel_guard = |x: i32, y: i32| {
+            if pixels_draw.insert((x, y)) {
+                draw_pixel(
+                    update_op,
+                    x, y,
+                    color, blend,
+                    undo, undo_image
+                );
+            }
+        };
+
+        draw_line(
+            x1,
+            y1,
+            x2,
+            y2,
+            |long_center_x: i32, long_center_y: i32, long_part| {
+                let long_center_x = long_center_x as f32;
+                let long_center_y = long_center_y as f32;
+                let width = side_half_width as f32;
+
+                draw_line(
+                    (long_center_x - dx_perp * width).round() as i32,
+                    (long_center_y - dy_perp * width).round() as i32,
+                    (long_center_x + dx_perp * width).round() as i32,
+                    (long_center_y + dy_perp * width).round() as i32,
+                    |short_center_x: i32, short_center_y: i32, short_part| {
+                        if short_part == LineSegmentPart::Middle && long_part == LineSegmentPart::Middle {
+                            draw_pixel_guard(short_center_x, short_center_y);
+                            draw_pixel_guard(short_center_x + 1, short_center_y);
+                            draw_pixel_guard(short_center_x - 1, short_center_y);
+                            draw_pixel_guard(short_center_x, short_center_y + 1);
+                            draw_pixel_guard(short_center_x, short_center_y - 1);
+                        } else {
+                            draw_pixel_guard(short_center_x, short_center_y);
+                        }
+                    }
+                );
+            }
+        );
+    } else {
+        draw_line(
+            x1,
+            y1,
+            x2,
+            y2,
+            |center_x: i32, center_y: i32, _| {
+                draw_pixel(update_op, center_x, center_y, color, blend, undo, undo_image);
+            }
+        );
     }
 }
 
@@ -398,7 +505,7 @@ pub fn draw_circle<F: FnMut(i32, i32)>(center_x: i32, center_y: i32, radius: i32
     let mut line_drawn = HashSet::new();
     let mut draw_line_guard = |set_pixel: &mut F, x1: i32, y1: i32, x2: i32, y2: i32| {
         if line_drawn.insert(y1) {
-            draw_line(x1, y1, x2, y2, |x, y| set_pixel(x, y));
+            draw_line(x1, y1, x2, y2, |x, y, _| set_pixel(x, y));
         }
     };
 
@@ -540,8 +647,8 @@ pub fn draw_circle_anti_aliased_thick<T: ImageOperationSource>(update_op: &mut T
 }
 
 pub fn fill_rectangle<F: FnMut(i32, i32)>(min_x: i32, min_y: i32, max_x: i32, max_y: i32, mut set_pixel: F) {
-    for y in min_y..max_y {
-        for x in min_x..max_x {
+    for y in min_y..max_y + 1 {
+        for x in min_x..max_x + 1 {
             set_pixel(x, y);
         }
     }
@@ -653,7 +760,10 @@ fn color_within_tolerance(ref_color: &Color, tolerance: f32, color: &Color) -> b
 }
 
 pub fn sub_image<T: ImageSource>(image: &T, min_x: i32, min_y: i32, max_x: i32, max_y: i32) -> image::RgbaImage {
-    let mut sub_image: image::RgbaImage = image::RgbaImage::new((max_x - min_x) as u32, (max_y - min_y) as u32);
+    let mut sub_image: image::RgbaImage = image::RgbaImage::new(
+        (max_x - min_x).max(0) as u32,
+        (max_y - min_y).max(0) as u32
+    );
 
     for y in min_y..max_y {
         for x in min_x..max_x {
