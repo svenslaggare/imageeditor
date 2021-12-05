@@ -6,7 +6,7 @@ use itertools::Itertools;
 use image::{Pixel, FilterType};
 
 use crate::editor::image::{Color};
-use crate::editor::image_operation_helpers::{sub_image, draw_block, draw_line, draw_circle, fill_rectangle, bucket_fill, draw_line_anti_aliased_thick, draw_circle_anti_aliased_thick, color_gradient, pencil_stroke_anti_aliased, rotate_image, draw_line_thick};
+use crate::editor::image_operation_helpers::{sub_image, draw_block, draw_line, draw_circle, fill_rectangle, bucket_fill, draw_line_anti_aliased_thick, draw_circle_anti_aliased_thick, color_gradient, pencil_stroke_anti_aliased, rotate_image, draw_line_thick, draw_pixel};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum ImageOperationMarker {
@@ -405,7 +405,7 @@ impl ImageOperation {
                     *radius,
                     true,
                     |center_x: i32, center_y: i32| {
-                        draw_block(update_op, center_x, center_y, 0, *color, *blend, undo, &mut undo_image);
+                        draw_pixel(update_op, center_x, center_y, *color, *blend, undo, &mut undo_image);
                     }
                 );
 

@@ -622,7 +622,20 @@ pub fn draw_circle_anti_aliased_thick<T: ImageOperationSource>(update_op: &mut T
                                                                color: Color,
                                                                undo: bool,
                                                                undo_image: &mut SparseImage) {
-    if border_half_width == 0 {
+    if border_half_width > 0 {
+        for radius_offset in -border_half_width..(border_half_width + 1) {
+            draw_circle_anti_aliased(
+                update_op,
+                center_x,
+                center_y,
+                radius + (border_half_width - 1) + radius_offset,
+                color,
+                radius_offset.abs() == border_half_width,
+                undo,
+                undo_image
+            );
+        }
+    } else {
         draw_circle_anti_aliased(
             update_op,
             center_x,
@@ -630,21 +643,6 @@ pub fn draw_circle_anti_aliased_thick<T: ImageOperationSource>(update_op: &mut T
             radius,
             color,
             true,
-            undo,
-            undo_image
-        );
-
-        return;
-    }
-
-    for radius_offset in -border_half_width..(border_half_width + 1) {
-        draw_circle_anti_aliased(
-            update_op,
-            center_x,
-            center_y,
-            radius - radius_offset,
-            color,
-            radius_offset.abs() == border_half_width,
             undo,
             undo_image
         );
