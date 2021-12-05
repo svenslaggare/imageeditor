@@ -308,7 +308,7 @@ pub fn draw_line_anti_aliased_f32<T: ImageOperationSource>(update_op: &mut T,
                                                            mut x1: f32, mut y1: f32,
                                                            mut x2: f32, mut y2: f32,
                                                            color: Color,
-                                                           blend: impl Fn(LineSegmentPart) -> bool,
+                                                           set_pixel: &mut impl FnMut(i32, i32, LineSegmentPart) -> (bool, bool),
                                                            undo: bool,
                                                            undo_image: &mut SparseImage) {
     let fpart = |x: f32| x - x.floor();
@@ -320,18 +320,23 @@ pub fn draw_line_anti_aliased_f32<T: ImageOperationSource>(update_op: &mut T,
             return;
         }
 
+        let (draw, use_alpha) = set_pixel(x, y, part);
+        if !draw {
+            return;
+        }
+
         let pixel = update_op.get_pixel(x as u32, y as u32);
         if undo && !undo_image.contains_key(&(x as u32, y as u32)) {
             undo_image.insert((x as u32, y as u32), pixel);
         }
 
-        let color = if blend(part) {
-            let mut color = color;
+        let mut color = color;
+
+        if use_alpha {
             color[3] = (color[3] as f32 * c).clamp(0.0, 255.0) as u8;
-            alpha_blend(color, pixel)
-        } else {
-            color
-        };
+        }
+
+        color = alpha_blend(color, pixel);
 
         update_op.put_pixel(x as u32, y as u32, color);
     };
@@ -426,20 +431,27 @@ pub fn draw_line_anti_aliased_thick<T: ImageOperationSource>(update_op: &mut T,
         let dx_perp = dy;
         let dy_perp = -dx;
 
+        let mut drawn_pixels = HashSet::new();
         for width in 0..(side_half_width + 1) {
-            let blend = |part: LineSegmentPart| {
+            let mut set_pixel = |x, y, part: LineSegmentPart| {
                 match part {
-                    LineSegmentPart::Start | LineSegmentPart::End => true,
-                    LineSegmentPart::Middle => width == side_half_width
+                    LineSegmentPart::Start | LineSegmentPart::End => (true, true),
+                    LineSegmentPart::Middle => {
+                        if drawn_pixels.insert((x, y)) {
+                            (true, width == side_half_width)
+                        } else {
+                            (false, false)
+                        }
+                    }
                 }
             };
 
             if width != 0 {
                 let width = width as f32;
-                draw_line_anti_aliased_f32(update_op, x1 - dx_perp * width, y1 - dy_perp * width, x2 - dx_perp * width, y2 - dy_perp * width, color, blend, undo, undo_image);
-                draw_line_anti_aliased_f32(update_op, x1 + dx_perp * width, y1 + dy_perp * width, x2 + dx_perp * width, y2 + dy_perp * width, color, blend, undo, undo_image);
+                draw_line_anti_aliased_f32(update_op, x1 - dx_perp * width, y1 - dy_perp * width, x2 - dx_perp * width, y2 - dy_perp * width, color, &mut set_pixel, undo, undo_image);
+                draw_line_anti_aliased_f32(update_op, x1 + dx_perp * width, y1 + dy_perp * width, x2 + dx_perp * width, y2 + dy_perp * width, color, &mut set_pixel, undo, undo_image);
             } else {
-                draw_line_anti_aliased_f32(update_op, x1, y1, x2, y2, color, blend, undo, undo_image);
+                draw_line_anti_aliased_f32(update_op, x1, y1, x2, y2, color, &mut set_pixel, undo, undo_image);
             }
         }
     } else {
@@ -491,14 +503,14 @@ pub fn pencil_stroke_anti_aliased<T: ImageOperationSource>(update_op: &mut T,
         let prev_dy_perp = -prev_dx;
 
         for width in 0..(side_half_width + 1) {
-            let blend = |_| width == side_half_width;
+            let mut set_pixel = |_, _, _| (true, width == side_half_width);
 
             if width != 0 {
                 let width = width as f32;
-                draw_line_anti_aliased_f32(update_op, x1 - prev_dx_perp * width, y1 - prev_dy_perp * width, x2 - dx_perp * width, y2 - dy_perp * width, color, blend, undo, undo_image);
-                draw_line_anti_aliased_f32(update_op, x1 + prev_dx_perp * width, y1 + prev_dy_perp * width, x2 + dx_perp * width, y2 + dy_perp * width, color, blend, undo, undo_image);
+                draw_line_anti_aliased_f32(update_op, x1 - prev_dx_perp * width, y1 - prev_dy_perp * width, x2 - dx_perp * width, y2 - dy_perp * width, color, &mut set_pixel, undo, undo_image);
+                draw_line_anti_aliased_f32(update_op, x1 + prev_dx_perp * width, y1 + prev_dy_perp * width, x2 + dx_perp * width, y2 + dy_perp * width, color, &mut set_pixel, undo, undo_image);
             } else {
-                draw_line_anti_aliased_f32(update_op, x1, y1, x2, y2, color, blend, undo, undo_image);
+                draw_line_anti_aliased_f32(update_op, x1, y1, x2, y2, color, &mut set_pixel, undo, undo_image);
             }
         }
     } else {
