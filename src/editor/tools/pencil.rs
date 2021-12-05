@@ -180,7 +180,7 @@ impl Tool for PencilDrawTool {
                                     border_half_width: 2,
                                     color,
                                     blend: false,
-                                    anti_aliased: Some(self.anti_aliasing_checkbox.checked)
+                                    anti_aliased: Some(true)
                                 }
                             );
                         }

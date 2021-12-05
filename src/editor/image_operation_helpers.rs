@@ -308,14 +308,14 @@ pub fn draw_line_anti_aliased_f32<T: ImageOperationSource>(update_op: &mut T,
                                                            mut x1: f32, mut y1: f32,
                                                            mut x2: f32, mut y2: f32,
                                                            color: Color,
-                                                           blend: bool,
+                                                           blend: impl Fn(LineSegmentPart) -> bool,
                                                            undo: bool,
                                                            undo_image: &mut SparseImage) {
     let fpart = |x: f32| x - x.floor();
     let rfpart = |x: f32| 1.0 - fpart(x);
     let ipart = |x: f32| x.floor() as i32;
 
-    let mut plot = |x: i32, y: i32, c: f32| {
+    let mut plot = |part: LineSegmentPart, x: i32, y: i32, c: f32| {
         if !(x >= 0 && x < update_op.width() as i32 && y >= 0 && y < update_op.height() as i32) {
             return;
         }
@@ -325,7 +325,7 @@ pub fn draw_line_anti_aliased_f32<T: ImageOperationSource>(update_op: &mut T,
             undo_image.insert((x as u32, y as u32), pixel);
         }
 
-        let color = if blend {
+        let color = if blend(part) {
             let mut color = color;
             color[3] = (color[3] as f32 * c).clamp(0.0, 255.0) as u8;
             alpha_blend(color, pixel)
@@ -364,11 +364,11 @@ pub fn draw_line_anti_aliased_f32<T: ImageOperationSource>(update_op: &mut T,
     let y_pixel1 = ipart(y_end);
 
     if steep {
-        plot(y_pixel1, x_pixel1 as i32, rfpart(y_end) * x_gap);
-        plot(y_pixel1 + 1, x_pixel1 as i32, fpart(y_end) * x_gap);
+        plot(LineSegmentPart::Start, y_pixel1, x_pixel1 as i32, rfpart(y_end) * x_gap);
+        plot(LineSegmentPart::Start, y_pixel1 + 1, x_pixel1 as i32, fpart(y_end) * x_gap);
     } else {
-        plot(x_pixel1 as i32, y_pixel1, rfpart(y_end) * x_gap);
-        plot(x_pixel1 as i32, y_pixel1 + 1, fpart(y_end) * x_gap);
+        plot(LineSegmentPart::Start, x_pixel1 as i32, y_pixel1, rfpart(y_end) * x_gap);
+        plot(LineSegmentPart::Start, x_pixel1 as i32, y_pixel1 + 1, fpart(y_end) * x_gap);
     }
 
     let mut intercept_y = y_end + gradient; // first y-intersection for the main loop
@@ -381,24 +381,24 @@ pub fn draw_line_anti_aliased_f32<T: ImageOperationSource>(update_op: &mut T,
     let y_pixel2 = ipart(y_end);
 
     if steep {
-        plot(y_pixel2, x_pixel2 as i32, rfpart(y_end) * x_gap);
-        plot(y_pixel2 + 1, x_pixel2 as i32, fpart(y_end) * x_gap);
+        plot(LineSegmentPart::End, y_pixel2, x_pixel2 as i32, rfpart(y_end) * x_gap);
+        plot(LineSegmentPart::End, y_pixel2 + 1, x_pixel2 as i32, fpart(y_end) * x_gap);
     } else {
-        plot(x_pixel2 as i32, y_pixel2, rfpart(y_end) * x_gap);
-        plot(x_pixel2 as i32, y_pixel2 + 1, fpart(y_end) * x_gap);
+        plot(LineSegmentPart::End, x_pixel2 as i32, y_pixel2, rfpart(y_end) * x_gap);
+        plot(LineSegmentPart::End, x_pixel2 as i32, y_pixel2 + 1, fpart(y_end) * x_gap);
     }
 
     // Main loop
     if steep {
         for x in (x_pixel1 + 1.0) as i32..x_pixel2 as i32 {
-            plot(ipart(intercept_y), x, rfpart(intercept_y));
-            plot(ipart(intercept_y) + 1, x, fpart(intercept_y));
+            plot(LineSegmentPart::Middle, ipart(intercept_y), x, rfpart(intercept_y));
+            plot(LineSegmentPart::Middle, ipart(intercept_y) + 1, x, fpart(intercept_y));
             intercept_y = intercept_y + gradient;
         }
     } else {
         for x in (x_pixel1 + 1.0) as i32..x_pixel2 as i32 {
-            plot(x, ipart(intercept_y), rfpart(intercept_y));
-            plot(x, ipart(intercept_y) + 1, fpart(intercept_y));
+            plot(LineSegmentPart::Middle, x, ipart(intercept_y), rfpart(intercept_y));
+            plot(LineSegmentPart::Middle, x, ipart(intercept_y) + 1, fpart(intercept_y));
             intercept_y = intercept_y + gradient;
         }
     }
@@ -427,7 +427,12 @@ pub fn draw_line_anti_aliased_thick<T: ImageOperationSource>(update_op: &mut T,
         let dy_perp = -dx;
 
         for width in 0..(side_half_width + 1) {
-            let blend = width == side_half_width;
+            let blend = |part: LineSegmentPart| {
+                match part {
+                    LineSegmentPart::Start | LineSegmentPart::End => true,
+                    LineSegmentPart::Middle => width == side_half_width
+                }
+            };
 
             if width != 0 {
                 let width = width as f32;
@@ -486,7 +491,7 @@ pub fn pencil_stroke_anti_aliased<T: ImageOperationSource>(update_op: &mut T,
         let prev_dy_perp = -prev_dx;
 
         for width in 0..(side_half_width + 1) {
-            let blend = width == side_half_width;
+            let blend = |_| width == side_half_width;
 
             if width != 0 {
                 let width = width as f32;
