@@ -31,4 +31,4 @@ jobs:
     - uses: actions/upload-artifact@v2
       with:
         name: imageeditor_linux_x86_64
-        path: imageeditor
+        path: imageeditor.zip
