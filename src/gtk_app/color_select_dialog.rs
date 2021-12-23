@@ -316,9 +316,9 @@ struct ColorSelector {
 impl ColorSelector {
     pub fn new(container: &gtk::Box) -> ColorSelector {
         ColorSelector {
-            red_selector: create_spin_button(&container, "Red:", 0.0, 255.0, 1.0),
-            green_selector: create_spin_button(&container, "Green:", 0.0, 255.0, 1.0),
-            blue_selector: create_spin_button(&container, "Blue:", 0.0, 255.0, 1.0),
+            red_selector: create_spin_button(&container, "Red:", 0.0, 0.0, 255.0, 1.0),
+            green_selector: create_spin_button(&container, "Green:", 0.0, 0.0, 255.0, 1.0),
+            blue_selector: create_spin_button(&container, "Blue:", 0.0, 0.0, 255.0, 1.0),
             opacity_selector: None,
             color_code: None,
             current_color_view: None,

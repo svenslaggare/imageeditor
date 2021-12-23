@@ -318,6 +318,9 @@ impl Program {
                     }
                 }
             }
+            glfw::WindowEvent::Key(Key::N, _, Action::Press, Modifiers::Control) => {
+                self.actions.trigger(ProgramAction::NewImage);
+            }
             glfw::WindowEvent::Key(Key::O, _, Action::Press, Modifiers::Control) => {
                 self.actions.trigger(ProgramAction::OpenImage);
             }
@@ -729,6 +732,7 @@ impl Program {
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum ProgramAction {
+    NewImage,
     OpenImage,
     SaveImageAs,
     ResizeImage,

@@ -12,7 +12,7 @@ pub fn create_file_dialog<F: Fn(&GTKProgram, PathBuf) -> bool + 'static>(window:
                                                                          gtk_program: GTKProgramRef,
                                                                          title: &str,
                                                                          action: FileChooserAction,
-                                                                         on_file: F) -> Rc<gtk::FileChooserDialog> {
+                                                                         on_file: F) -> gtk::FileChooserDialog {
     let file_filter = gtk::FileFilter::new();
     file_filter.add_pattern("*.png");
     file_filter.add_pattern("*.jpg");
@@ -42,8 +42,6 @@ pub fn create_file_dialog<F: Fn(&GTKProgram, PathBuf) -> bool + 'static>(window:
         (action_name, gtk::ResponseType::Ok),
         ("Cancel", gtk::ResponseType::Cancel),
     ]);
-
-    let file_dialog = Rc::new(file_dialog);
 
     file_dialog.connect_delete_event(|_, _| {
         Inhibit(true)
@@ -91,10 +89,11 @@ pub fn create_entry(container: &gtk::Box, label: &str, default_value: &str) -> g
     entry_widget
 }
 
-pub fn create_spin_button(container: &gtk::Box, label: &str, min: f64, max: f64, step: f64) -> gtk::SpinButton {
+pub fn create_spin_button(container: &gtk::Box, label: &str, value: f64, min: f64, max: f64, step: f64) -> gtk::SpinButton {
     let box_widget = gtk::Box::new(Orientation::Horizontal, 5);
 
     let spin_button_widget = gtk::SpinButton::with_range(min, max, step);
+    spin_button_widget.set_value(value);
 
     let label_widget = gtk::Label::builder()
         .label(label)

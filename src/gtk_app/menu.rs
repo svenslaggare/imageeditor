@@ -9,7 +9,7 @@ use gtk::prelude::*;
 use gtk::{GLArea, gio, Application, ApplicationWindow, glib, FileChooserAction, ResponseType, Orientation};
 
 use crate::gtk_app::{GTKProgram, GTKProgramRef};
-use crate::gtk_app::helpers::{create_entry, create_file_dialog, create_dialog, get_action_area};
+use crate::gtk_app::helpers::{create_entry, create_file_dialog, create_dialog, get_action_area, create_spin_button};
 use crate::command_buffer::{Command, BackgroundType};
 use crate::program::{ProgramAction, ProgramActionData};
 use crate::editor::editor::ImageFormat;
@@ -115,6 +115,7 @@ fn add_new_image_dialog(app: &Application,
     let new_image = gio::SimpleAction::new("new_image", None);
 
     let new_image_dialog = create_dialog(window, "New image");
+    new_image_dialog.set_width_request(220);
     get_action_area(&new_image_dialog).set_property("halign", gtk::Align::Center).unwrap();
 
     new_image_dialog.add_buttons(&[
@@ -122,8 +123,16 @@ fn add_new_image_dialog(app: &Application,
         ("Cancel", gtk::ResponseType::Cancel)
     ]);
 
-    let entry_width = create_entry(&new_image_dialog.content_area(), "Width: ", "1280");
-    let entry_height = create_entry(&new_image_dialog.content_area(), "Height:", "800");
+    let new_image_dialog_clone = new_image_dialog.clone();
+    gtk_program.actions.borrow_mut().insert(
+        ProgramAction::NewImage,
+        Box::new(move |_| {
+            new_image_dialog_clone.show_all();
+        })
+    );
+
+    let entry_width = create_spin_button(&new_image_dialog.content_area(), "Width: ", 1280.0, 1.0, 100000.0, 1.0);
+    let entry_height = create_spin_button(&new_image_dialog.content_area(), "Height: ", 800.0, 1.0, 100000.0, 1.0);
 
     let background_group = gtk::Box::new(gtk::Orientation::Vertical, 2);
 
@@ -146,35 +155,31 @@ fn add_new_image_dialog(app: &Application,
     background_white.join_group(Some(&background_transparent));
     new_image_dialog.content_area().add(&background_group);
 
-    let new_file_dialog = Rc::new(new_image_dialog);
-
-    let new_file_dialog_clone = new_file_dialog.clone();
+    let new_image_dialog_clone = new_image_dialog.clone();
     new_image.connect_activate(glib::clone!(@weak window => move |_, _| {
-        new_file_dialog_clone.show_all();
+        new_image_dialog_clone.show_all();
     }));
 
     let gtk_program_clone = gtk_program.clone();
-    new_file_dialog.connect_response(move |dialog, response| {
+    new_image_dialog.connect_response(move |dialog, response| {
         match response {
             ResponseType::Ok => {
-                match (u32::from_str(entry_width.text().as_ref()), u32::from_str(entry_height.text().as_ref())) {
-                    (Ok(width), Ok(height)) => {
-                        let background = if background_transparent.is_active() {
-                            BackgroundType::Transparent
-                        } else if background_white.is_active() {
-                            BackgroundType::Color(image::Rgba([255, 255, 255, 255]))
-                        } else {
-                            BackgroundType::Transparent
-                        };
+                let width = entry_width.value() as u32;
+                let height = entry_height.value() as u32;
 
-                        if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
-                            program.command_buffer.push(Command::NewImage(width, height, background));
-                        }
+                let background = if background_transparent.is_active() {
+                    BackgroundType::Transparent
+                } else if background_white.is_active() {
+                    BackgroundType::Color(image::Rgba([255, 255, 255, 255]))
+                } else {
+                    BackgroundType::Transparent
+                };
 
-                        dialog.hide();
-                    }
-                    _ => {}
+                if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
+                    program.command_buffer.push(Command::NewImage(width, height, background));
                 }
+
+                dialog.hide();
             }
             _ => {
                 dialog.hide();
@@ -339,30 +344,26 @@ fn add_image_menu(app: &Application,
     let layer_menu = gio::Menu::new();
     menu_bar.append_submenu(Some("_Image"), &layer_menu);
 
+    // Resize image
     layer_menu.append(Some("Resize image"), Some("app.resize_image"));
     let resize_image = gio::SimpleAction::new("resize_image", None);
-    let resize_image_dialog = create_dialog(window, "Resize image");
 
-    get_action_area(&resize_image_dialog).set_property("halign", gtk::Align::Center).unwrap();
-
-    resize_image_dialog.add_buttons(&[
-        ("Ok", gtk::ResponseType::Ok),
-        ("Cancel", gtk::ResponseType::Cancel),
-    ]);
-
-    let entry_width = Rc::new(create_entry(&resize_image_dialog.content_area(), "New width: ", "0"));
-    let entry_height = Rc::new(create_entry(&resize_image_dialog.content_area(), "New height:", "0"));
-
-    let resize_image_dialog = Rc::new(resize_image_dialog);
+    let (resize_image_dialog, (entry_width, entry_height, entry_percentage)) = create_resize_dialog(window, gtk_program.clone(), "Resize image");
 
     let gtk_program_clone = gtk_program.clone();
     let resize_image_dialog_clone = resize_image_dialog.clone();
+    let entry_percentage_clone = entry_percentage.clone();
     let entry_width_clone = entry_width.clone();
     let entry_height_clone = entry_height.clone();
-
     resize_image.connect_activate(glib::clone!(@weak window => move |_, _| {
-        entry_width_clone.set_text(&format!("{}", gtk_program_clone.program.borrow_mut().as_mut().unwrap().editor.image().width()));
-        entry_height_clone.set_text(&format!("{}", gtk_program_clone.program.borrow_mut().as_mut().unwrap().editor.image().height()));
+        // Must be before to avoid borrow issue
+        entry_percentage_clone.set_value(100.0);
+
+        let mut program = gtk_program_clone.program.borrow_mut();
+        let program = program.as_mut().unwrap();
+        entry_width_clone.set_value(program.editor.image().width() as f64);
+        entry_height_clone.set_value(program.editor.image().height() as f64);
+
         resize_image_dialog_clone.show_all();
     }));
 
@@ -370,17 +371,22 @@ fn add_image_menu(app: &Application,
     let resize_image_dialog_clone = resize_image_dialog.clone();
     let entry_width_clone = entry_width.clone();
     let entry_height_clone = entry_height.clone();
+    let entry_percentage_clone = entry_percentage.clone();
     gtk_program.actions.borrow_mut().insert(
         ProgramAction::ResizeImage,
         Box::new(move |requested_size| {
+            // Must be before to avoid borrow issue
+            entry_percentage_clone.set_value(100.0);
+
             if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
                 let (width, height) = match requested_size {
                     ProgramActionData::Size(width, height, _) => (width, height),
                     _ => (program.editor.image().width(), program.editor.image().height())
                 };
 
-                entry_width_clone.set_text(&format!("{}", width));
-                entry_height_clone.set_text(&format!("{}", height));
+                entry_width_clone.set_value(width as f64);
+                entry_height_clone.set_value(height as f64);
+
                 resize_image_dialog_clone.show_all();
             }
         })
@@ -392,16 +398,13 @@ fn add_image_menu(app: &Application,
     resize_image_dialog.connect_response(move |dialog, response| {
         match response {
             ResponseType::Ok => {
-                match parse_new_size(gtk_program_clone.deref(), entry_width_clone.as_ref(), entry_height_clone.as_ref()) {
-                    Some((width, height)) => {
-                        if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
-                            program.command_buffer.push(Command::ResizeImage(width, height));
-                        }
-
-                        dialog.hide();
-                    }
-                    _ => {}
+                let width = entry_width_clone.value() as u32;
+                let height = entry_height_clone.value() as u32;
+                if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
+                    program.command_buffer.push(Command::ResizeImage(width, height));
                 }
+
+                dialog.hide();
             }
             _ => {
                 dialog.hide();
@@ -413,30 +416,23 @@ fn add_image_menu(app: &Application,
     // Resize canvas
     layer_menu.append(Some("Resize canvas"), Some("app.resize_canvas"));
     let resize_canvas = gio::SimpleAction::new("resize_canvas", None);
-    let resize_canvas_dialog = create_dialog(window, "Resize canvas");
-
-    resize_canvas_dialog.set_width_request(200);
-    get_action_area(&resize_canvas_dialog).set_property("halign", gtk::Align::Center).unwrap();
-
-    resize_canvas_dialog.add_buttons(&[
-        ("Ok", gtk::ResponseType::Ok),
-        ("Cancel", gtk::ResponseType::Cancel),
-    ]);
-
-    let entry_width = Rc::new(create_entry(&resize_canvas_dialog.content_area(), "New width: ", "0"));
-    let entry_height = Rc::new(create_entry(&resize_canvas_dialog.content_area(), "New height:", "0"));
-
-    let resize_canvas_dialog = Rc::new(resize_canvas_dialog);
+    let (resize_canvas_dialog, (entry_width, entry_height, entry_percentage)) = create_resize_dialog(window, gtk_program.clone(), "Resize canvas");
+    resize_canvas_dialog.set_width_request(300);
 
     let gtk_program_clone = gtk_program.clone();
     let resize_canvas_dialog_clone = resize_canvas_dialog.clone();
     let entry_width_clone = entry_width.clone();
     let entry_height_clone = entry_height.clone();
+    let entry_percentage_clone = entry_percentage.clone();
     resize_canvas.connect_activate(glib::clone!(@weak window => move |_, _| {
+        // Must be before to avoid borrow issue
+        entry_percentage_clone.set_value(100.0);
+
         if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
-            entry_width_clone.set_text(&format!("{}", program.editor.image().width()));
-            entry_height_clone.set_text(&format!("{}", program.editor.image().height()));
+            entry_width_clone.set_value(program.editor.image().width() as f64);
+            entry_height_clone.set_value( program.editor.image().height() as f64);
             resize_canvas_dialog_clone.set_title("Resize canvas");
+
             resize_canvas_dialog_clone.show_all();
         }
     }));
@@ -445,17 +441,21 @@ fn add_image_menu(app: &Application,
     let resize_canvas_dialog_clone = resize_canvas_dialog.clone();
     let entry_width_clone = entry_width.clone();
     let entry_height_clone = entry_height.clone();
+    let entry_percentage_clone = entry_percentage.clone();
     gtk_program.actions.borrow_mut().insert(
         ProgramAction::ResizeCanvas,
         Box::new(move |requested_size| {
+            // Must be before to avoid borrow issue
+            entry_percentage_clone.set_value(100.0);
+
             if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
                 let (width, height, message) = match requested_size {
                     ProgramActionData::Size(width, height, message) => (width, height, message),
                     _ => (program.editor.image().width(), program.editor.image().height(), None)
                 };
 
-                entry_width_clone.set_text(&format!("{}", width));
-                entry_height_clone.set_text(&format!("{}", height));
+                entry_width_clone.set_value(width as f64);
+                entry_height_clone.set_value(height as f64);
                 if let Some(message) = message {
                     resize_canvas_dialog_clone.set_title(&message);
                 } else {
@@ -473,16 +473,13 @@ fn add_image_menu(app: &Application,
     resize_canvas_dialog.connect_response(move |dialog, response| {
         match response {
             ResponseType::Ok => {
-                match parse_new_size(gtk_program_clone.deref(), entry_width_clone.as_ref(), entry_height_clone.as_ref()) {
-                    Some((width, height)) => {
-                        if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
-                            program.command_buffer.push(Command::ResizeCanvas(width, height));
-                        }
-
-                        dialog.hide();
-                    }
-                    _ => {}
+                let width = entry_width_clone.value() as u32;
+                let height = entry_height_clone.value() as u32;
+                if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
+                    program.command_buffer.push(Command::ResizeCanvas(width, height));
                 }
+
+                dialog.hide();
             }
             _ => {
                 if let Some(program) = gtk_program_clone.program.borrow_mut().as_mut() {
@@ -494,6 +491,41 @@ fn add_image_menu(app: &Application,
         }
     });
     app.add_action(&resize_canvas);
+}
+
+fn create_resize_dialog(window: &ApplicationWindow,
+                        gtk_program: GTKProgramRef,
+                        title: &str) -> (gtk::Dialog, (gtk::SpinButton, gtk::SpinButton, gtk::SpinButton)) {
+    let resize_dialog = create_dialog(window, title);
+    resize_dialog.set_width_request(250);
+
+    get_action_area(&resize_dialog).set_property("halign", gtk::Align::Center).unwrap();
+
+    resize_dialog.add_buttons(&[
+        ("Ok", gtk::ResponseType::Ok),
+        ("Cancel", gtk::ResponseType::Cancel),
+    ]);
+
+    let entry_percentage = create_spin_button(&resize_dialog.content_area(), "Percentage:", 100.0, 1.0, 1000.0, 1.0);
+    let entry_width = create_spin_button(&resize_dialog.content_area(), &format!("{: <17}", "Width:"), 1.0, 1.0, 100000.0, 1.0);
+    let entry_height = create_spin_button(&resize_dialog.content_area(), &format!("{: <17}", "Height:"), 1.0, 1.0, 100000.0, 1.0);
+
+    let gtk_program_clone = gtk_program.clone();
+    let entry_width_clone = entry_width.clone();
+    let entry_height_clone = entry_height.clone();
+    entry_percentage.connect_value_changed(move |button| {
+        let mut program = gtk_program_clone.program.borrow_mut();
+        let program = program.as_mut().unwrap();
+        let percentage = button.value() / 100.0;
+
+        let new_width = (program.editor.image().width() as f64 * percentage).max(1.0) as u32;
+        let new_height = (program.editor.image().height() as f64 * percentage).max(1.0) as u32;
+
+        entry_width_clone.set_value(new_width as f64);
+        entry_height_clone.set_value(new_height as f64);
+    });
+
+    (resize_dialog, (entry_width.clone(), entry_height.clone(), entry_percentage.clone()))
 }
 
 fn add_layers_menu(app: &Application,
