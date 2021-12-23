@@ -1,7 +1,11 @@
 # ImageEditor
-ImageEditor for Linux implemented using GTK3, OpenGL and Rust.
+ImageEditor for Linux using gtk3.
 
 ![](screenshot.png)
+
+## Requirements
+* gtk3
+* OpenGL
 
 ## Build
 * Requires cargo (https://rustup.rs/)
