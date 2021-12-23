@@ -1,8 +1,19 @@
 [package]
 name = "imageeditor"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Anton Jansson <anton_jansson@live.se>"]
 edition = "2018"
+description = "Simple ImageEditor"
+license = "MIT"
+homepage = "https://github.com/svenslaggare/imageeditor"
+
+[package.metadata.deb]
+depends = "libgtk-3-0,libfreetype6,libglfw3"
+assets = [
+    ["target/release/imageeditor", "usr/local/imageeditor/imageeditor", "755"],
+    ["deb_imageeditor.sh", "usr/bin/imageeditor", "755"],
+    ["content/**/*", "usr/local/imageeditor/content", "644"],
+]
 
 [dependencies]
 glfw = "0.35.0"

@@ -8,7 +8,7 @@ use cgmath::{Matrix3, Matrix4, Matrix, SquareMatrix};
 use glfw::{Key, Action, Modifiers};
 
 use crate::command_buffer::{CommandBuffer, Command, BackgroundType};
-use crate::{editor, ui};
+use crate::{editor, ui, content};
 use crate::rendering::shader::Shader;
 use crate::rendering::prelude::{Position, Rectangle, Color, Color4, Size};
 use crate::rendering::texture_render::TextureRender;
@@ -63,7 +63,7 @@ impl Program {
         let width = editor.image().width();
         let height = editor.image().height();
 
-        let transparent_background_image = image::open("content/ui/checkerboard.png").unwrap().into_rgba();
+        let transparent_background_image = image::open(content::get_path("content/ui/checkerboard.png")).unwrap().into_rgba();
         let transparent_background_texture = Texture::from_image(&transparent_background_image);
         transparent_background_texture.bind();
         unsafe {
@@ -802,23 +802,23 @@ impl Renders {
     pub fn new() -> Renders {
         Renders {
             texture_render: ShaderAndRender::new(
-                Shader::new("content/shaders/texture.vs", "content/shaders/texture.fs", None).unwrap(),
+                Shader::new(&content::get_path("content/shaders/texture.vs"), &content::get_path("content/shaders/texture.fs"), None).unwrap(),
                 TextureRender::new()
             ),
             rectangle_render: ShaderAndRender::new(
-                Shader::new("content/shaders/rectangle.vs", "content/shaders/rectangle.fs", None).unwrap(),
+                Shader::new(&content::get_path("content/shaders/rectangle.vs"), &content::get_path("content/shaders/rectangle.fs"), None).unwrap(),
                 RectangleRender::new()
             ),
             solid_rectangle_render: ShaderAndRender::new(
-                Shader::new("content/shaders/solid_rectangle.vs", "content/shaders/solid_rectangle.fs", None).unwrap(),
+                Shader::new(&content::get_path("content/shaders/solid_rectangle.vs"), &content::get_path("content/shaders/solid_rectangle.fs"), None).unwrap(),
                 SolidRectangleRender::new()
             ),
             text_render: ShaderAndRender::new(
-                Shader::new("content/shaders/text.vs", "content/shaders/text.fs", None).unwrap(),
+                Shader::new(&content::get_path("content/shaders/text.vs"), &content::get_path("content/shaders/text.fs"), None).unwrap(),
                 TextRender::new()
             ),
-            ui_font: Rc::new(RefCell::new(Font::new("content/fonts/NotoMono-Regular.ttf", 16).unwrap())),
-            ui_font_small: Rc::new(RefCell::new(Font::new("content/fonts/NotoMono-Regular.ttf", 14).unwrap()))
+            ui_font: Rc::new(RefCell::new(Font::new(&content::get_path("content/fonts/NotoMono-Regular.ttf"), 16).unwrap())),
+            ui_font_small: Rc::new(RefCell::new(Font::new(&content::get_path("content/fonts/NotoMono-Regular.ttf"), 14).unwrap()))
         }
     }
 }

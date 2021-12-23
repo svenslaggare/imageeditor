@@ -16,6 +16,7 @@ use crate::editor::image_operation_helpers::hsv_to_rgb;
 use crate::ui::button::{SolidColorButton};
 use crate::ui::manager::BoxGenericButton;
 use crate::program::{LEFT_SIDE_PANEL_WIDTH, TOP_PANEL_HEIGHT, ProgramAction, ProgramActionData};
+use crate::content;
 
 pub fn create() -> Manager {
     let mut buttons = Vec::<BoxGenericButton>::new();
@@ -64,19 +65,19 @@ fn generate_draw_tools(buttons: &mut Vec<BoxGenericButton>) {
         );
     };
 
-    add_tool_button(Tools::Pencil, "content/ui/pencil.png");
-    add_tool_button(Tools::BlockPencil, "content/ui/block_pencil.png");
-    add_tool_button(Tools::Eraser, "content/ui/eraser.png");
-    add_tool_button(Tools::Line, "content/ui/line.png");
-    add_tool_button(Tools::Rectangle, "content/ui/rectangle.png");
-    add_tool_button(Tools::Circle, "content/ui/circle.png");
-    add_tool_button(Tools::BucketFill, "content/ui/fill.png");
-    add_tool_button(Tools::ColorPicker, "content/ui/color_picker.png");
-    add_tool_button(Tools::ColorGradient, "content/ui/color_gradient.png");
-    add_tool_button(Tools::Selection(SelectionSubTool::Select), "content/ui/selection.png");
-    add_tool_button(Tools::Selection(SelectionSubTool::MovePixels), "content/ui/move.png");
-    add_tool_button(Tools::Selection(SelectionSubTool::ResizePixels), "content/ui/resize.png");
-    add_tool_button(Tools::Selection(SelectionSubTool::RotatePixels), "content/ui/rotate.png");
+    add_tool_button(Tools::Pencil, &content::get_path("content/ui/pencil.png"));
+    add_tool_button(Tools::BlockPencil, &content::get_path("content/ui/block_pencil.png"));
+    add_tool_button(Tools::Eraser, &content::get_path("content/ui/eraser.png"));
+    add_tool_button(Tools::Line, &content::get_path("content/ui/line.png"));
+    add_tool_button(Tools::Rectangle, &content::get_path("content/ui/rectangle.png"));
+    add_tool_button(Tools::Circle, &content::get_path("content/ui/circle.png"));
+    add_tool_button(Tools::BucketFill, &content::get_path("content/ui/fill.png"));
+    add_tool_button(Tools::ColorPicker, &content::get_path("content/ui/color_picker.png"));
+    add_tool_button(Tools::ColorGradient, &content::get_path("content/ui/color_gradient.png"));
+    add_tool_button(Tools::Selection(SelectionSubTool::Select), &content::get_path("content/ui/selection.png"));
+    add_tool_button(Tools::Selection(SelectionSubTool::MovePixels), &content::get_path("content/ui/move.png"));
+    add_tool_button(Tools::Selection(SelectionSubTool::ResizePixels), &content::get_path("content/ui/resize.png"));
+    add_tool_button(Tools::Selection(SelectionSubTool::RotatePixels), &content::get_path("content/ui/rotate.png"));
 }
 
 fn generate_color_palette(buttons: &mut Vec<BoxGenericButton>) {

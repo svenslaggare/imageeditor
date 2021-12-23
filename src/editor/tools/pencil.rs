@@ -2,7 +2,7 @@ use glfw::{WindowEvent, Action};
 use cgmath::{Matrix3, Transform, Matrix4};
 
 use crate::rendering::prelude::{Position, Rectangle};
-use crate::{editor};
+use crate::{editor, content};
 use crate::command_buffer::{Command, CommandBuffer};
 use crate::editor::tools::{Tool, get_transformed_mouse_position, EditorWindow};
 use crate::editor::image_operation::{ImageOperation, ImageOperationMarker};
@@ -42,8 +42,8 @@ impl PencilDrawTool {
                 None,
             ),
             anti_aliasing_checkbox: Checkbox::new(
-                &image::open("content/ui/checkbox_unchecked.png").unwrap().into_rgba(),
-                &image::open("content/ui/checkbox_checked.png").unwrap().into_rgba(),
+                &image::open(content::get_path("content/ui/checkbox_unchecked.png")).unwrap().into_rgba(),
+                &image::open(content::get_path("content/ui/checkbox_checked.png")).unwrap().into_rgba(),
                 renders.ui_font.clone(),
                 "Anti-aliasing".to_owned(),
                 true,

@@ -12,5 +12,5 @@ ImageEditor for Linux using gtk3.
 
 ## Build
 * Requires cargo (https://rustup.rs/)
-* Build with `cargo build --release`
-* Build output in `target/release/imageeditor`
+* Build with `cargo build --release && ./package.sh`
+* Build output in `imageeditor.zip`

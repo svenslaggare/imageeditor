@@ -8,7 +8,7 @@ use crate::editor::tools::{Tool, Tools, EditorWindow};
 use crate::command_buffer::{Command, CommandBuffer};
 use crate::editor::image_operation::{ImageOperation};
 use crate::rendering::shader::Shader;
-use crate::editor;
+use crate::{editor, content};
 use crate::rendering::texture_render::TextureRender;
 use crate::rendering::framebuffer::FrameBuffer;
 
@@ -42,7 +42,7 @@ impl EffectDrawTool {
     }
 
     fn try_create_shader(&mut self) {
-        match Shader::new(VERTEX_SHADER_FILENAME, &self.shader_filename, None) {
+        match Shader::new(&content::get_path(VERTEX_SHADER_FILENAME), &self.shader_filename, None) {
             Ok(shader) => {
                 println!("Loaded shader: {}.", self.shader_filename);
                 self.shader = Some(shader);

@@ -1,5 +1,6 @@
 mod program;
 mod helpers;
+mod content;
 mod command_buffer;
 mod rendering;
 mod ui;
